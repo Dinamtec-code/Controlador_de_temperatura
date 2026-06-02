@@ -1,0 +1,25 @@
+\chapter[Especificaciones]{Especificaciones}
+\label{cp:especificaciones}
+{
+\section{Actualizacion, 2 de junio de 2026}
+Especificaciones del sistema en desarrollo. Estas especificaciones pueden ser modificadas a lo largo del proyecto, pero es importante tener una base clara desde el principio para guiar el diseño y desarrollo del controlador de temperatura.
+
+\begin{itemize}
+    \item Seguridad: El diseño debe cumplir con las normativas de seguridad del laboratorio, evitando riesgos para los estudiantes y el equipo.
+    \item Corriente máxima de salida: 10 A continuos (DC).
+    \item Tensión máxima de salida: 24 V.
+    \item Ancho de banda: DC a \qty{10}{\hertz}.
+    \item Precisión en DC: offset menor a \qty{5}{\milli\volt} (si puede ser menos, mejor).
+    \item Ruido de salida menor a \qty{10}{\milli\volt}
+    \item Sistemas de protección: El diseño debe incluir protecciones contra sobrecorriente, sobretensión, cortocircuitos y sobrecalentamiento para garantizar la seguridad y la durabilidad del equipo.
+    \item Interfaz de control: El controlador debe ser controlable a través de una interfaz digital (por ejemplo, USB, Ethernet o RS-232) para permitir su integración con sistemas de adquisición de datos y controladores externos.
+    \item El equipo debe soportar comandos SCPI para facilitar su integración con software de control y adquisición de datos comúnmente utilizado en laboratorios.
+    \item Interfaz de usuario: El Controlador debe contar con una interfaz de usuario intuitiva para facilitar su operación por parte de los estudiantes y el personal del laboratorio, incluyendo indicadores de estado y controles de ajuste de la salida.
+\end{itemize}
+
+\section{historial de cambios:}
+\begin{itemize}
+    \item \textbf{ 2 de junio del 2026:} Se establecieron las especificaciones del sistema en desarrollo. 
+\end{itemize}
+
+}

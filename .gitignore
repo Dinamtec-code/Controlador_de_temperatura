@@ -1,0 +1,59 @@
+# Firmware build artifacts
+firmware/**/Debug/
+firmware/**/Release/
+firmware/**/build/
+firmware/**/*.o
+firmware/**/*.elf
+firmware/**/*.hex
+firmware/**/*.bin
+firmware/**/*.map
+firmware/**/*.d
+
+# Hardware - PCB (gerber se pueden versionar pero son pesados)
+hardware/**/*.gerber.db
+hardware/**/*.gt2
+hardware/**/CAM/
+hardware/**/~*
+
+# Hardware - Autodesk Inventor/Mechanical
+hardware/**/*.stl
+hardware/**/*.ipt
+hardware/**/*.iam
+hardware/**/*.idw
+hardware/**/*.ipn
+
+# Hardware - CircuitMaker exports (PDF se pueden versionar)
+# hardware/**/*.cmp
+# hardware/**/*.cms
+
+# Documentation build artifacts
+docs/build/
+docs/**/*.aux
+docs/**/*.log
+docs/**/*.toc
+docs/**/*.out
+docs/**/*.lof
+docs/**/*.lot
+docs/**/*.fls
+docs/**/*.fdb_latexmk
+docs/**/*.synctex.gz
+docs/**/*.bcf
+docs/**/*.run.xml
+docs/**/*.acr
+docs/**/*.alg
+docs/**/*.glg
+docs/**/*.glo
+docs/**/*.gls
+docs/**/*.slg
+docs/**/*.sls
+docs/**/*.blg
+docs/**/*.bbl
+docs/**/*.ist
+
+# IDE
+.vscode/
+.settings/
+*.code-workspace
+.project
+.cproject
+.mxproject

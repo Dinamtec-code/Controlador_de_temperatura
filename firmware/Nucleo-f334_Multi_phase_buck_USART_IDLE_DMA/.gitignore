@@ -1,0 +1,10 @@
+/Debug/
+/Release/
+/build/
+*.o
+*.elf
+*.hex
+*.bin
+*.map
+*.d
+*.exe
