@@ -1,0 +1,42 @@
+\chapter[Arquitectura General del Amplificador]{Arquitectura General del Amplificador}
+\label{cp:arquitecturaGeneral}
+{
+	En esta sección se presenta una descripción general de la arquitectura del amplificador lineal de potencia, destacando los componentes principales y su función dentro del sistema. Se abordarán aspectos como la etapa de entrada, la etapa de amplificación, la etapa de salida y los sistemas de protección y control.
+
+	\section{El controlador de temperatura}
+	Actualmente para no hay en el alboratorio un controlador de temperatura y solo se deja evolucionar la temperatura midiendo en los trancitorios y estacionarios. El objetivo de este proyecto es desarrollar un controlador de temperatura que permita mantener una temperatura constante con alta precisión, lo que es fundamental para una amplia gama de experimentos en el laboratorio, no solo para tener la bariable controlada sino tambien para acelerar los largo transitorios de termalización de los experimentos. El controlador de temperatura desarrollado se integrará con el sistema de adquisición de datos del laboratorio, permitiendo un control preciso y una fácil monitorización de la temperatura durante los experimentos.
+
+	\subsection{Estado del arte}
+	\begin{itemize}
+		\item Etapa de salida: Puentes H con transistores MOSFET de potencia en configuración push-pull para manejar las altas corrientes y tensiones requeridas, con un diseño que minimice las pérdidas de conmutación y maximice la eficiencia.
+		\item Control de la etapa de salida: modulación por ancho de pulso (PWM) para controlar la potencia entregada a la carga, con un controlador de retroalimentación para mantener la temperatura constante.
+		\item Filtro de salida: Un filtro LC para suavizar la señal de salida y reducir el ruido, asegurando una entrega de potencia estable y precisa a la carga.
+		\item Control y medición: Un microcontrolador o FPGA para implementar el control del amplificador, la adquisición de datos de los sensores de corriente y tensión, y la comunicación con la interfaz de usuario.
+		\item Sistemas de protección: Circuitos de protección contra sobrecorriente, sobretensión, cortocircuitos y sobrecalentamiento para garantizar la seguridad y la durabilidad del equipo.
+		\item Medición de corriente y tensión: sensores de corriente y tensión de alta precisión para monitorear la salida del amplificador y proporcionar retroalimentación al controlador.
+		\item Interfaz de usuario: Pantalla LCD o LED para mostrar el estado del amplificador, controles de ajuste para configurar la salida y botones para encender/apagar el dispositivo.
+	\end{itemize}
+
+	\subsection{Etapa de salida}
+
+	\subsection{Medición de corriente y tensión}
+
+	\subsection{Sistemas de protección}
+
+	\section{El panel de frontal}
+
+	\subsection{Controles}
+
+	\subsection{Indicadores}
+
+	\subsection{Display}
+
+	\section{Interfaz de control remoto y programación}
+	
+	\subsection{Interfaces de comunicación}
+
+	\subsection{Protocolos de comunicación}
+	
+	\subsection{Comandos SCPI}
+
+}

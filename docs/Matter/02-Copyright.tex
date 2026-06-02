@@ -1,0 +1,24 @@
+\pagenumbering{gobble} % Prevent page numbering.
+
+\vspace*{\fill}
+
+\ifthenelse{\equal{\LanguageOption}{spanish}}{%
+    \noindent \textbf{\GetTitle}
+    
+    \noindent Copyright \textcopyright~\the\year{} - \GetFirstAuthor, \GetSchool.
+    
+    \vspace{.575em}
+    
+    \noindent Este trabajo ... descargo correspondiente.
+}{%
+    \noindent \textbf{\GetTitle}
+    
+    \noindent Copyright \textcopyright~\the\year{} - \GetFirstAuthor, \GetSchool.
+    
+    \vspace{.575em}
+    
+    \noindent This dissertation is an original work, elaborated exclusively for this film, I tend to be carefully cited by all the authors who have contributed to its elaboration.
+}
+
+\vspace*{\fill}
+\MediaOptionLogic
