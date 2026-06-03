@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "main.h"
 #include "hardware/circular_buffer.h"
 
 #define USART_HW_RX_BUFFER_SIZE 128

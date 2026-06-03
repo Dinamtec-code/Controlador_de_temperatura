@@ -21,6 +21,13 @@ set(CMAKE_OBJCOPY "${ARM_TOOLCHAIN_PATH}/bin/${TOOLCHAIN_PREFIX}objcopy.exe")
 set(CMAKE_OBJDUMP "${ARM_TOOLCHAIN_PATH}/bin/${TOOLCHAIN_PREFIX}objdump.exe")
 set(CMAKE_SIZE_UTIL "${ARM_TOOLCHAIN_PATH}/bin/${TOOLCHAIN_PREFIX}size.exe")
 
+# Find make program - try common locations
+if(EXISTS "C:/msys64/mingw64/bin/mingw32-make.exe")
+    set(CMAKE_MAKE_PROGRAM "C:/msys64/mingw64/bin/mingw32-make.exe" CACHE PATH "Make program" FORCE)
+elseif(EXISTS "C:/msys64/usr/bin/make.exe")
+    set(CMAKE_MAKE_PROGRAM "C:/msys64/usr/bin/make.exe" CACHE PATH "Make program" FORCE)
+endif()
+
 set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
 
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)

@@ -1,7 +1,9 @@
 #include "hardware/usart_hw.h"
 #include "hardware/circular_buffer.h"
 #include "usart.h"
+#include "dma.h"
 
+circular_buffer_t rx_circular_buffer;
 static uint8_t rx_buffer[USART_HW_RX_BUFFER_SIZE];
 
 void usart_hw_init(void)

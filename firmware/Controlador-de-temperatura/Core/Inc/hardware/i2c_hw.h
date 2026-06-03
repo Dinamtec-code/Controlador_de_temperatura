@@ -2,6 +2,7 @@
 #define I2C_HW_H
 
 #include <stdint.h>
+#include "main.h"
 
 #define I2C_HW_LCD_ADDRESS 0x78
 
