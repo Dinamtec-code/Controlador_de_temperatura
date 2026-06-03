@@ -288,10 +288,6 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 }
 
 void uartOnReceive() {
-	if (SdInBufferState == BUFFER_busy) {
-		printf("Buffer busy\n\r");
-		return;
-	}
 	uint32_t bytes_received = DMA_RX_BUFFER_SIZE - hdma_usart2_rx.Instance->CNDTR;
 	memset(sdin_buffer, 0, SDIN_BUFFER_SIZE);
 	if (bytes_received > 0 && bytes_received < SDIN_BUFFER_SIZE) {
@@ -307,10 +303,8 @@ void uartSetReady() {
 }
 
 void ReceptionStart() {
-	if (SdInBufferState == BUFFER_idle) {
-		memset(sdin_buffer, 0, SDIN_BUFFER_SIZE);
-		uartReceive();
-	}
+	memset(sdin_buffer, 0, SDIN_BUFFER_SIZE);
+	uartReceive();
 }
 
 HAL_UART_StateTypeDef uartReceive() {
@@ -339,6 +333,10 @@ uint8_t uartIsReady() {
 
 BufferStateTypeDef sdinIsBusy() {
 	return SdInBufferState;
+}
+
+void uartConsumeData() {
+	SdInBufferState = BUFFER_idle;
 }
 
 /* USER CODE END 1 */

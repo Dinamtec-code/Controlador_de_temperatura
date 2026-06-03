@@ -97,6 +97,7 @@ HAL_StatusTypeDef sendChar(char ch);
 void ReceptionStart();
 void uartSetReady();
 void uartOnReceive();
+void uartConsumeData();
 HAL_UART_StateTypeDef uartReceive();
 uint8_t* uartGetData();
 uint8_t uartIsReady();
