@@ -5,7 +5,8 @@
 
 #define TASK_PERIOD_MS 20
 
-typedef enum {
+typedef enum
+{
     TASK_COMM,
     TASK_SYSTEM,
     TASK_CONTROL,

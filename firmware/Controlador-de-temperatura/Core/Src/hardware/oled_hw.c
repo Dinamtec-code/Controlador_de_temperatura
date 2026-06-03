@@ -10,12 +10,12 @@ extern I2C_HandleTypeDef hi2c1;
 #define OLED_HEIGHT 64
 #define OLED_PAGES (OLED_HEIGHT / 8)
 #define OLED_BUFFER_SIZE (OLED_WIDTH * OLED_PAGES)
-#define OLED_REAL_WIDTH 132  // SH1106 has 132 column RAM
+#define OLED_REAL_WIDTH 132 // SH1106 has 132 column RAM
 
 static uint8_t oled_buffer[OLED_BUFFER_SIZE];
-static uint8_t i2c_tx_buf[OLED_REAL_WIDTH + 1];  // Need 132 + control byte
+static uint8_t i2c_tx_buf[OLED_REAL_WIDTH + 1]; // Need 132 + control byte
 
-static uint8_t oled_ram_frame[OLED_REAL_WIDTH * OLED_PAGES]; // Real frame buffer for SH1106
+// static uint8_t oled_ram_frame[OLED_REAL_WIDTH * OLED_PAGES]; // Real frame buffer for SH1106
 
 static void oled_send_cmd(uint8_t cmd)
 {
@@ -70,10 +70,11 @@ void oled_hw_clear(void)
 
 void oled_hw_update(void)
 {
-    for (uint8_t page = 0; page < OLED_PAGES; page++) {
+    for (uint8_t page = 0; page < OLED_PAGES; page++)
+    {
         oled_send_cmd(0xB0 | page);
-        oled_send_cmd(0x02);  // low column = 2 (SH1106 offset)
-        oled_send_cmd(0x10);  // high column = 0
+        oled_send_cmd(0x02); // low column = 2 (SH1106 offset)
+        oled_send_cmd(0x10); // high column = 0
         oled_send_data_buffer(&oled_buffer[page * OLED_WIDTH], OLED_WIDTH);
     }
 }
@@ -81,7 +82,8 @@ void oled_hw_update(void)
 void oled_hw_test_pattern(void)
 {
     oled_hw_clear();
-    for (int i = 0; i < OLED_BUFFER_SIZE; i++) {
+    for (int i = 0; i < OLED_BUFFER_SIZE; i++)
+    {
         oled_buffer[i] = 0xFF * (i % 2);
     }
     oled_hw_update();
@@ -148,7 +150,7 @@ static const uint8_t ssd1306xled_font6x8[] = {
     0x00, 0x07, 0x08, 0x70, 0x08, 0x07, // Y
     0x00, 0x61, 0x51, 0x49, 0x45, 0x43, // Z
     0x00, 0x00, 0x7F, 0x41, 0x41, 0x00, // [
-    0x00, 0x02, 0x04, 0x08, 0x10, 0x20, // 
+    0x00, 0x02, 0x04, 0x08, 0x10, 0x20, //
     0x00, 0x00, 0x41, 0x41, 0x7F, 0x00, // ]
     0x00, 0x04, 0x02, 0x01, 0x02, 0x04, // ^
     0x00, 0x40, 0x40, 0x40, 0x40, 0x40, // _
@@ -184,11 +186,14 @@ static const uint8_t ssd1306xled_font6x8[] = {
 
 static void oled_draw_char(uint8_t c, uint8_t x, uint8_t page)
 {
-    if (c < 32 || c > 122) return;
+    if (c < 32 || c > 122)
+        return;
     c -= 32;
 
-    for (int col = 0; col < 6; col++) {
-        if (x + col < OLED_WIDTH) {
+    for (int col = 0; col < 6; col++)
+    {
+        if (x + col < OLED_WIDTH)
+        {
             oled_buffer[page * OLED_WIDTH + x + col] = ssd1306xled_font6x8[c * 6 + col];
         }
     }
@@ -199,7 +204,8 @@ void oled_hw_print_num(int num, uint8_t page)
     char buf[12];
     snprintf(buf, sizeof(buf), "%d", num);
 
-    for (int i = 0; buf[i] != '\0'; i++) {
+    for (int i = 0; buf[i] != '\0'; i++)
+    {
         oled_draw_char(buf[i], i * 6, page);
     }
 }
@@ -207,10 +213,20 @@ void oled_hw_print_num(int num, uint8_t page)
 void oled_hw_print_float(float val, uint8_t page)
 {
     char buf[12];
-    snprintf(buf, sizeof(buf), "%.2f", val);
 
-    for (int i = 0; buf[i] != '\0'; i++) {
-        if (buf[i] == 'f') continue; 
+    // Separar parte entera y decimal (con 2 decimales de precisión)
+    int int_part = (int)val;
+    int dec_part = (int)((val - (float)int_part) * 100.0f);
+
+    // Manejar números negativos para los decimales
+    if (dec_part < 0)
+        dec_part = -dec_part;
+
+    // Imprimir usando solo enteros (%d)
+    snprintf(buf, sizeof(buf), "%d.%02d", int_part, dec_part);
+
+    for (int i = 0; buf[i] != '\0'; i++)
+    {
         oled_draw_char(buf[i], i * 6, page);
     }
 }
