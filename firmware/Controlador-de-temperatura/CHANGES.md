@@ -1,4 +1,4 @@
-# Nucleo-f334 Multi Phase Buck - USART IDLE DMA
+# Controlador de Temperatura - Firmware STM32
 
 ## Mejoras Realizadas
 
@@ -49,7 +49,7 @@ build.bat
 
 ### Flashear
 ```bash
-STM32_Programmer_CLI.exe -c port=SWD -w Multi_phase_buck.hex -r 0x08000000 -v
+STM32_Programmer_CLI.exe -c port=SWD -w Controlador-de-temperatura.hex -r 0x08000000 -v
 ```
 
 ## Estado Actual del Firmware

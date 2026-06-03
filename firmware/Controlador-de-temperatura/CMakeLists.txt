@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 
 # Project settings
-set(PROJECT_NAME "Multi_phase_buck")
+set(PROJECT_NAME "Controlador-de-temperatura")
 project(${PROJECT_NAME} C ASM)
 
 # Target settings for STM32F334R8 (Cortex-M4, FPU)

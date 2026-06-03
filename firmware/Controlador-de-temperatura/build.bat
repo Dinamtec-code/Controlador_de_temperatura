@@ -14,7 +14,7 @@ set CFLAGS=%CFLAGS% -ICore/Inc -IDrivers/STM32F3xx_HAL_Driver/Inc -IDrivers/STM3
 
 REM Linker flags  
 set LDFLAGS=-mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard --specs=nano.specs --specs=nosys.specs
-set LDFLAGS=%LDFLAGS% -TSTM32F334R8Tx_FLASH.ld -Wl,-Map=Multi_phase_buck.map,--cref -Wl,--gc-sections
+set LDFLAGS=%LDFLAGS% -TSTM32F334R8Tx_FLASH.ld -Wl,-Map=Controlador-de-temperatura.map,--cref -Wl,--gc-sections
 
 REM Source files
 set HAL_SRC=Drivers\STM32F3xx_HAL_Driver\Src\stm32f3xx_hal.c ^
@@ -51,12 +51,12 @@ echo Compiling...
 %CC% %CFLAGS% -c %APP_SRC%
 
 echo Linking...
-%CC% %LDFLAGS% *.o startup\startup_stm32f334x8.s -o Multi_phase_buck.elf
+%CC% %LDFLAGS% *.o startup\startup_stm32f334x8.s -o Controlador-de-temperatura.elf
 
 echo Generating hex...
-%OBJCOPY% -O ihex Multi_phase_buck.elf Multi_phase_buck.hex
+%OBJCOPY% -O ihex Controlador-de-temperatura.elf Controlador-de-temperatura.hex
 
 echo Size report:
-%SIZE% Multi_phase_buck.elf
+%SIZE% Controlador-de-temperatura.elf
 
 echo Build complete!
