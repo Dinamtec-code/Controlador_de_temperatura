@@ -5,7 +5,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static const scpi_input_interface_t *input_iface = NULL;
+static const scpi_output_interface_t *output_iface = NULL;
 static const scpi_interface_t *scpi_iface = NULL;
+
+void scpi_init(const scpi_interface_t* iface)
+{
+    scpi_iface = iface;
+    input_iface = NULL;
+    output_iface = NULL;
+}
 
 static void send_response(const char *resp)
 {

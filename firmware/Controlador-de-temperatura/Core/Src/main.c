@@ -29,7 +29,7 @@
 /* Hardware abstraction layer */
 #include "hardware/usart_hw.h"
 #include "hardware/adc_hw.h"
-#include "hardware/lcd_hw.h"
+#include "hardware/oled_hw.h"
 #include "hardware/hrtim_hw.h"
 #include "hardware/i2c_hw.h"
 
@@ -181,7 +181,7 @@ int main(void)
   /* Initialize hardware layers */
   usart_hw_init();
   adc_hw_init();
-  lcd_hw_init();
+  oled_hw_init();
   hrtim_hw_init();
   error_handler_init();
 
@@ -233,7 +233,7 @@ void SystemClock_Config(void)
    * in the RCC_OscInitTypeDef structure.
    */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
-  RCC_OscInitStruct.HSEState = RCC_HSE_BYPASS;
+  RCC_OscInitStruct.HSEState = RCC_HSE_ON;
   RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
