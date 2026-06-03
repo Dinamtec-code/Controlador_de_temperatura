@@ -13,6 +13,8 @@
 - **Buffer circular inicializado correctamente**: `BufferStartOffset=0`, `BufferEndOffset=0`
 - **Protección de race conditions**: `sendChar()` y `__io_putchar()` usan `__disable_irq()`/`__enable_irq()`
 - **Mejorado manejo de buffer**: Cambiado `Error_Handler()` por retorno `HAL_ERROR` en overflow
+- **Recepción DMA no bloqueante**: Los datos se copian y se reinicia la recepción inmediatamente, no se espera a que el buffer esté libre
+- **Nueva función `uartConsumeData()`**: Llama después de procesar datos para liberar el buffer
 
 ### hrtim.c
 - **Corregido TIMER_B duplicado**: Línea 133 tenía configuración duplicada, se cambió por TIMER_C
