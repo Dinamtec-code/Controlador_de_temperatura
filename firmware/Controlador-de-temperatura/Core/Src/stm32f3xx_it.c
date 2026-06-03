@@ -1,27 +1,28 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file    stm32f3xx_it.c
-  * @brief   Interrupt Service Routines.
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2019 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file    stm32f3xx_it.c
+ * @brief   Interrupt Service Routines.
+ ******************************************************************************
+ * @attention
+ *
+ * <h2><center>&copy; Copyright (c) 2019 STMicroelectronics.
+ * All rights reserved.</center></h2>
+ *
+ * This software component is licensed by ST under BSD 3-Clause license,
+ * the "License"; You may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at:
+ *                        opensource.org/licenses/BSD-3-Clause
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f3xx_it.h"
 #include "usart.h"
+#include "hardware/usart_hw.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
@@ -33,7 +34,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
- 
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -66,11 +67,11 @@ extern UART_HandleTypeDef huart2;
 /* USER CODE END EV */
 
 /******************************************************************************/
-/*           Cortex-M4 Processor Interruption and Exception Handlers          */ 
+/*           Cortex-M4 Processor Interruption and Exception Handlers          */
 /******************************************************************************/
 /**
-  * @brief This function handles System tick timer.
-  */
+ * @brief This function handles System tick timer.
+ */
 void SysTick_Handler(void)
 {
   /* USER CODE BEGIN SysTick_IRQn 0 */
@@ -78,7 +79,7 @@ void SysTick_Handler(void)
   /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();
   /* USER CODE BEGIN SysTick_IRQn 1 */
-
+  scheduler_systick_handler();
   /* USER CODE END SysTick_IRQn 1 */
 }
 
@@ -90,8 +91,8 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
-  * @brief This function handles DMA1 channel1 global interrupt.
-  */
+ * @brief This function handles DMA1 channel1 global interrupt.
+ */
 void DMA1_Channel1_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
@@ -104,8 +105,8 @@ void DMA1_Channel1_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles DMA1 channel6 global interrupt.
-  */
+ * @brief This function handles DMA1 channel6 global interrupt.
+ */
 void DMA1_Channel6_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Channel6_IRQn 0 */
@@ -118,8 +119,8 @@ void DMA1_Channel6_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles DMA1 channel7 global interrupt.
-  */
+ * @brief This function handles DMA1 channel7 global interrupt.
+ */
 void DMA1_Channel7_IRQHandler(void)
 {
   /* USER CODE BEGIN DMA1_Channel7_IRQn 0 */
@@ -132,19 +133,19 @@ void DMA1_Channel7_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles USART2 global interrupt / USART2 wake-up interrupt through EXT line 26.
-  */
+ * @brief This function handles USART2 global interrupt / USART2 wake-up interrupt through EXT line 26.
+ */
 void USART2_IRQHandler(void)
 {
   /* USER CODE BEGIN USART2_IRQn 0 */
-
-  /* USER CODE END USART2_IRQn 0 */
-  HAL_UART_IRQHandler(&huart2);
-  /* USER CODE BEGIN USART2_IRQn 1 */
-  if(huart2.Instance->ISR & USART_ISR_IDLE){
-	  huart2.Instance->ICR = USART_ICR_IDLECF;
-	  uartSetReady();
+  if (huart2.Instance->ISR & USART_ISR_IDLE)
+  {
+    huart2.Instance->ICR = USART_ICR_IDLECF;
+    usart_hw_idle_handler();
   }
+  /* USER CODE END USART2_IRQn 0 */
+  /* USER CODE BEGIN USART2_IRQn 1 */
+
   /* USER CODE END USART2_IRQn 1 */
 }
 

@@ -77,3 +77,12 @@ $env:Path += ";$(Split-Path $openocd)"
 
 Write-Host "Setup complete. Build with: build.bat"
 Write-Host "Flash with: .\flash.ps1"
+
+# Download FreeRTOS if needed
+$rtosDir = Join-Path $ToolsDir "FreeRTOS"
+if (-not (Test-Path "$rtosDir/include/tasks.h")) {
+    Write-Host "Downloading FreeRTOS portable..."
+    $freertosUrl = "https://raw.githubusercontent.com/FreeRTOS/FreeRTOS/main/FreeRTOS/Source/include/tasks.h"
+    # For now, just note the requirement
+    Write-Warning "FreeRTOS requires manual installation or download. See setup.ps1 for details."
+}

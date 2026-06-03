@@ -1,18 +1,18 @@
 /**
   ******************************************************************************
-  * File Name          : HRTIM.c
-  * Description        : This file provides code for the configuration
-  *                      of the HRTIM instances.
+  * @file    hrtim.c
+  * @brief   This file provides code for the configuration
+  *          of the HRTIM instances.
   ******************************************************************************
   * @attention
   *
-  * <h2><center>&copy; Copyright (c) 2019 STMicroelectronics.
+  * <h2><center>&copy; Copyright (c) 2026 STMicroelectronics.
   * All rights reserved.</center></h2>
   *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with the
-  * License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
+  * This software component is licensed by ST under Ultimate Liberty license
+  * SLA0044, the "License"; You may not use this file except in compliance with
+  * the License. You may obtain a copy of the License at:
+  *                             www.st.com/SLA0044
   *
   ******************************************************************************
   */
@@ -29,6 +29,11 @@ HRTIM_HandleTypeDef hhrtim1;
 /* HRTIM1 init function */
 void MX_HRTIM1_Init(void)
 {
+
+  /* USER CODE BEGIN HRTIM1_Init 0 */
+
+  /* USER CODE END HRTIM1_Init 0 */
+
   HRTIM_ADCTriggerCfgTypeDef pADCTriggerCfg = {0};
   HRTIM_TimeBaseCfgTypeDef pTimeBaseCfg = {0};
   HRTIM_TimerCfgTypeDef pTimerCfg = {0};
@@ -36,6 +41,9 @@ void MX_HRTIM1_Init(void)
   HRTIM_DeadTimeCfgTypeDef pDeadTimeCfg = {0};
   HRTIM_OutputCfgTypeDef pOutputCfg = {0};
 
+  /* USER CODE BEGIN HRTIM1_Init 1 */
+
+  /* USER CODE END HRTIM1_Init 1 */
   hhrtim1.Instance = HRTIM1;
   hhrtim1.Init.HRTIMInterruptResquests = HRTIM_IT_NONE;
   hhrtim1.Init.SyncOptions = HRTIM_SYNCOPTION_NONE;
@@ -57,7 +65,7 @@ void MX_HRTIM1_Init(void)
   {
     Error_Handler();
   }
-  pTimeBaseCfg.Period = 63999;
+  pTimeBaseCfg.Period = 64000;
   pTimeBaseCfg.RepetitionCounter = 0x00;
   pTimeBaseCfg.PrescalerRatio = HRTIM_PRESCALERRATIO_MUL32;
   pTimeBaseCfg.Mode = HRTIM_MODE_CONTINUOUS;
@@ -87,30 +95,7 @@ void MX_HRTIM1_Init(void)
   {
     Error_Handler();
   }
-  pCompareCfg.CompareValue = 16000;
-  if (HAL_HRTIM_WaveformCompareConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_A, HRTIM_COMPAREUNIT_1, &pCompareCfg) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_HRTIM_WaveformCompareConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_B, HRTIM_COMPAREUNIT_1, &pCompareCfg) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  pCompareCfg.CompareValue = 16000;
-  if (HAL_HRTIM_WaveformCompareConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_C, HRTIM_COMPAREUNIT_1, &pCompareCfg) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_HRTIM_WaveformCompareConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_D, HRTIM_COMPAREUNIT_1, &pCompareCfg) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  pCompareCfg.CompareValue = 16000;
-  if (HAL_HRTIM_WaveformCompareConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_E, HRTIM_COMPAREUNIT_1, &pCompareCfg) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  pCompareCfg.CompareValue = 31999;
+  pCompareCfg.CompareValue = 32000;
   if (HAL_HRTIM_WaveformCompareConfig(&hhrtim1, HRTIM_TIMERINDEX_MASTER, HRTIM_COMPAREUNIT_2, &pCompareCfg) != HAL_OK)
   {
     Error_Handler();
@@ -120,33 +105,14 @@ void MX_HRTIM1_Init(void)
   {
     Error_Handler();
   }
-  pTimeBaseCfg.Period = 63900;
+  pTimeBaseCfg.Period = 0xFFDF;
   pTimeBaseCfg.Mode = HRTIM_MODE_SINGLESHOT_RETRIGGERABLE;
   if (HAL_HRTIM_TimeBaseConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_A, &pTimeBaseCfg) != HAL_OK)
   {
     Error_Handler();
   }
-  if (HAL_HRTIM_TimeBaseConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_B, &pTimeBaseCfg) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_HRTIM_TimeBaseConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_C, &pTimeBaseCfg) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_HRTIM_TimeBaseConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_D, &pTimeBaseCfg) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  if (HAL_HRTIM_TimeBaseConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_E, &pTimeBaseCfg) != HAL_OK)
-  {
-    Error_Handler();
-  }
   pTimerCfg.InterruptRequests = HRTIM_TIM_IT_NONE;
   pTimerCfg.DMARequests = HRTIM_TIM_DMA_NONE;
-  pTimerCfg.DMASrcAddress = 0x0000;
-  pTimerCfg.DMADstAddress = 0x0000;
-  pTimerCfg.DMASize = 0x1;
   pTimerCfg.PushPull = HRTIM_TIMPUSHPULLMODE_DISABLED;
   pTimerCfg.FaultEnable = HRTIM_TIMFAULTENABLE_NONE;
   pTimerCfg.FaultLock = HRTIM_TIMFAULTLOCK_READWRITE;
@@ -159,25 +125,16 @@ void MX_HRTIM1_Init(void)
   {
     Error_Handler();
   }
-  pTimerCfg.DMASrcAddress = 0x0000;
-  pTimerCfg.DMADstAddress = 0x0000;
-  pTimerCfg.DMASize = 0x1;
   pTimerCfg.ResetTrigger = HRTIM_TIMRESETTRIGGER_MASTER_CMP2;
   if (HAL_HRTIM_WaveformTimerConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_B, &pTimerCfg) != HAL_OK)
   {
     Error_Handler();
   }
-  pTimerCfg.DMASrcAddress = 0x0000;
-  pTimerCfg.DMADstAddress = 0x0000;
-  pTimerCfg.DMASize = 0x1;
   pTimerCfg.ResetTrigger = HRTIM_TIMRESETTRIGGER_MASTER_PER;
   if (HAL_HRTIM_WaveformTimerConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_C, &pTimerCfg) != HAL_OK)
   {
     Error_Handler();
   }
-  pTimerCfg.DMASrcAddress = 0x0000;
-  pTimerCfg.DMADstAddress = 0x0000;
-  pTimerCfg.DMASize = 0x1;
   pTimerCfg.DelayedProtectionMode = HRTIM_TIMER_D_E_DELAYEDPROTECTION_DISABLED;
   pTimerCfg.ResetTrigger = HRTIM_TIMRESETTRIGGER_MASTER_CMP2;
   if (HAL_HRTIM_WaveformTimerConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_D, &pTimerCfg) != HAL_OK)
@@ -185,20 +142,22 @@ void MX_HRTIM1_Init(void)
     Error_Handler();
   }
   pTimerCfg.InterruptRequests = HRTIM_MASTER_IT_NONE;
-  pTimerCfg.DMASrcAddress = 0x0000;
-  pTimerCfg.DMADstAddress = 0x0000;
-  pTimerCfg.DMASize = 0x1;
   pTimerCfg.ResetTrigger = HRTIM_TIMRESETTRIGGER_MASTER_PER;
   if (HAL_HRTIM_WaveformTimerConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_E, &pTimerCfg) != HAL_OK)
   {
     Error_Handler();
   }
+  pCompareCfg.CompareValue = 0x4FDF;
+  if (HAL_HRTIM_WaveformCompareConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_A, HRTIM_COMPAREUNIT_1, &pCompareCfg) != HAL_OK)
+  {
+    Error_Handler();
+  }
   pDeadTimeCfg.Prescaler = HRTIM_TIMDEADTIME_PRESCALERRATIO_MUL8;
-  pDeadTimeCfg.RisingValue = 200;
+  pDeadTimeCfg.RisingValue = 100;
   pDeadTimeCfg.RisingSign = HRTIM_TIMDEADTIME_RISINGSIGN_POSITIVE;
   pDeadTimeCfg.RisingLock = HRTIM_TIMDEADTIME_RISINGLOCK_READONLY;
   pDeadTimeCfg.RisingSignLock = HRTIM_TIMDEADTIME_RISINGSIGNLOCK_READONLY;
-  pDeadTimeCfg.FallingValue = 200;
+  pDeadTimeCfg.FallingValue = 100;
   pDeadTimeCfg.FallingSign = HRTIM_TIMDEADTIME_FALLINGSIGN_POSITIVE;
   pDeadTimeCfg.FallingLock = HRTIM_TIMDEADTIME_FALLINGLOCK_READONLY;
   pDeadTimeCfg.FallingSignLock = HRTIM_TIMDEADTIME_FALLINGSIGNLOCK_READONLY;
@@ -277,7 +236,16 @@ void MX_HRTIM1_Init(void)
   {
     Error_Handler();
   }
+  if (HAL_HRTIM_WaveformCompareConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_B, HRTIM_COMPAREUNIT_1, &pCompareCfg) != HAL_OK)
+  {
+    Error_Handler();
+  }
   if (HAL_HRTIM_TimeBaseConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_C, &pTimeBaseCfg) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  pCompareCfg.CompareValue = 0x5FDF;
+  if (HAL_HRTIM_WaveformCompareConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_C, HRTIM_COMPAREUNIT_1, &pCompareCfg) != HAL_OK)
   {
     Error_Handler();
   }
@@ -285,10 +253,22 @@ void MX_HRTIM1_Init(void)
   {
     Error_Handler();
   }
+  if (HAL_HRTIM_WaveformCompareConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_D, HRTIM_COMPAREUNIT_1, &pCompareCfg) != HAL_OK)
+  {
+    Error_Handler();
+  }
   if (HAL_HRTIM_TimeBaseConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_E, &pTimeBaseCfg) != HAL_OK)
   {
     Error_Handler();
   }
+  pCompareCfg.CompareValue = 0x6FDF;
+  if (HAL_HRTIM_WaveformCompareConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_E, HRTIM_COMPAREUNIT_1, &pCompareCfg) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN HRTIM1_Init 2 */
+
+  /* USER CODE END HRTIM1_Init 2 */
   HAL_HRTIM_MspPostInit(&hhrtim1);
 
 }
@@ -318,11 +298,11 @@ void HAL_HRTIM_MspPostInit(HRTIM_HandleTypeDef* hrtimHandle)
   /* USER CODE BEGIN HRTIM1_MspPostInit 0 */
 
   /* USER CODE END HRTIM1_MspPostInit 0 */
-  
+
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
     __HAL_RCC_GPIOA_CLK_ENABLE();
-    /**HRTIM1 GPIO Configuration    
+    /**HRTIM1 GPIO Configuration
     PB12     ------> HRTIM1_CHC1
     PB13     ------> HRTIM1_CHC2
     PB14     ------> HRTIM1_CHD1
@@ -332,7 +312,7 @@ void HAL_HRTIM_MspPostInit(HRTIM_HandleTypeDef* hrtimHandle)
     PA8     ------> HRTIM1_CHA1
     PA9     ------> HRTIM1_CHA2
     PA10     ------> HRTIM1_CHB1
-    PA11     ------> HRTIM1_CHB2 
+    PA11     ------> HRTIM1_CHB2
     */
     GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_14|GPIO_PIN_15;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -376,7 +356,7 @@ void HAL_HRTIM_MspDeInit(HRTIM_HandleTypeDef* hrtimHandle)
 
   /* USER CODE END HRTIM1_MspDeInit 1 */
   }
-} 
+}
 
 /* USER CODE BEGIN 1 */
 
