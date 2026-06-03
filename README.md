@@ -11,13 +11,34 @@ Proyecto multifase Buck para control de temperatura con firmware reutilizable y 
 │       ├── Drivers/        # CMSIS y HAL drivers
 │       ├── startup/        # Código de arranque
 │       ├── CMakeLists.txt  # Build system
-│       └── build.bat       # Build script
+│       ├── build.bat       # Build script (Windows)
+│       ├── flash.ps1       # Flash script (auto-detect OpenOCD)
+│       └── setup.ps1       # Download OpenOCD portable if needed
 ├── hardware/
 │   ├── pcb/              # (futuro) Esquemáticos, gerber, imágenes PCB
 │   ├── mecanical/        # (futuro) Planos STL, archivos Inventor
 │   └── README.md         # Índice de archivos de hardware
 └── docs/
     └── main.tex          # Documentación del sistema (LaTeX)
+```
+
+## Setup Multiplataforma
+
+Requisitos:
+- GNU Arm Embedded Toolchain (10.3 o posterior)
+- CMake
+- OpenOCD (auto-detección o descarga automática)
+
+```powershell
+# Setup automático (descarga OpenOCD si no existe)
+cd firmware/Controlador-de-temperatura
+.\setup.ps1
+
+# Compilar
+.\build.bat
+
+# Flashear (detecta OpenOCD de AC6, STM32CubeProgrammer o portable)
+.\flash.ps1
 ```
 
 ## Firmware
