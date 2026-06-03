@@ -98,44 +98,24 @@ add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
     COMMENT "Generating hex and binary files..."
 )
 
-# Flash target
-set(STLINK_CLI "C:/Program Files/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin/STM32_Programmer_CLI.exe")
-if(EXISTS "${STLINK_CLI}")
+# Flash target using OpenOCD (falls back to STM32CubeProgrammer)
+set(OPENOCD_EXE "C:/Ac6/SystemWorkbench/plugins/fr.ac6.mcu.externaltools.openocd.win32_1.23.0.201904120827/tools/openocd/bin/openocd.exe")
+if(EXISTS "${OPENOCD_EXE}")
     add_custom_target(flash
-        COMMAND "${STLINK_CLI}" -c port=SWD -w ${PROJECT_NAME}.hex -r 0x08000000 -v
-        COMMAND "${STLINK_CLI}" -c port=SWD -hardrst
+        COMMAND "${OPENOCD_EXE}" -f interface/stlink.cfg -f target/stm32f3x.cfg -c "program ${PROJECT_NAME}.hex verify reset exit"
         DEPENDS ${PROJECT_NAME}.elf
-        COMMENT "Flashing device..."
-    )
-endif()
-
-# Compiler flags
-set(COMMON_FLAGS "-mcpu=${TARGET_CPU} -mthumb ${TARGET_FPU} -Wall -O2 -g3 -ffunction-sections -fdata-sections")
-set(CMAKE_C_FLAGS "${COMMON_FLAGS}" CACHE STRING "" FORCE)
-set(CMAKE_ASM_FLAGS "${COMMON_FLAGS}" CACHE STRING "" FORCE)
-
-# Linker flags
-set(LINKER_FLAGS "-mcpu=${TARGET_CPU} -mthumb ${TARGET_FPU} --specs=nano.specs --specs=nosys.specs -T${CMAKE_SOURCE_DIR}/STM32F334R8Tx_FLASH.ld -Wl,-Map=${PROJECT_NAME}.map,--cref -Wl,--gc-sections -Wl,--print-memory-usage")
-
-# Custom targets for post-build
-add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
-    COMMAND "${ARM_TOOLCHAIN_PATH}/bin/${TOOLCHAIN_PREFIX}objcopy.exe" -O ihex $<TARGET_FILE:${PROJECT_NAME}.elf> ${PROJECT_NAME}.hex
-    COMMAND "${ARM_TOOLCHAIN_PATH}/bin/${TOOLCHAIN_PREFIX}objcopy.exe" -O binary $<TARGET_FILE:${PROJECT_NAME}.elf> ${PROJECT_NAME}.bin
-    COMMAND "${ARM_TOOLCHAIN_PATH}/bin/${TOOLCHAIN_PREFIX}size.exe" $<TARGET_FILE:${PROJECT_NAME}.elf>
-    COMMENT "Generating hex and binary files..."
-)
-
-# Flash target
-set(STLINK_CLI "C:/Program Files/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin/STM32_Programmer_CLI.exe")
-if(EXISTS "${STLINK_CLI}")
-    add_custom_target(flash
-        COMMAND "${STLINK_CLI}" -c port=SWD -w ${PROJECT_NAME}.hex -r 0x08000000 -v
-        COMMAND "${STLINK_CLI}" -c port=SWD -hardrst
-        DEPENDS ${PROJECT_NAME}.elf
-        COMMENT "Flashing device..."
+        COMMENT "Flashing device with OpenOCD..."
     )
 else()
-    message(STATUS "STM32_Programmer_CLI not found at ${STLINK_CLI}")
+    set(STLINK_CLI "C:/Program Files/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin/STM32_Programmer_CLI.exe")
+    if(EXISTS "${STLINK_CLI}")
+        add_custom_target(flash
+            COMMAND "${STLINK_CLI}" -c port=SWD -w ${PROJECT_NAME}.hex -r 0x08000000 -v
+            COMMAND "${STLINK_CLI}" -c port=SWD -hardrst
+            DEPENDS ${PROJECT_NAME}.elf
+            COMMENT "Flashing device..."
+        )
+    endif()
 endif()
 
 # Clean extended target

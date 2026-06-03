@@ -1,8 +1,15 @@
 # Toolchain file for STM32F334 - VS Code compatible
 # Set explicit paths based on common installation locations
 
-# Common installation paths for GNU Arm toolchain
-set(ARM_TOOLCHAIN_PATH "C:/Program Files (x86)/GNU Arm Embedded Toolchain/10 2021.10" CACHE PATH "ARM toolchain path")
+# Check for ARM_TOOLCHAIN_PATH environment variable first
+if(DEFINED ENV{ARM_TOOLCHAIN_PATH})
+    set(ARM_TOOLCHAIN_PATH "$ENV{ARM_TOOLCHAIN_PATH}" CACHE PATH "ARM toolchain path" FORCE)
+elseif(EXISTS "C:/Program Files (x86)/Arm/GNU Toolchain mingw-w64-i686-arm-none-eabi")
+    set(ARM_TOOLCHAIN_PATH "C:/Program Files (x86)/Arm/GNU Toolchain mingw-w64-i686-arm-none-eabi" CACHE PATH "ARM toolchain path" FORCE)
+else()
+    # Common installation paths for GNU Arm toolchain
+    set(ARM_TOOLCHAIN_PATH "C:/Program Files (x86)/GNU Arm Embedded Toolchain/10 2021.10" CACHE PATH "ARM toolchain path")
+endif()
 
 set(TOOLCHAIN_PREFIX "arm-none-eabi-")
 
