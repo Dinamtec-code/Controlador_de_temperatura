@@ -6,7 +6,7 @@ Proyecto multifase Buck para control de temperatura con firmware reutilizable y 
 
 ```
 ├── firmware/
-│   └── Nucleo-f334_Multi_phase_buck_USART_IDLE_DMA/
+│   └── Controlador-de-temperatura/
 │       ├── Core/           # Código fuente HAL
 │       ├── Drivers/        # CMSIS y HAL drivers
 │       ├── startup/        # Código de arranque
@@ -38,4 +38,4 @@ P,180  - Set fase
 F,150k - Set frecuencia (ej: 150000)
 ```
 
-Ver `firmware/Nucleo-f334_Multi_phase_buck_USART_IDLE_DMA/CHANGES.md` para detalles de implementación.
+Ver `firmware/Controlador-de-temperatura/CHANGES.md` para detalles de implementación.
