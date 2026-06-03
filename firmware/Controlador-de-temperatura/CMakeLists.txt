@@ -79,6 +79,7 @@ set(APP_SOURCES
     Core/Src/hardware/usart_hw.c
     Core/Src/hardware/adc_hw.c
     Core/Src/hardware/lcd_hw.c
+    Core/Src/hardware/oled_hw.c
     Core/Src/hardware/hrtim_hw.c
     Core/Src/hardware/i2c_hw.c
     # Tasks

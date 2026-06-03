@@ -8,7 +8,7 @@ set INCLUDES=-ICore\Inc -IDrivers\STM32F3xx_HAL_Driver\Inc -IDrivers\STM32F3xx_H
 set LDFLAGS=-mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard --specs=nano.specs --specs=nosys.specs -TSTM32F334R8Tx_FLASH.ld -Wl,--gc-sections
 
 echo Compiling application sources...
-for %%f in (Core\Src\main.c Core\Src\stm32f3xx_it.c Core\Src\stm32f3xx_hal_msp.c Core\Src\system_stm32f3xx.c Core\Src\syscalls.c Core\Src\usart.c Core\Src\hrtim.c Core\Src\adc.c Core\Src\gpio.c Core\Src\dma.c Core\Src\hardware\circular_buffer.c Core\Src\hardware\usart_hw.c Core\Src\hardware\adc_hw.c Core\Src\hardware\oled_hw.c Core\Src\hardware\hrtim_hw.c Core\Src\hardware\i2c_hw.c Core\Src\tasks\scheduler.c Core\Src\tasks\task_comm.c Core\Src\tasks\task_system.c Core\Src\tasks\task_control.c Core\Src\tasks\task_ui.c Core\Src\services\scpi_parser.c Core\Src\services\error_handler.c Core\Src\control\pid_controller.c startup\startup_stm32f334x8.s) do (
+for %%f in (Core\Src\main.c Core\Src\stm32f3xx_it.c Core\Src\stm32f3xx_hal_msp.c Core\Src\system_stm32f3xx.c Core\Src\syscalls.c Core\Src\usart.c Core\Src\hrtim.c Core\Src\adc.c Core\Src\gpio.c Core\Src\dma.c Core\Src\hardware\circular_buffer.c Core\Src\hardware\usart_hw.c Core\Src\hardware\adc_hw.c Core\Src\hardware\lcd_hw.c Core\Src\hardware\oled_hw.c Core\Src\hardware\hrtim_hw.c Core\Src\hardware\i2c_hw.c Core\Src\tasks\scheduler.c Core\Src\tasks\task_comm.c Core\Src\tasks\task_system.c Core\Src\tasks\task_control.c Core\Src\tasks\task_ui.c Core\Src\services\scpi_parser.c Core\Src\services\error_handler.c Core\Src\control\pid_controller.c startup\startup_stm32f334x8.s) do (
     echo Compiling %%f
     %ARM_BIN%\arm-none-eabi-gcc.exe -c %CFLAGS% %INCLUDES% %%f -o %%~nf.o
 )
