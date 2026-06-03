@@ -1,4 +1,5 @@
 #include "services/scpi_parser.h"
+#include "usart.h"
 #include "hardware/usart_hw.h"
 #include <string.h>
 #include <stdio.h>
@@ -6,14 +7,12 @@
 
 static const scpi_interface_t *scpi_iface = NULL;
 
-void scpi_init(const scpi_interface_t *iface)
-{
-    scpi_iface = iface;
-}
-
 static void send_response(const char *resp)
 {
-    usart_hw_send_str(resp);
+    for (size_t i = 0; resp[i] != '\0'; i++) {
+        sendChar(resp[i]);
+    }
+    TransmitionStart(&TxbufferHandler);
 }
 
 void scpi_process_line(const char* command)

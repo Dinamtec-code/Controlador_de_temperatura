@@ -1,5 +1,6 @@
 #include "hardware/lcd_hw.h"
-#include "stm32f3xx_hal_i2c.h"
+#include "main.h"
+#include "hardware/i2c_hw.h"
 #include <string.h>
 #include <stdio.h>
 

@@ -4,8 +4,8 @@
 #include <stdint.h>
 
 typedef enum {
-    HRTIM_OUTPUT_TA1,
-    HRTIM_OUTPUT_TB1
+    HRTIM_OUTPUT_CH_TA1,
+    HRTIM_OUTPUT_CH_TB1
 } hrtim_output_t;
 
 void hrtim_hw_init(void);

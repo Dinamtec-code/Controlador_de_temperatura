@@ -55,6 +55,8 @@ typedef struct C_BUFFER_HANDLER{
 	BufferStateTypeDef BufferState;
 }cBufferHandler_t;
 
+extern cBufferHandler_t TxbufferHandler;
+
 typedef enum BUFFER_TYPE{
 	dataBufferType,
 	sdoutBufferType,
