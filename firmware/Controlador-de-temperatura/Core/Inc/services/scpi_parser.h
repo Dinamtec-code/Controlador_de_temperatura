@@ -21,7 +21,20 @@ typedef struct {
     void* context;
 } scpi_interface_t;
 
+typedef struct {
+    void* context;
+    size_t (*get_rx_buffer)(uint8_t** buffer, size_t* len);
+    void (*consume_input)(void);
+} scpi_input_interface_t;
+
+typedef struct {
+    void (*send_response)(const char* resp, void* context);
+    void* context;
+} scpi_output_interface_t;
+
 void scpi_init(const scpi_interface_t* iface);
+void scpi_set_input_interface(const scpi_input_interface_t* input_iface);
+void scpi_set_output_interface(const scpi_output_interface_t* output_iface);
 void scpi_process_line(const char* command);
 
 #endif

@@ -1,6 +1,6 @@
 #include "hardware/usart_hw.h"
+#include "hardware/circular_buffer.h"
 #include "usart.h"
-#include "stm32f3xx_hal_uart.h"
 
 static uint8_t rx_buffer[USART_HW_RX_BUFFER_SIZE];
 

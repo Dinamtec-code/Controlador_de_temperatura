@@ -25,10 +25,10 @@ void task_control(void)
     float output = pid_compute(&temp_pid, temp);
 
     if (output >= 0) {
-        hrtim_hw_set_duty(HRTIM_OUTPUT_TA1, output);
-        hrtim_hw_set_duty(HRTIM_OUTPUT_TB1, 0.0f);
+        hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TA1, output);
+        hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TB1, 0.0f);
     } else {
-        hrtim_hw_set_duty(HRTIM_OUTPUT_TA1, 0.0f);
-        hrtim_hw_set_duty(HRTIM_OUTPUT_TB1, -output);
+        hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TA1, 0.0f);
+        hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TB1, -output);
     }
 }

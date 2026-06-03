@@ -21,10 +21,10 @@ void hrtim_hw_set_duty(hrtim_output_t output, float duty)
     sCompareCfg.CompareValue = compare_value;
     
     switch (output) {
-        case HRTIM_OUTPUT_TA1:
+        case HRTIM_OUTPUT_CH_TA1:
             HAL_HRTIM_WaveformCompareConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_A, HRTIM_COMPAREUNIT_1, &sCompareCfg);
             break;
-        case HRTIM_OUTPUT_TB1:
+        case HRTIM_OUTPUT_CH_TB1:
             HAL_HRTIM_WaveformCompareConfig(&hhrtim1, HRTIM_TIMERINDEX_TIMER_B, HRTIM_COMPAREUNIT_1, &sCompareCfg);
             break;
     }

@@ -1,11 +1,8 @@
 @echo off
 REM Build script for STM32F334 Temperature Controller (Refactored)
-REM Assumes GNU Arm toolchain is installed at default location
+REM ARM GNU Toolchain 15.2.Rel1
 
-set TOOLCHAIN="C:\Program Files (x86)\GNU Arm Embedded Toolchain\10 2021.10\bin"
-set CC=%TOOLCHAIN%\arm-none-eabi-gcc.exe
-set OBJCOPY=%TOOLCHAIN%\arm-none-eabi-objcopy.exe
-set SIZE=%TOOLCHAIN%\arm-none-eabi-size.exe
+call "C:\Program Files (x86)\Arm\GNU Toolchain mingw-w64-i686-arm-none-eabi\gccvar.bat"
 
 REM Compiler flags
 set CFLAGS=-mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard -Wall -O2 -g3 -ffunction-sections -fdata-sections
@@ -63,16 +60,16 @@ Core\Src\services\error_handler.c ^
 Core\Src\control\pid_controller.c
 
 echo Compiling...
-%CC% %CFLAGS% -c %HAL_SRC%
-%CC% %CFLAGS% -c %APP_SRC%
+arm-none-eabi-gcc %CFLAGS% -c %HAL_SRC%
+arm-none-eabi-gcc %CFLAGS% -c %APP_SRC%
 
 echo Linking...
-%CC% %LDFLAGS% *.o startup\startup_stm32f334x8.s -o Controlador-de-temperatura.elf -lm
+arm-none-eabi-gcc %LDFLAGS% *.o startup\startup_stm32f334x8.s -o Controlador-de-temperatura.elf -lm
 
 echo Generating hex...
-%OBJCOPY% -O ihex Controlador-de-temperatura.elf Controlador-de-temperatura.hex
+arm-none-eabi-objcopy -O ihex Controlador-de-temperatura.elf Controlador-de-temperatura.hex
 
 echo Size report:
-%SIZE% Controlador-de-temperatura.elf
+arm-none-eabi-size Controlador-de-temperatura.elf
 
 echo Build complete!

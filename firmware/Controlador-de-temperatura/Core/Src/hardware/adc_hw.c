@@ -1,4 +1,5 @@
 #include "hardware/adc_hw.h"
+#include "stm32f3xx_hal.h"
 #include "adc.h"
 
 static float temperature_actual = 0.0f;
