@@ -2,6 +2,7 @@
 #define HRTIM_HW_H
 
 #include <stdint.h>
+#include "main.h"
 
 typedef enum {
     HRTIM_OUTPUT_CH_TA1,

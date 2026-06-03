@@ -32,6 +32,9 @@ extern "C" {
 /* USER CODE END Includes */
 
 extern UART_HandleTypeDef huart2;
+extern DMA_HandleTypeDef hdma_usart2_rx;
+extern DMA_HandleTypeDef hdma_usart2_tx;
+extern uint8_t dma_uart_rx_buffer[];
 
 /* USER CODE BEGIN Private defines */
 #define DMA_TX_BUFFER_SIZE 64
