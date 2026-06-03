@@ -56,7 +56,13 @@ set(HAL_SOURCES
     Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_adc_ex.c
 )
 
-# Application source files
+# HAL I2C source
+set(HAL_I2C_SOURCE
+    Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_i2c.c
+    Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_i2c_ex.c
+)
+
+# Application source files (refactored architecture)
 set(APP_SOURCES
     Core/Src/main.c
     Core/Src/stm32f3xx_it.c
@@ -68,6 +74,24 @@ set(APP_SOURCES
     Core/Src/adc.c
     Core/Src/gpio.c
     Core/Src/dma.c
+    # Hardware abstraction layer
+    Core/Src/hardware/circular_buffer.c
+    Core/Src/hardware/usart_hw.c
+    Core/Src/hardware/adc_hw.c
+    Core/Src/hardware/lcd_hw.c
+    Core/Src/hardware/hrtim_hw.c
+    Core/Src/hardware/i2c_hw.c
+    # Tasks
+    Core/Src/tasks/scheduler.c
+    Core/Src/tasks/task_comm.c
+    Core/Src/tasks/task_system.c
+    Core/Src/tasks/task_control.c
+    Core/Src/tasks/task_ui.c
+    # Services
+    Core/Src/services/scpi_parser.c
+    Core/Src/services/error_handler.c
+    # Control
+    Core/Src/control/pid_controller.c
 )
 
 set(STARTUP_SOURCE ${CMAKE_SOURCE_DIR}/startup/startup_stm32f334x8.s)
@@ -76,6 +100,7 @@ set(STARTUP_SOURCE ${CMAKE_SOURCE_DIR}/startup/startup_stm32f334x8.s)
 add_executable(${PROJECT_NAME}.elf 
     ${APP_SOURCES}
     ${HAL_SOURCES}
+    ${HAL_I2C_SOURCE}
     ${STARTUP_SOURCE}
 )
 

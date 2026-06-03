@@ -1,5 +1,5 @@
 @echo off
-REM Build script for STM32F334 Multi Phase Buck Project
+REM Build script for STM32F334 Temperature Controller (Refactored)
 REM Assumes GNU Arm toolchain is installed at default location
 
 set TOOLCHAIN="C:\Program Files (x86)\GNU Arm Embedded Toolchain\10 2021.10\bin"
@@ -33,7 +33,9 @@ Drivers\STM32F3xx_HAL_Driver\Src\stm32f3xx_hal_pwr_ex.c ^
 Drivers\STM32F3xx_HAL_Driver\Src\stm32f3xx_hal_flash.c ^
 Drivers\STM32F3xx_HAL_Driver\Src\stm32f3xx_hal_flash_ex.c ^
 Drivers\STM32F3xx_HAL_Driver\Src\stm32f3xx_hal_adc.c ^
-Drivers\STM32F3xx_HAL_Driver\Src\stm32f3xx_hal_adc_ex.c
+Drivers\STM32F3xx_HAL_Driver\Src\stm32f3xx_hal_adc_ex.c ^
+Drivers\STM32F3xx_HAL_Driver\Src\stm32f3xx_hal_i2c.c ^
+Drivers\STM32F3xx_HAL_Driver\Src\stm32f3xx_hal_i2c_ex.c
 
 set APP_SRC=Core\Src\main.c ^
 Core\Src\stm32f3xx_it.c ^
@@ -44,14 +46,28 @@ Core\Src\usart.c ^
 Core\Src\hrtim.c ^
 Core\Src\adc.c ^
 Core\Src\gpio.c ^
-Core\Src\dma.c
+Core\Src\dma.c ^
+Core\Src\hardware\circular_buffer.c ^
+Core\Src\hardware\usart_hw.c ^
+Core\Src\hardware\adc_hw.c ^
+Core\Src\hardware\lcd_hw.c ^
+Core\Src\hardware\hrtim_hw.c ^
+Core\Src\hardware\i2c_hw.c ^
+Core\Src\tasks\scheduler.c ^
+Core\Src\tasks\task_comm.c ^
+Core\Src\tasks\task_system.c ^
+Core\Src\tasks\task_control.c ^
+Core\Src\tasks\task_ui.c ^
+Core\Src\services\scpi_parser.c ^
+Core\Src\services\error_handler.c ^
+Core\Src\control\pid_controller.c
 
 echo Compiling...
 %CC% %CFLAGS% -c %HAL_SRC%
 %CC% %CFLAGS% -c %APP_SRC%
 
 echo Linking...
-%CC% %LDFLAGS% *.o startup\startup_stm32f334x8.s -o Controlador-de-temperatura.elf
+%CC% %LDFLAGS% *.o startup\startup_stm32f334x8.s -o Controlador-de-temperatura.elf -lm
 
 echo Generating hex...
 %OBJCOPY% -O ihex Controlador-de-temperatura.elf Controlador-de-temperatura.hex
