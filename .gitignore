@@ -58,5 +58,5 @@ docs/**/*.ist
 .cproject
 .mxproject
 
-# Setup scripts (download large toolchains)
-tools/
+# Setup scripts (download large toolchains - OpenOCD portable se incluye)
+# tools/
