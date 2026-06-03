@@ -23,6 +23,7 @@
 #include "stm32f3xx_it.h"
 #include "usart.h"
 #include "hardware/usart_hw.h"
+#include "tasks/scheduler.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
