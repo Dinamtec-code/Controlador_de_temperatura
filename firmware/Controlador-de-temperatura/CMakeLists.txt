@@ -135,7 +135,7 @@ else()
     set(STLINK_CLI "C:/Program Files/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin/STM32_Programmer_CLI.exe")
     if(EXISTS "${STLINK_CLI}")
         add_custom_target(flash
-            COMMAND "${STLINK_CLI}" -c port=SWD -w ${PROJECT_NAME}.hex -r 0x08000000 -v
+            COMMAND "${STLINK_CLI}" -c port=SWD -w ${PROJECT_NAME}.hex -r 0x08000000
             COMMAND "${STLINK_CLI}" -c port=SWD -hardrst
             DEPENDS ${PROJECT_NAME}.elf
             COMMENT "Flashing device..."
