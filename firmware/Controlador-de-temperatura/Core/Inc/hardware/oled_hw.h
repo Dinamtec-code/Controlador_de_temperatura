@@ -14,5 +14,6 @@ void oled_hw_print_float(float val, uint8_t page);
 void oled_hw_print_float_at(float val, uint8_t page, uint8_t x_offset);
 void oled_hw_print_str(const char *str, uint8_t page);
 void oled_hw_print_str_at(const char *str, uint8_t page, uint8_t offset);
+void oled_draw_char_at(uint8_t c, uint8_t x, uint8_t page);
 
 #endif

@@ -79,6 +79,7 @@ extern "C"
   void TransmitionStart(cBufferHandler_t *);
   HAL_StatusTypeDef sendChar(char ch);
 
+  void comm_task(void);
   void receptionStart();
   void uartSetReady();
   void uartOnReceive();

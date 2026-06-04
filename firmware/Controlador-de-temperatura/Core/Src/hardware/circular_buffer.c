@@ -1,4 +1,5 @@
 #include "hardware/circular_buffer.h"
+#include <stdio.h>
 
 void cb_init(circular_buffer_t *cb, uint8_t *buffer, size_t size)
 {
@@ -11,12 +12,14 @@ void cb_init(circular_buffer_t *cb, uint8_t *buffer, size_t size)
 
 cb_status_t cb_put(circular_buffer_t *cb, uint8_t data)
 {
+    
     if (cb->count >= cb->size) {
         return BUF_FULL;
     }
     cb->buffer[cb->head] = data;
     cb->head = (cb->head + 1) % cb->size;
     cb->count++;
+    
     return BUF_OK;
 }
 
@@ -28,6 +31,7 @@ cb_status_t cb_get(circular_buffer_t *cb, uint8_t *data)
     *data = cb->buffer[cb->tail];
     cb->tail = (cb->tail + 1) % cb->size;
     cb->count--;
+    
     return BUF_OK;
 }
 
