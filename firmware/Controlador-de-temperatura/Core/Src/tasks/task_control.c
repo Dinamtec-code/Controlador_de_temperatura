@@ -3,10 +3,10 @@
 #include "hardware/adc_hw.h"
 #include "hardware/hrtim_hw.h"
 
-extern float def_temperatureSetpoint = 20.0f;
-extern float def_pidKp = 0.0f;
-extern float def_pidKi = 0.0f;
-extern float def_pidKd = 0.0f;
+float def_temperatureSetpoint = 20.0f;
+float def_pidKp = 0.0f;
+float def_pidKi = 0.0f;
+float def_pidKd = 0.0f;
 
 void task_control(void)
 {

@@ -261,3 +261,7 @@ void oled_hw_print_float_at(float val, uint8_t page, uint8_t x_offset)
         oled_draw_char(buf[i], x_offset + i * 6, page);
     }
 }
+
+void oled_draw_char_at(uint8_t c, uint8_t x, uint8_t page){
+    oled_draw_char(c, x, page);
+}
