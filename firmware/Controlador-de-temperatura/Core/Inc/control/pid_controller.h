@@ -12,7 +12,6 @@ typedef struct
     float output_limit_min;
     float output_limit_max;
     uint8_t initialized;
-    float prev_output;
 } pid_controller_t;
 
 void pid_init(pid_controller_t *pid, float kp, float ki, float kd);
