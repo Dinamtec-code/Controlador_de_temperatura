@@ -11,22 +11,28 @@ extern float pidKp, pidKi, pidKd;
 
 void task_control(void)
 {
-    if (!pid_initialized) {
+    if (!pid_initialized)
+    {
         pid_init(&temp_pid, pidKp, pidKi, pidKd);
         pid_set_limits(&temp_pid, -100.0f, 100.0f);
         pid_initialized = 1;
-    } else {
+    }
+    else
+    {
         pid_set_parameters(&temp_pid, pidKp, pidKi, pidKd);
     }
 
     float temp = adc_hw_read_temperature();
     float output = pid_compute(&temp_pid, temperatureSetpoint, temp);
 
-    if (output >= 0) {
+    if (output >= 0)
+    {
         hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TA1, output);
         hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TB1, 0.0f);
-    } else {
-        hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TA1, 0.0f);
-        hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TB1, output);
+    }
+    else
+    {
+        // hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TA1, 0.0f);
+        // hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TB1, output);
     }
 }

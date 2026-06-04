@@ -6,13 +6,15 @@
 void task_ui(void)
 {
     static uint32_t update_counter = 0;
+    static float temp = 20.0;
 
     update_counter++;
-    HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-    if (update_counter >= 50)
+    if (update_counter % 10 == 0)
     {
-        float temp = adc_hw_read_temperature();
         oled_hw_clear();
+
+        temp = 0.3 * adc_hw_read_temperature() + 0.7 * temp;
+
         oled_hw_print_float(temp, 2);
         oled_hw_update();
         update_counter = 0;
