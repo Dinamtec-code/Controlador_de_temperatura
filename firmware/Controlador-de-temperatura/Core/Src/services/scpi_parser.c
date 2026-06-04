@@ -77,11 +77,7 @@ void scpi_init(void)
 
 static void send_response(const char *resp)
 {
-    for (size_t i = 0; resp[i] != '\0'; i++)
-    {
-        sendChar(resp[i]);
-    }
-    TransmitionStart(&TxbufferHandler);
+    usart_hw_send_str(resp);
 }
 
 void scpi_process_line(const char *command)

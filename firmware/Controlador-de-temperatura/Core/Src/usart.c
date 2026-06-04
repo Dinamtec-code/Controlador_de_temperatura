@@ -226,22 +226,19 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *uartHandle)
 
 HAL_StatusTypeDef sendChar(char ch)
 {
-
-  if (TxbufferHandler.BufferEndOffset != TxbufferHandler.BufferStartOffset || TxbufferHandler.BufferDataLength == 0)
-  {
-    TxbufferHandler.BufferStart_p[TxbufferHandler.BufferEndOffset] =
-        (uint8_t)ch;
-    TxbufferHandler.BufferEndOffset++;
-    TxbufferHandler.BufferDataLength++;
-    if (TxbufferHandler.BufferEndOffset >= TxbufferHandler.BufferLength)
-    {
-      TxbufferHandler.BufferEndOffset = 0;
-    }
-  }
-  else
-  {
+  if (TxbufferHandler.BufferDataLength >= TxbufferHandler.BufferLength) {
     return HAL_ERROR;
   }
+  __disable_irq();
+  TxbufferHandler.BufferStart_p[TxbufferHandler.BufferEndOffset] =
+      (uint8_t)ch;
+  TxbufferHandler.BufferEndOffset++;
+  TxbufferHandler.BufferDataLength++;
+  if (TxbufferHandler.BufferEndOffset >= TxbufferHandler.BufferLength)
+  {
+    TxbufferHandler.BufferEndOffset = 0;
+  }
+  __enable_irq();
 
   return HAL_OK;
 }
@@ -268,42 +265,42 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
   if (huart->Instance == USART2)
   {
+    __disable_irq();
     if (CurrentBufferType == sdoutBufferType)
     {
-      /* Terminada la transmisi�n se cambian el inicio de datos en el buffer al calculado al inicio de la transmisi�n anterior */
       TxbufferHandler.BufferStartOffset =
           TxbufferHandler.BufferNextStartOffset;
       TxbufferHandler.BufferState = BUFFER_idle;
     }
+    __enable_irq();
   }
 }
 
 void TransmitionStart(cBufferHandler_t *bufferHandler)
 {
+  __disable_irq();
   if (huart2.gState == HAL_UART_STATE_READY)
   {
     bufferHandler->BufferState = BUFFER_busy;
-    /* Se calcula la posicion del ultimo dato en buffer mas 1 */
     bufferHandler->BufferNextStartOffset = bufferHandler->BufferStartOffset + bufferHandler->BufferDataLength;
-    /* Si los datos a enviar NO dan la vuelta al buffer */
     if (bufferHandler->BufferNextStartOffset <= bufferHandler->BufferLength)
     {
       bufferHandler->ToSend = bufferHandler->BufferDataLength;
-      /* Si el ultimo dato enviado esta al final del buffer la posicion siguiente esta en el inicio del buffer*/
       if (bufferHandler->BufferStartOffset + bufferHandler->BufferDataLength == bufferHandler->BufferLength)
       {
         bufferHandler->BufferNextStartOffset = 0;
       }
-      /* vaciado de datos */
       bufferHandler->BufferDataLength = 0;
     }
-    /* Si los datos SI dan la vuelta al buffer*/
     else
     {
       bufferHandler->ToSend = bufferHandler->BufferLength - bufferHandler->BufferStartOffset;
       bufferHandler->BufferDataLength -= bufferHandler->ToSend;
       bufferHandler->BufferNextStartOffset = 0;
     }
+  }
+  __enable_irq();
+  if (bufferHandler->BufferState == BUFFER_busy) {
     HAL_UART_Transmit_DMA(&huart2,
                           bufferHandler->BufferStart_p + bufferHandler->BufferStartOffset * bufferHandler->DataSize,
                           bufferHandler->ToSend * bufferHandler->DataSize);
