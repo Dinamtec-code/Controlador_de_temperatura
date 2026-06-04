@@ -37,33 +37,21 @@ float pid_compute(pid_controller_t *pid, float setpoint, float input)
         return 0.0f;
 
     float error = setpoint - input;
-
     float output = arm_pid_f32(&pid->cmsis_pid, error);
 
     if (output > pid->output_limit_max)
     {
         output = pid->output_limit_max;
+#if ANTI_WINDUP
+        pid->cmsis_pid.state[2] = output;
+#endif
     }
     else if (output < pid->output_limit_min)
     {
         output = pid->output_limit_min;
-    }
-
-    if (output > pid->output_limit_max)
-    {
-        output = pid->output_limit_max;
-        if (ANTI_WINDUP)
-        {
-            pid->cmsis_pid.state[2] = output; /* Anti-windup: y[n-1] = límite */
-        }
-    }
-    else if (output < pid->output_limit_min)
-    {
-        output = pid->output_limit_min;
-        if (ANTI_WINDUP)
-        {
-            pid->cmsis_pid.state[2] = output; /* Anti-windup: y[n-1] = límite */
-        }
+#if ANTI_WINDUP
+        pid->cmsis_pid.state[2] = output;
+#endif
     }
 
     return output;
