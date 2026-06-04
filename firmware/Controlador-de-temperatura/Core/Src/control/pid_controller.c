@@ -2,56 +2,51 @@
 
 void pid_init(pid_controller_t *pid, float kp, float ki, float kd)
 {
-    pid->kp = kp;
-    pid->ki = ki;
-    pid->kd = kd;
-    pid->setpoint = 0.0f;
-    pid->integral = 0.0f;
-    pid->previous_error = 0.0f;
+    pid->cmsis_pid.A0 = 0.0f;
+    pid->cmsis_pid.A1 = 0.0f;
+    pid->cmsis_pid.A2 = 0.0f;
+    pid->cmsis_pid.state[0] = 0.0f;
+    pid->cmsis_pid.state[1] = 0.0f;
+    pid->cmsis_pid.state[2] = 0.0f;
+    pid->cmsis_pid.Kp = kp;
+    pid->cmsis_pid.Ki = ki;
+    pid->cmsis_pid.Kd = kd;
     pid->output_limit_min = -100.0f;
     pid->output_limit_max = 100.0f;
-    pid->integral_limit_min = -50.0f;
-    pid->integral_limit_max = 50.0f;
     pid->initialized = 1;
+    pid->prev_output = 0.0f;
+    arm_pid_init_f32(&pid->cmsis_pid, 1);
 }
 
 void pid_set_parameters(pid_controller_t *pid, float kp, float ki, float kd)
 {
-    pid->kp = kp;
-    pid->ki = ki;
-    pid->kd = kd;
+    pid->cmsis_pid.Kp = kp;
+    pid->cmsis_pid.Ki = ki;
+    pid->cmsis_pid.Kd = kd;
+    arm_pid_init_f32(&pid->cmsis_pid, 0);
 }
 
-void pid_set_limits(pid_controller_t *pid, float out_min, float out_max, float int_min, float int_max)
+void pid_set_limits(pid_controller_t *pid, float out_min, float out_max)
 {
     pid->output_limit_min = out_min;
     pid->output_limit_max = out_max;
-    pid->integral_limit_min = int_min;
-    pid->integral_limit_max = int_max;
 }
 
-void pid_set_setpoint(pid_controller_t *pid, float setpoint)
-{
-    pid->setpoint = setpoint;
-}
-
-float pid_compute(pid_controller_t *pid, float input)
+float pid_compute(pid_controller_t *pid, float setpoint, float input)
 {
     if (!pid->initialized) return 0.0f;
     
-    float error = pid->setpoint - input;
+    float error = setpoint - input;
     
-    pid->integral += error;
-    if (pid->integral > pid->integral_limit_max) {
-        pid->integral = pid->integral_limit_max;
-    } else if (pid->integral < pid->integral_limit_min) {
-        pid->integral = pid->integral_limit_min;
+#if ANTI_WINDUP
+    if (pid->prev_output >= pid->output_limit_max && error > 0.0f) {
+        error = 0.0f;
+    } else if (pid->prev_output <= pid->output_limit_min && error < 0.0f) {
+        error = 0.0f;
     }
+#endif
     
-    float derivative = error - pid->previous_error;
-    pid->previous_error = error;
-    
-    float output = (pid->kp * error) + (pid->ki * pid->integral) + (pid->kd * derivative);
+    float output = arm_pid_f32(&pid->cmsis_pid, error);
     
     if (output > pid->output_limit_max) {
         output = pid->output_limit_max;
@@ -59,11 +54,29 @@ float pid_compute(pid_controller_t *pid, float input)
         output = pid->output_limit_min;
     }
     
+    pid->prev_output = output;
+
+    if (output > pid->output_limit_max)
+    {
+        output = pid->output_limit_max;
+        if (ANTI_WINDUP)
+        {
+            pid->cmsis_pid.state[2] = output; /* Anti-windup: y[n-1] = límite */
+        }
+    }
+    else if (output < pid->output_limit_min)
+    {
+        output = pid->output_limit_min;
+        if (ANTI_WINDUP){
+            pid->cmsis_pid.state[2] = output; /* Anti-windup: y[n-1] = límite */
+        }
+    }
+
     return output;
 }
 
 void pid_reset(pid_controller_t *pid)
 {
-    pid->integral = 0.0f;
-    pid->previous_error = 0.0f;
+    arm_pid_reset_f32(&pid->cmsis_pid);
+    pid->prev_output = 0.0f;
 }

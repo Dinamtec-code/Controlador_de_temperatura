@@ -1,21 +1,21 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * <h2><center>&copy; Copyright (c) 2019 STMicroelectronics.
-  * All rights reserved.</center></h2>
-  *
-  * This software component is licensed by ST under BSD 3-Clause license,
-  * the "License"; You may not use this file except in compliance with
-  * the License. You may obtain a copy of the License at:
-  *                        opensource.org/licenses/BSD-3-Clause
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * <h2><center>&copy; Copyright (c) 2019 STMicroelectronics.
+ * All rights reserved.</center></h2>
+ *
+ * This software component is licensed by ST under BSD 3-Clause license,
+ * the "License"; You may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at:
+ *                        opensource.org/licenses/BSD-3-Clause
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
@@ -76,57 +76,57 @@ static scpi_interface_t scpi_iface;
 
 float get_temperature_callback(void *ctx)
 {
-    (void)ctx;
-    return adc_hw_read_temperature();
+  (void)ctx;
+  return adc_hw_read_temperature();
 }
 
 float get_setpoint_callback(void *ctx)
 {
-    (void)ctx;
-    return temperatureSetpoint;
+  (void)ctx;
+  return temperatureSetpoint;
 }
 
 void set_setpoint_callback(float val, void *ctx)
 {
-    (void)ctx;
-    if (val >= 0 && val <= 200)
-        temperatureSetpoint = val;
+  (void)ctx;
+  if (val >= 0 && val <= 200)
+    temperatureSetpoint = val;
 }
 
 void set_kp_callback(float val, void *ctx)
 {
-    (void)ctx;
-    pidKp = val;
+  (void)ctx;
+  pidKp = val;
 }
 
 void set_ki_callback(float val, void *ctx)
 {
-    (void)ctx;
-    pidKi = val;
+  (void)ctx;
+  pidKi = val;
 }
 
 void set_kd_callback(float val, void *ctx)
 {
-    (void)ctx;
-    pidKd = val;
+  (void)ctx;
+  pidKd = val;
 }
 
 float get_kp_callback(void *ctx)
 {
-    (void)ctx;
-    return pidKp;
+  (void)ctx;
+  return pidKp;
 }
 
 float get_ki_callback(void *ctx)
 {
-    (void)ctx;
-    return pidKi;
+  (void)ctx;
+  return pidKi;
 }
 
 float get_kd_callback(void *ctx)
 {
-    (void)ctx;
-    return pidKd;
+  (void)ctx;
+  return pidKd;
 }
 
 /* USER CODE END PV */
@@ -143,9 +143,9 @@ void SystemClock_Config(void);
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
+ * @brief  The application entry point.
+ * @retval int
+ */
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -220,9 +220,9 @@ int main(void)
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
+ * @brief System Clock Configuration
+ * @retval None
+ */
 void SystemClock_Config(void)
 {
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
@@ -265,9 +265,9 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
@@ -277,12 +277,12 @@ void Error_Handler(void)
 
 #ifdef USE_FULL_ASSERT
 /**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
+ * @brief  Reports the name of the source file and the source line number
+ *         where the assert_param error has occurred.
+ * @param  file: pointer to the source file name
+ * @param  line: assert_param error line source number
+ * @retval None
+ */
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
