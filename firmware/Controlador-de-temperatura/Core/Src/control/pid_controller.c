@@ -1,5 +1,12 @@
 #include "control/pid_controller.h"
 
+static pid_controller_t temp_pid;
+
+pid_controller_t *get_temp_pid_instance(void)
+{
+    return &temp_pid;
+}
+
 void pid_init(pid_controller_t *pid, float kp, float ki, float kd)
 {
     pid->cmsis_pid.A0 = 0.0f;
@@ -31,12 +38,12 @@ void pid_set_limits(pid_controller_t *pid, float out_min, float out_max)
     pid->output_limit_max = out_max;
 }
 
-float pid_compute(pid_controller_t *pid, float setpoint, float input)
+float pid_compute(pid_controller_t *pid, float input)
 {
     if (!pid->initialized)
         return 0.0f;
 
-    float error = setpoint - input;
+    float error = pid->setpoint - input;
     float output = arm_pid_f32(&pid->cmsis_pid, error);
 
     if (output > pid->output_limit_max)
@@ -60,4 +67,41 @@ float pid_compute(pid_controller_t *pid, float setpoint, float input)
 void pid_reset(pid_controller_t *pid)
 {
     arm_pid_reset_f32(&pid->cmsis_pid);
+}
+
+void pid_set_setpoint(pid_controller_t *pid, float setpoint)
+{
+    pid->setpoint = setpoint;
+}
+
+void pid_set_kp(pid_controller_t *pid, float kp)
+{
+    pid->cmsis_pid.Kp = kp;
+    arm_pid_init_f32(&pid->cmsis_pid, 0);
+}
+void pid_set_ki(pid_controller_t *pid, float ki)
+{
+    pid->cmsis_pid.Ki = ki;
+    arm_pid_init_f32(&pid->cmsis_pid, 0);
+}
+void pid_set_kd(pid_controller_t *pid, float kd)
+{
+    pid->cmsis_pid.Kd = kd;
+    arm_pid_init_f32(&pid->cmsis_pid, 0);
+}
+float pid_get_setpoint(pid_controller_t *pid)
+{
+    return pid->setpoint;
+}
+float pid_get_kp(pid_controller_t *pid)
+{
+    return pid->cmsis_pid.Kp;
+}
+float pid_get_ki(pid_controller_t *pid)
+{
+    return pid->cmsis_pid.Ki;
+}
+float pid_get_kd(pid_controller_t *pid)
+{
+    return pid->cmsis_pid.Kd;
 }

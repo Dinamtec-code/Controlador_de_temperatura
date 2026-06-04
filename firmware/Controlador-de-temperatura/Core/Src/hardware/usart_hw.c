@@ -13,11 +13,12 @@ void usart_hw_init(void)
 
 void usart_hw_start_rx(void)
 {
-    ReceptionStart();
+    receptionStart();
 }
 
 void usart_hw_idle_handler(void)
 {
+    HAL_UART_DMAStop(&huart2);
     uint32_t bytes_received = DMA_RX_BUFFER_SIZE - hdma_usart2_rx.Instance->CNDTR;
     if (bytes_received > 0 && bytes_received <= SDIN_BUFFER_SIZE) {
         for (size_t i = 0; i < bytes_received; i++) {
@@ -26,7 +27,7 @@ void usart_hw_idle_handler(void)
             }
         }
     }
-    ReceptionStart();
+    receptionStart();
 }
 
 void usart_hw_send_str(const char *str)
