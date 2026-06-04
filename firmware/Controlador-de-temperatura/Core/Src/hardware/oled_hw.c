@@ -199,6 +199,22 @@ static void oled_draw_char(uint8_t c, uint8_t x, uint8_t page)
     }
 }
 
+void oled_hw_print_str(const char *str, uint8_t page)
+{
+    for (int i = 0; str[i] != '\0'; i++)
+    {
+        oled_draw_char(str[i], i * 6, page);
+    }
+}
+
+void oled_hw_print_str_at(const char *str, uint8_t page, uint8_t offset)
+{
+    for (int i = 0; str[i] != '\0'; i++)
+    {
+        oled_draw_char(str[i], offset + i * 6, page);
+    }
+}
+
 void oled_hw_print_num(int num, uint8_t page)
 {
     char buf[12];
@@ -214,19 +230,34 @@ void oled_hw_print_float(float val, uint8_t page)
 {
     char buf[12];
 
-    // Separar parte entera y decimal (con 2 decimales de precisión)
     int int_part = (int)val;
     int dec_part = (int)((val - (float)int_part) * 100.0f);
 
-    // Manejar números negativos para los decimales
     if (dec_part < 0)
         dec_part = -dec_part;
 
-    // Imprimir usando solo enteros (%d)
     snprintf(buf, sizeof(buf), "%d.%02d", int_part, dec_part);
 
     for (int i = 0; buf[i] != '\0'; i++)
     {
         oled_draw_char(buf[i], i * 6, page);
+    }
+}
+
+void oled_hw_print_float_at(float val, uint8_t page, uint8_t x_offset)
+{
+    char buf[12];
+
+    int int_part = (int)val;
+    int dec_part = (int)((val - (float)int_part) * 100.0f);
+
+    if (dec_part < 0)
+        dec_part = -dec_part;
+
+    snprintf(buf, sizeof(buf), "%d.%02d", int_part, dec_part);
+
+    for (int i = 0; buf[i] != '\0'; i++)
+    {
+        oled_draw_char(buf[i], x_offset + i * 6, page);
     }
 }
