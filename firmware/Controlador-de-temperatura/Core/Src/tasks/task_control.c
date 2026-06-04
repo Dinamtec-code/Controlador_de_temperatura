@@ -3,27 +3,22 @@
 #include "hardware/adc_hw.h"
 #include "hardware/hrtim_hw.h"
 
-static pid_controller_t temp_pid;
-static uint8_t pid_initialized = 0;
-
-extern float temperatureSetpoint;
-extern float pidKp, pidKi, pidKd;
+extern float def_temperatureSetpoint = 20.0f;
+extern float def_pidKp = 0.0f;
+extern float def_pidKi = 0.0f;
+extern float def_pidKd = 0.0f;
 
 void task_control(void)
 {
-    if (!pid_initialized)
+    if (!(get_temp_pid_instance()->initialized))
     {
-        pid_init(&temp_pid, pidKp, pidKi, pidKd);
-        pid_set_limits(&temp_pid, -100.0f, 100.0f);
-        pid_initialized = 1;
-    }
-    else
-    {
-        pid_set_parameters(&temp_pid, pidKp, pidKi, pidKd);
+        pid_init(get_temp_pid_instance(), def_pidKp, def_pidKi, def_pidKd);
+        pid_set_limits(get_temp_pid_instance(), 300, 65000.0f);
+        pid_set_setpoint(get_temp_pid_instance(), def_temperatureSetpoint);
     }
 
     float temp = adc_hw_read_temperature();
-    float output = pid_compute(&temp_pid, temperatureSetpoint, temp);
+    float output = pid_compute(get_temp_pid_instance(), temp);
 
     if (output >= 0)
     {

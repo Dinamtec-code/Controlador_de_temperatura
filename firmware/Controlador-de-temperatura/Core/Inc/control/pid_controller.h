@@ -12,12 +12,23 @@ typedef struct
     float output_limit_min;
     float output_limit_max;
     uint8_t initialized;
+    float setpoint;
 } pid_controller_t;
 
 void pid_init(pid_controller_t *pid, float kp, float ki, float kd);
 void pid_set_parameters(pid_controller_t *pid, float kp, float ki, float kd);
+void pid_set_setpoint(pid_controller_t *pid, float setpoint);
 void pid_set_limits(pid_controller_t *pid, float out_min, float out_max);
-float pid_compute(pid_controller_t *pid, float setpoint, float input);
+float pid_compute(pid_controller_t *pid, float input);
 void pid_reset(pid_controller_t *pid);
+
+void pid_set_kp(pid_controller_t *pid, float kp);
+void pid_set_ki(pid_controller_t *pid, float ki);
+void pid_set_kd(pid_controller_t *pid, float kd);
+pid_controller_t *get_temp_pid_instance(void);
+float pid_get_kp(pid_controller_t *pid);
+float pid_get_ki(pid_controller_t *pid);
+float pid_get_kd(pid_controller_t *pid);
+float pid_get_setpoint(pid_controller_t *pid);
 
 #endif

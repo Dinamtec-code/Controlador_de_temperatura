@@ -32,6 +32,8 @@
 #include "hardware/oled_hw.h"
 #include "hardware/hrtim_hw.h"
 #include "hardware/i2c_hw.h"
+/*Controller*/
+#include "control/pid_controller.h"
 
 /* Tasks */
 #include "tasks/scheduler.h"
@@ -68,66 +70,6 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-
-float temperatureSetpoint = 25.0f;
-float pidKp = 1.0f, pidKi = 0.5f, pidKd = 0.1f;
-
-static scpi_interface_t scpi_iface;
-
-float get_temperature_callback(void *ctx)
-{
-  (void)ctx;
-  return adc_hw_read_temperature();
-}
-
-float get_setpoint_callback(void *ctx)
-{
-  (void)ctx;
-  return temperatureSetpoint;
-}
-
-void set_setpoint_callback(float val, void *ctx)
-{
-  (void)ctx;
-  if (val >= 0 && val <= 200)
-    temperatureSetpoint = val;
-}
-
-void set_kp_callback(float val, void *ctx)
-{
-  (void)ctx;
-  pidKp = val;
-}
-
-void set_ki_callback(float val, void *ctx)
-{
-  (void)ctx;
-  pidKi = val;
-}
-
-void set_kd_callback(float val, void *ctx)
-{
-  (void)ctx;
-  pidKd = val;
-}
-
-float get_kp_callback(void *ctx)
-{
-  (void)ctx;
-  return pidKp;
-}
-
-float get_ki_callback(void *ctx)
-{
-  (void)ctx;
-  return pidKi;
-}
-
-float get_kd_callback(void *ctx)
-{
-  (void)ctx;
-  return pidKd;
-}
 
 /* USER CODE END PV */
 
@@ -179,24 +121,12 @@ int main(void)
   /* USER CODE BEGIN 2 */
 
   /* Initialize hardware layers */
+  scpi_init();
   usart_hw_init();
   adc_hw_init();
   oled_hw_init();
   hrtim_hw_init();
   error_handler_init();
-
-  /* Initialize SCPI interface */
-  scpi_iface.get_temp = get_temperature_callback;
-  scpi_iface.get_sp = get_setpoint_callback;
-  scpi_iface.set_sp = set_setpoint_callback;
-  scpi_iface.set_kp = set_kp_callback;
-  scpi_iface.set_ki = set_ki_callback;
-  scpi_iface.set_kd = set_kd_callback;
-  scpi_iface.get_kp = get_kp_callback;
-  scpi_iface.get_ki = get_ki_callback;
-  scpi_iface.get_kd = get_kd_callback;
-  scpi_iface.context = NULL;
-  scpi_init(&scpi_iface);
 
   /* Initialize scheduler */
   scheduler_init();
