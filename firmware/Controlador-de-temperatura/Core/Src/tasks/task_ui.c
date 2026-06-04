@@ -13,8 +13,7 @@ void task_ui(void)
     {
         float temp = adc_hw_read_temperature();
         oled_hw_clear();
-        oled_hw_print_float(10.55, 2);
-        // oled_hw_test_pattern();
+        oled_hw_print_float(temp, 2);
         oled_hw_update();
         update_counter = 0;
     }
