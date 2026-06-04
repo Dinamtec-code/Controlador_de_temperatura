@@ -60,5 +60,4 @@ float pid_compute(pid_controller_t *pid, float setpoint, float input)
 void pid_reset(pid_controller_t *pid)
 {
     arm_pid_reset_f32(&pid->cmsis_pid);
-    pid->prev_output = 0.0f;
 }

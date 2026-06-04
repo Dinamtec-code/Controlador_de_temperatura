@@ -11,10 +11,10 @@ void adc_hw_init(void)
 
 float adc_hw_read_temperature(void)
 {
-    static float bit2tempSlope = 0.01f * 3.3f / 4096.0f; // Ajusta según tu sensor y referencia
+    static float bit2tempSlope = 330.0 / 4096.0; // Ajusta según tu sensor y referencia
     if (HAL_ADC_Start(&hadc2) == HAL_OK)
     {
-        if (HAL_ADC_PollForConversion(&hadc2, 10) == HAL_OK)
+        if (HAL_ADC_PollForConversion(&hadc2, 1) == HAL_OK)
         {
             adc_raw_temp = (int16_t)HAL_ADC_GetValue(&hadc2);
             temperature_actual = adc_raw_temp * bit2tempSlope;
