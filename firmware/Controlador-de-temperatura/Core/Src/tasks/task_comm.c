@@ -1,8 +1,6 @@
 #include "tasks/task_comm.h"
-#include "usart.h"
-#include "hardware/circular_buffer.h"
 #include "hardware/usart_hw.h"
-#include "hardware/oled_hw.h"
+#include "hardware/circular_buffer.h"
 #include "services/scpi_parser.h"
 #include "main.h"
 #include <stdio.h>
@@ -17,7 +15,7 @@ void task_comm(void)
 
     while (cb_get(&rx_circular_buffer, &byte) == BUF_OK)
     {
-        if (byte == '\n' || byte == '\r' || byte == '\0' || cmd_len >= sizeof(cmd_buffer) - 1 || cb_count(&rx_circular_buffer) == 0)
+        if (byte == '\n' || byte == '\r' || byte == '\0' || cmd_len >= sizeof(cmd_buffer) - 1)
         {
             cmd_buffer[cmd_len] = '\0';
             if (cmd_len > 0)
@@ -34,5 +32,4 @@ void task_comm(void)
             cmd_buffer[cmd_len++] = (char)byte;
         }
     }
-    comm_task();
 }
