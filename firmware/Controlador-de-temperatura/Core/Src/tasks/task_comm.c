@@ -8,10 +8,16 @@
 
 static char cmd_buffer[128];
 static size_t cmd_len = 0;
+extern circular_buffer_t rx_circular_buffer;
 
 void task_comm(void)
 {
     uint8_t byte;
+    if (cb_status(&rx_circular_buffer) == BUF_ERROR)
+    {
+        cb_clear(&rx_circular_buffer);
+        return;
+    }
 
     while (cb_get(&rx_circular_buffer, &byte) == BUF_OK)
     {

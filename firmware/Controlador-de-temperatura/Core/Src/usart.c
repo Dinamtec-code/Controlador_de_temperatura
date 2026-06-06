@@ -116,8 +116,8 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *uartHandle)
   }
 }
 
-/* Reception helper function for HW abstraction layer */
-void receptionStart(void)
+/* USART RX start helper function for HW abstraction layer */
+void usart_rx_start(void)
 {
   memset(dma_uart_rx_buffer, 0, DMA_RX_BUFFER_SIZE);
   __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);

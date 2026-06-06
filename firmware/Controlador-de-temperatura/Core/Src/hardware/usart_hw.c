@@ -66,7 +66,7 @@ void usart_hw_start_rx(void)
         uint8_t byte = dma_uart_rx_buffer[i];
         cb_put(&rx_circular_buffer, byte);
     }
-    receptionStart();
+    usart_rx_start();
 }
 
 void usart_hw_idle_handler(void)
@@ -78,7 +78,7 @@ void usart_hw_idle_handler(void)
         uint8_t byte = dma_uart_rx_buffer[i];
         cb_put(&rx_circular_buffer, byte);
     }
-    receptionStart();
+    usart_rx_start();
 }
 
 void usart_hw_send_str(const char *str)
