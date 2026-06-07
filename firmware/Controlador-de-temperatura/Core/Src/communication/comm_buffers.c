@@ -6,8 +6,6 @@ static circular_buffer_t rx_buffers[COMM_IFACE_MAX];
 static uint8_t rx_buffer_mem[COMM_IFACE_MAX][COMM_BUFFER_RX_SIZE];
 static circular_buffer_t tx_buffers[COMM_IFACE_MAX];
 static uint8_t tx_buffer_mem[COMM_IFACE_MAX][COMM_BUFFER_TX_SIZE];
-static comm_interface_state_t interface_states[COMM_IFACE_MAX];
-
 static comm_interface_t *registered_interfaces[COMM_IFACE_MAX];
 
 void comm_buffers_init(void) {
@@ -15,7 +13,6 @@ void comm_buffers_init(void) {
         cb_init(&rx_buffers[i], rx_buffer_mem[i], COMM_BUFFER_RX_SIZE);
         cb_init(&tx_buffers[i], tx_buffer_mem[i], COMM_BUFFER_TX_SIZE);
         registered_interfaces[i] = NULL;
-        interface_states[i] = COMM_STATE_UNINIT;
     }
 }
 
@@ -118,17 +115,64 @@ bool comm_interface_send(comm_interface_id_t id, const uint8_t *data, size_t len
     return iface->send(data, len);
 }
 
+bool comm_interface_is_rx_active(comm_interface_id_t id) {
+    comm_interface_t *iface = comm_get_interface(id);
+    return iface && (iface->state & COMM_STATE_RX_ACTIVE) != 0;
+}
+
+bool comm_interface_is_tx_busy(comm_interface_id_t id) {
+    comm_interface_t *iface = comm_get_interface(id);
+    return iface && (iface->state & COMM_STATE_TX_BUSY) != 0;
+}
+
+bool comm_interface_has_error(comm_interface_id_t id) {
+    comm_interface_t *iface = comm_get_interface(id);
+    return iface && (iface->state & COMM_STATE_ERROR) != 0;
+}
+
+void comm_interface_set_rx_active(comm_interface_id_t id, bool active) {
+    comm_interface_t *iface = comm_get_interface(id);
+    if (iface) {
+        if (active) {
+            iface->state |= COMM_STATE_RX_ACTIVE;
+        } else {
+            iface->state &= ~COMM_STATE_RX_ACTIVE;
+        }
+    }
+}
+
+void comm_interface_set_tx_busy(comm_interface_id_t id, bool busy) {
+    comm_interface_t *iface = comm_get_interface(id);
+    if (iface) {
+        if (busy) {
+            iface->state |= COMM_STATE_TX_BUSY;
+        } else {
+            iface->state &= ~COMM_STATE_TX_BUSY;
+        }
+    }
+}
+
+void comm_interface_set_error(comm_interface_id_t id, bool error) {
+    comm_interface_t *iface = comm_get_interface(id);
+    if (iface) {
+        if (error) {
+            iface->state |= COMM_STATE_ERROR;
+        } else {
+            iface->state &= ~COMM_STATE_ERROR;
+        }
+    }
+}
+
 void comm_interface_set_state(comm_interface_id_t id, comm_interface_state_t state) {
-    if (id < COMM_IFACE_MAX) {
-        interface_states[id] = state;
+    comm_interface_t *iface = comm_get_interface(id);
+    if (iface) {
+        iface->state = state;
     }
 }
 
 comm_interface_state_t comm_interface_get_state(comm_interface_id_t id) {
-    if (id < COMM_IFACE_MAX) {
-        return interface_states[id];
-    }
-    return COMM_STATE_UNINIT;
+    comm_interface_t *iface = comm_get_interface(id);
+    return iface ? iface->state : COMM_STATE_NONE;
 }
 
 void comm_interface_reset(comm_interface_id_t id) {
@@ -136,6 +180,7 @@ void comm_interface_reset(comm_interface_id_t id) {
     if (!iface) return;
     
     comm_interface_stop_rx(id);
+    iface->state = COMM_STATE_NONE;
     cb_clear(&rx_buffers[id]);
     cb_clear(&tx_buffers[id]);
     comm_interface_start_rx(id);
