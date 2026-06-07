@@ -149,7 +149,7 @@ bool comm_buffer_tx_get(comm_interface_id_t iface_id, uint8_t *data, size_t *len
     {
         size_t available = cb_count(&tx_buffers[iface_id]);
         size_t to_read = (available < *len) ? available : *len;
-
+        iface->tx_protect();
         for (size_t i = 0; i < to_read; i++)
         {
             if (cb_get(&tx_buffers[iface_id], &data[i]) != BUF_OK)
