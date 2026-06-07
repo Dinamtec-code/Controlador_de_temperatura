@@ -115,12 +115,3 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *uartHandle)
     HAL_NVIC_DisableIRQ(USART2_IRQn);
   }
 }
-
-/* USART RX start helper function for HW abstraction layer */
-void usart_rx_start(void)
-{
-  memset(dma_uart_rx_buffer, 0, DMA_RX_BUFFER_SIZE);
-  __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
-  HAL_UART_Receive_DMA(&huart2, dma_uart_rx_buffer, DMA_RX_BUFFER_SIZE);
-  __HAL_DMA_DISABLE_IT(huart2.hdmarx, DMA_IT_HT);
-}

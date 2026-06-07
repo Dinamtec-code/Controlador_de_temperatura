@@ -46,7 +46,7 @@ extern "C"
 
 /* USER CODE BEGIN Prototypes */
 /* Functions for hardware abstraction layer */
-void usart_rx_start(void);
+
 extern uint8_t dma_uart_rx_buffer[];
 /* USER CODE END Prototypes */
 

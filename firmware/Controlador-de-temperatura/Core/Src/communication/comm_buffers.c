@@ -1,10 +1,12 @@
 #include "communication/comm_buffers.h"
+#include "communication/comm_interface.h"
 #include <string.h>
 
 static circular_buffer_t rx_buffers[COMM_IFACE_MAX];
 static uint8_t rx_buffer_mem[COMM_IFACE_MAX][COMM_BUFFER_RX_SIZE];
 static circular_buffer_t tx_buffers[COMM_IFACE_MAX];
 static uint8_t tx_buffer_mem[COMM_IFACE_MAX][COMM_BUFFER_TX_SIZE];
+static comm_interface_state_t interface_states[COMM_IFACE_MAX];
 
 static comm_interface_t *registered_interfaces[COMM_IFACE_MAX];
 
@@ -13,6 +15,7 @@ void comm_buffers_init(void) {
         cb_init(&rx_buffers[i], rx_buffer_mem[i], COMM_BUFFER_RX_SIZE);
         cb_init(&tx_buffers[i], tx_buffer_mem[i], COMM_BUFFER_TX_SIZE);
         registered_interfaces[i] = NULL;
+        interface_states[i] = COMM_STATE_UNINIT;
     }
 }
 
@@ -35,6 +38,11 @@ bool comm_buffer_tx_put(comm_interface_id_t iface_id, const uint8_t *data, size_
 size_t comm_buffer_rx_count(comm_interface_id_t iface_id) {
     if (iface_id >= COMM_IFACE_MAX) return 0;
     return cb_count(&rx_buffers[iface_id]);
+}
+
+size_t comm_buffer_tx_count(comm_interface_id_t iface_id) {
+    if (iface_id >= COMM_IFACE_MAX) return 0;
+    return cb_count(&tx_buffers[iface_id]);
 }
 
 bool comm_buffer_rx_get(comm_interface_id_t iface_id, uint8_t *data, size_t *len) {
@@ -80,4 +88,55 @@ bool comm_buffer_tx_get(comm_interface_id_t iface_id, uint8_t *data, size_t *len
     }
     *len = to_read;
     return true;
+}
+
+void comm_interface_start_rx(comm_interface_id_t id) {
+    comm_interface_t *iface = comm_get_interface(id);
+    if (iface && iface->start_rx) iface->start_rx(iface->context);
+}
+
+void comm_interface_stop_rx(comm_interface_id_t id) {
+    comm_interface_t *iface = comm_get_interface(id);
+    if (iface && iface->stop_rx) iface->stop_rx(iface->context);
+}
+
+bool comm_interface_is_tx_ready(comm_interface_id_t id) {
+    comm_interface_t *iface = comm_get_interface(id);
+    if (iface && iface->is_tx_ready) return iface->is_tx_ready(iface->context);
+    return false;
+}
+
+bool comm_interface_start_tx(comm_interface_id_t id) {
+    comm_interface_t *iface = comm_get_interface(id);
+    if (iface && iface->start_tx) return iface->start_tx(iface->context);
+    return false;
+}
+
+bool comm_interface_send(comm_interface_id_t id, const uint8_t *data, size_t len) {
+    comm_interface_t *iface = comm_get_interface(id);
+    if (!iface || !data || len == 0) return false;
+    return iface->send(data, len);
+}
+
+void comm_interface_set_state(comm_interface_id_t id, comm_interface_state_t state) {
+    if (id < COMM_IFACE_MAX) {
+        interface_states[id] = state;
+    }
+}
+
+comm_interface_state_t comm_interface_get_state(comm_interface_id_t id) {
+    if (id < COMM_IFACE_MAX) {
+        return interface_states[id];
+    }
+    return COMM_STATE_UNINIT;
+}
+
+void comm_interface_reset(comm_interface_id_t id) {
+    comm_interface_t *iface = comm_get_interface(id);
+    if (!iface) return;
+    
+    comm_interface_stop_rx(id);
+    cb_clear(&rx_buffers[id]);
+    cb_clear(&tx_buffers[id]);
+    comm_interface_start_rx(id);
 }
