@@ -2,7 +2,6 @@
 #include "hardware/adc_hw.h"
 #include "usart.h"
 #include "hardware/usart_hw.h"
-#include "hardware/oled_hw.h"
 #include "control/pid_controller.h"
 #include <string.h>
 #include <stdio.h>
@@ -91,10 +90,6 @@ static void send_response(const char *resp)
     {
         output_iface->send_response(resp, (void *)output_iface->context);
     }
-    else
-    {
-        usart_hw_send_str(resp);
-    }
 }
 
 void scpi_process_line(const char *command)
@@ -106,10 +101,7 @@ void scpi_process_line(const char *command)
 
     if (strncmp(command, "*IDN?", 5) == 0)
     {
-        oled_hw_print_str_at("TEMPCTRL,STM32F334,1.0", 4, 0);
         send_response("TEMPCTRL,STM32F334,1.0\r\n");
-        oled_hw_print_str_at("Response send", 6, 0);
-        oled_hw_update();
     }
     else if (strncmp(command, "*CLS", 4) == 0)
     {
@@ -138,15 +130,27 @@ void scpi_process_line(const char *command)
     else if (strncmp(command, "MEAS:TEMP?", 10) == 0)
     {
         float temp = scpi_iface_p->get_temp(scpi_iface_p->context);
-        char resp[32];
-        snprintf(resp, sizeof(resp), "%.2f\r\n", temp);
+        char resp[16];
+
+        int int_part = (int)temp;
+        int dec_part = (int)((temp - (float)int_part) * 100.0f);
+
+        if (dec_part < 0)
+            dec_part = -dec_part;
+
+        snprintf(resp, sizeof(resp), "%d.%02d\r\n", int_part, dec_part);
         send_response(resp);
     }
     else if (strncmp(command, "TEMP:SP?", 8) == 0)
     {
         float sp = scpi_iface_p->get_sp(scpi_iface_p->context);
-        char resp[32];
-        snprintf(resp, sizeof(resp), "%.2f\r\n", sp);
+        char resp[16];
+
+        int int_part = (int)sp;
+        int dec_part = (int)((sp - (float)int_part) * 100.0f);
+        if (dec_part < 0) dec_part = -dec_part;
+
+        snprintf(resp, sizeof(resp), "%d.%02d\r\n", int_part, dec_part);
         send_response(resp);
     }
     else if (strncmp(command, "TEMP:SP ", 8) == 0)
@@ -165,22 +169,37 @@ void scpi_process_line(const char *command)
     else if (strncmp(command, "PID:KP?", 7) == 0)
     {
         float kp = scpi_iface_p->get_kp(scpi_iface_p->context);
-        char resp[32];
-        snprintf(resp, sizeof(resp), "%.4f\r\n", kp);
+        char resp[20];
+
+        int int_part = (int)kp;
+        int dec_part = (int)((kp - (float)int_part) * 10000.0f);
+        if (dec_part < 0) dec_part = -dec_part;
+
+        snprintf(resp, sizeof(resp), "%d.%04d\r\n", int_part, dec_part);
         send_response(resp);
     }
     else if (strncmp(command, "PID:KI?", 7) == 0)
     {
         float ki = scpi_iface_p->get_ki(scpi_iface_p->context);
-        char resp[32];
-        snprintf(resp, sizeof(resp), "%.4f\r\n", ki);
+        char resp[20];
+
+        int int_part = (int)ki;
+        int dec_part = (int)((ki - (float)int_part) * 10000.0f);
+        if (dec_part < 0) dec_part = -dec_part;
+
+        snprintf(resp, sizeof(resp), "%d.%04d\r\n", int_part, dec_part);
         send_response(resp);
     }
     else if (strncmp(command, "PID:KD?", 7) == 0)
     {
         float kd = scpi_iface_p->get_kd(scpi_iface_p->context);
-        char resp[32];
-        snprintf(resp, sizeof(resp), "%.4f\r\n", kd);
+        char resp[20];
+
+        int int_part = (int)kd;
+        int dec_part = (int)((kd - (float)int_part) * 10000.0f);
+        if (dec_part < 0) dec_part = -dec_part;
+
+        snprintf(resp, sizeof(resp), "%d.%04d\r\n", int_part, dec_part);
         send_response(resp);
     }
     else if (strncmp(command, "PID:KP ", 7) == 0)

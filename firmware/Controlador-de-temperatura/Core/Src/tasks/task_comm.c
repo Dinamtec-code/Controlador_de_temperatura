@@ -34,9 +34,6 @@ static void process_rx_data(void)
             cmd_buffer[cmd_len] = '\0';
             if (cmd_len > 0)
             {
-                oled_hw_clear();
-                oled_hw_print_str_at(cmd_buffer, 2, 0);
-                oled_hw_update();
                 scpi_process_line(cmd_buffer);
             }
             cmd_len = 0;
@@ -54,7 +51,7 @@ void task_comm(void)
 
     if (!output_iface_set)
     {
-        scpi_output_interface_t out_iface = {
+        static scpi_output_interface_t out_iface = {
             .send_response = send_response_to_interface,
             .context = NULL};
         scpi_set_output_interface(&out_iface);
