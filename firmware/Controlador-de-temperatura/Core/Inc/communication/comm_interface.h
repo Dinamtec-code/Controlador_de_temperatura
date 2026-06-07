@@ -19,16 +19,17 @@ typedef enum
     COMM_IFACE_MAX        /**< Valor centinela para verificación de límites de arreglo */
 } comm_interface_id_t;
 
-typedef enum {
-    COMM_STATE_NONE      = 0x00,
-    COMM_STATE_ERROR     = 0x01,
+typedef enum
+{
+    COMM_STATE_NONE = 0x00,
+    COMM_STATE_ERROR = 0x01,
     COMM_STATE_RX_ACTIVE = 0x02,
-    COMM_STATE_TX_BUSY   = 0x04
+    COMM_STATE_TX_BUSY = 0x04
 } comm_interface_state_t;
 
-#define COMM_STATE_MASK_ERROR     0x01
+#define COMM_STATE_MASK_ERROR 0x01
 #define COMM_STATE_MASK_RX_ACTIVE 0x02
-#define COMM_STATE_MASK_TX_BUSY   0x04
+#define COMM_STATE_MASK_TX_BUSY 0x04
 
 /**
  * @brief Declaración anticipada de la estructura de interfaz de comunicación.
@@ -63,20 +64,24 @@ typedef void (*comm_tx_complete_callback_t)(comm_interface_id_t iface_id);
  */
 struct comm_interface
 {
-    comm_interface_id_t id;              /**< Identificador único para esta interfaz */
-    void *context;                      /**< Puntero de contexto privado para la implementación de la interfaz */
-    const char *name;                   /**< Nombre legible por humanos de la interfaz (ej: "USART2", "TCP0") */
-    comm_interface_state_t state;       /**< Estado actual de la interfaz (bitmask) */
-    
+    comm_interface_id_t id;       /**< Identificador único para esta interfaz */
+    void *context;                /**< Puntero de contexto privado para la implementación de la interfaz */
+    const char *name;             /**< Nombre legible de la interfaz (ej: "USART2", "TCP0") */
+    comm_interface_state_t state; /**< Estado actual de la interfaz (bitmask) */
+
     bool (*send)(const uint8_t *data, size_t len);
     bool (*is_connected)(void *context);
-    void (*start_rx)(void *context);       /**< Iniciar recepción (habilita DMA/interrupts) */
-    void (*stop_rx)(void *context);        /**< Detener recepción */
-    bool (*is_tx_ready)(void *context);    /**< Verificar si interfaz lista para TX */
-    bool (*start_tx)(void *context);       /**< Transmitir desde buffer del sistema, devuelve true si exitoso */
-    
-    comm_rx_indication_callback_t rx_indication_cb;   /**< Callback para notificación de datos entrantes */
-    comm_tx_complete_callback_t tx_complete_cb;       /**< Callback para completación de transmisión */
+    void (*start_rx)(void *context);    /**< Iniciar recepción (habilita DMA/interrupts) */
+    void (*stop_rx)(void *context);     /**< Detener recepción */
+    bool (*is_tx_ready)(void *context); /**< Verificar si interfaz lista para TX */
+    bool (*start_tx)(void *context);    /**< Transmitir desde buffer del sistema, devuelve true si exitoso */
+    void (*rx_protect)(void);
+    void (*rx_unprotect)(void);
+    void (*tx_protect)(void);
+    void (*tx_unprotect)(void);
+
+    comm_rx_indication_callback_t rx_indication_cb; /**< Callback para notificación de datos entrantes */
+    comm_tx_complete_callback_t tx_complete_cb;     /**< Callback para completación de transmisión */
 };
 
 /**

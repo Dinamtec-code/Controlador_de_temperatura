@@ -3,9 +3,12 @@
 
 #include <stdint.h>
 
-typedef enum {
+typedef enum
+{
     ERROR_NONE = 0,
     ERROR_REMOTE_RX_OVERFLOW = 1,
+    ERROR_TX_BUFFER_FULL = 2,
+    ERROR_INTERFACE_NOT_REGISTERED = 4,
     ERROR_MAX
 } error_code_t;
 

@@ -38,7 +38,6 @@ static void process_rx_data(void)
                 oled_hw_print_str_at(cmd_buffer, 2, 0);
                 oled_hw_update();
                 scpi_process_line(cmd_buffer);
-                HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
             }
             cmd_len = 0;
         }
@@ -97,5 +96,12 @@ void task_comm(void)
         const char *msg = "ERR:RX_BUFFER_OVERFLOW\r\n";
         comm_interface_send(COMM_IFACE_USART, (const uint8_t *)msg, strlen(msg));
         error_clear(ERROR_REMOTE_RX_OVERFLOW);
+    }
+
+    if (error_check(ERROR_TX_BUFFER_FULL))
+    {
+        const char *msg = "ERR:TX_BUFFER_FULL\r\n";
+        comm_interface_send(COMM_IFACE_USART, (const uint8_t *)msg, strlen(msg));
+        error_clear(ERROR_TX_BUFFER_FULL);
     }
 }

@@ -1,5 +1,7 @@
 #include "communication/comm_buffers.h"
 #include "communication/comm_interface.h"
+#include "services/error_handler.h"
+#include "hardware/usart_hw.h"
 #include <string.h>
 
 static circular_buffer_t rx_buffers[COMM_IFACE_MAX];
@@ -8,177 +10,320 @@ static circular_buffer_t tx_buffers[COMM_IFACE_MAX];
 static uint8_t tx_buffer_mem[COMM_IFACE_MAX][COMM_BUFFER_TX_SIZE];
 static comm_interface_t *registered_interfaces[COMM_IFACE_MAX];
 
-void comm_buffers_init(void) {
-    for (int i = 0; i < COMM_IFACE_MAX; i++) {
+void comm_buffers_init(void)
+{
+    for (int i = 0; i < COMM_IFACE_MAX; i++)
+    {
         cb_init(&rx_buffers[i], rx_buffer_mem[i], COMM_BUFFER_RX_SIZE);
         cb_init(&tx_buffers[i], tx_buffer_mem[i], COMM_BUFFER_TX_SIZE);
         registered_interfaces[i] = NULL;
     }
 }
 
-bool comm_buffer_rx_put(comm_interface_id_t iface_id, uint8_t data) {
-    if (iface_id >= COMM_IFACE_MAX) return false;
-    return cb_put(&rx_buffers[iface_id], data) == BUF_OK;
+bool comm_buffer_rx_put(comm_interface_id_t iface_id, uint8_t data)
+{
+    if (iface_id >= COMM_IFACE_MAX)
+        return false;
+    comm_interface_t *iface = comm_get_interface(iface_id);
+    if (iface)
+    {
+        iface->rx_protect();
+        cb_status_t status = cb_put(&rx_buffers[iface_id], data);
+        iface->rx_unprotect();
+        return status == BUF_OK;
+    }
+    else
+    {
+        error_set(ERROR_INTERFACE_NOT_REGISTERED);
+    }
+    return false;
 }
 
-bool comm_buffer_tx_put(comm_interface_id_t iface_id, const uint8_t *data, size_t len) {
-    if (iface_id >= COMM_IFACE_MAX || len == 0) return false;
-    
-    for (size_t i = 0; i < len; i++) {
-        if (cb_put(&tx_buffers[iface_id], data[i]) != BUF_OK) {
-            return false;
+bool comm_buffer_tx_put(comm_interface_id_t iface_id, const uint8_t *data, size_t len)
+{
+    if (iface_id >= COMM_IFACE_MAX || len == 0)
+    {
+        return false;
+    }
+
+    comm_interface_t *iface = comm_get_interface(iface_id);
+    if (iface)
+    {
+        iface->tx_protect();
+
+        for (size_t i = 0; i < len; i++)
+        {
+            if (cb_put(&tx_buffers[iface_id], data[i]) != BUF_OK)
+            {
+                iface->tx_unprotect();
+                error_set(ERROR_TX_BUFFER_FULL);
+                return false;
+            }
         }
+
+        iface->tx_unprotect();
+    }
+    else
+    {
+        error_set(ERROR_INTERFACE_NOT_REGISTERED);
+        return false;
     }
     return true;
 }
 
-size_t comm_buffer_rx_count(comm_interface_id_t iface_id) {
-    if (iface_id >= COMM_IFACE_MAX) return 0;
+size_t comm_buffer_rx_count(comm_interface_id_t iface_id)
+{
+    if (iface_id >= COMM_IFACE_MAX)
+        return 0;
     return cb_count(&rx_buffers[iface_id]);
 }
 
-size_t comm_buffer_tx_count(comm_interface_id_t iface_id) {
-    if (iface_id >= COMM_IFACE_MAX) return 0;
+size_t comm_buffer_tx_count(comm_interface_id_t iface_id)
+{
+    if (iface_id >= COMM_IFACE_MAX)
+        return 0;
     return cb_count(&tx_buffers[iface_id]);
 }
 
-bool comm_buffer_rx_get(comm_interface_id_t iface_id, uint8_t *data, size_t *len) {
-    if (iface_id >= COMM_IFACE_MAX || !data || *len == 0) return false;
-    
-    size_t available = cb_count(&rx_buffers[iface_id]);
-    size_t to_read = (available < *len) ? available : *len;
-    
-    for (size_t i = 0; i < to_read; i++) {
-        if (cb_get(&rx_buffers[iface_id], &data[i]) != BUF_OK) {
-            return false;
-        }
+bool comm_buffer_rx_get(comm_interface_id_t iface_id, uint8_t *data, size_t *len)
+{
+    if (iface_id >= COMM_IFACE_MAX || !data || *len == 0)
+    {
+        return false;
     }
-    *len = to_read;
+    comm_interface_t *iface = comm_get_interface(iface_id);
+    if (iface)
+    {
+        iface->rx_protect();
+        size_t available = cb_count(&rx_buffers[iface_id]);
+        size_t to_read = (available < *len) ? available : *len;
+
+        for (size_t i = 0; i < to_read; i++)
+        {
+            if (cb_get(&rx_buffers[iface_id], &data[i]) != BUF_OK)
+            {
+                iface->rx_unprotect();
+                return false;
+            }
+        }
+        *len = to_read;
+
+        iface->rx_unprotect();
+    }
+    else
+    {
+        error_set(ERROR_INTERFACE_NOT_REGISTERED);
+        return false;
+    }
     return true;
 }
 
-void comm_register_interface(comm_interface_t *iface) {
-    if (!iface || iface->id >= COMM_IFACE_MAX) return;
+void comm_register_interface(comm_interface_t *iface)
+{
+    if (!iface || iface->id >= COMM_IFACE_MAX)
+        return;
     registered_interfaces[iface->id] = iface;
 }
 
-void comm_unregister_interface(comm_interface_t *iface) {
-    if (!iface || iface->id >= COMM_IFACE_MAX) return;
+void comm_unregister_interface(comm_interface_t *iface)
+{
+    if (!iface || iface->id >= COMM_IFACE_MAX)
+        return;
     registered_interfaces[iface->id] = NULL;
 }
 
-comm_interface_t *comm_get_interface(comm_interface_id_t id) {
-    if (id >= COMM_IFACE_MAX) return NULL;
+comm_interface_t *comm_get_interface(comm_interface_id_t id)
+{
+    if (id >= COMM_IFACE_MAX)
+        return NULL;
     return registered_interfaces[id];
 }
 
-bool comm_buffer_tx_get(comm_interface_id_t iface_id, uint8_t *data, size_t *len) {
-    if (iface_id >= COMM_IFACE_MAX || !data || *len == 0) return false;
-    
-    size_t available = cb_count(&tx_buffers[iface_id]);
-    size_t to_read = (available < *len) ? available : *len;
-    
-    for (size_t i = 0; i < to_read; i++) {
-        if (cb_get(&tx_buffers[iface_id], &data[i]) != BUF_OK) {
-            return false;
+bool comm_buffer_tx_get(comm_interface_id_t iface_id, uint8_t *data, size_t *len)
+{
+    if (iface_id >= COMM_IFACE_MAX || !data || *len == 0)
+        return false;
+
+    comm_interface_t *iface = comm_get_interface(iface_id);
+    if (iface)
+    {
+        size_t available = cb_count(&tx_buffers[iface_id]);
+        size_t to_read = (available < *len) ? available : *len;
+
+        for (size_t i = 0; i < to_read; i++)
+        {
+            if (cb_get(&tx_buffers[iface_id], &data[i]) != BUF_OK)
+            {
+                iface->tx_unprotect();
+                return false;
+            }
         }
+        *len = to_read;
+
+        iface->tx_unprotect();
     }
-    *len = to_read;
+    else
+    {
+        error_set(ERROR_INTERFACE_NOT_REGISTERED);
+        return false;
+    }
     return true;
 }
 
-void comm_interface_start_rx(comm_interface_id_t id) {
+void comm_interface_start_rx(comm_interface_id_t id)
+{
     comm_interface_t *iface = comm_get_interface(id);
-    if (iface && iface->start_rx) iface->start_rx(iface->context);
+    if (iface && iface->start_rx)
+        iface->start_rx(iface->context);
 }
 
-void comm_interface_stop_rx(comm_interface_id_t id) {
+void comm_interface_stop_rx(comm_interface_id_t id)
+{
     comm_interface_t *iface = comm_get_interface(id);
-    if (iface && iface->stop_rx) iface->stop_rx(iface->context);
+    if (iface && iface->stop_rx)
+        iface->stop_rx(iface->context);
 }
 
-bool comm_interface_is_tx_ready(comm_interface_id_t id) {
+bool comm_interface_is_tx_ready(comm_interface_id_t id)
+{
     comm_interface_t *iface = comm_get_interface(id);
-    if (iface && iface->is_tx_ready) return iface->is_tx_ready(iface->context);
+    if (iface && iface->is_tx_ready)
+        return iface->is_tx_ready(iface->context);
     return false;
 }
 
-bool comm_interface_start_tx(comm_interface_id_t id) {
+bool comm_interface_start_tx(comm_interface_id_t id)
+{
     comm_interface_t *iface = comm_get_interface(id);
-    if (iface && iface->start_tx) return iface->start_tx(iface->context);
+    if (iface && iface->start_tx)
+        return iface->start_tx(iface->context);
     return false;
 }
 
-bool comm_interface_send(comm_interface_id_t id, const uint8_t *data, size_t len) {
+bool comm_interface_send(comm_interface_id_t id, const uint8_t *data, size_t len)
+{
     comm_interface_t *iface = comm_get_interface(id);
-    if (!iface || !data || len == 0) return false;
+    if (!iface || !data || len == 0)
+        return false;
     return iface->send(data, len);
 }
 
-bool comm_interface_is_rx_active(comm_interface_id_t id) {
+bool comm_interface_is_rx_active(comm_interface_id_t id)
+{
     comm_interface_t *iface = comm_get_interface(id);
-    return iface && (iface->state & COMM_STATE_RX_ACTIVE) != 0;
+    if (iface)
+    {
+        return (iface->state & COMM_STATE_RX_ACTIVE) != 0;
+    }
+    error_set(ERROR_INTERFACE_NOT_REGISTERED);
+    return false;
 }
 
-bool comm_interface_is_tx_busy(comm_interface_id_t id) {
+bool comm_interface_is_tx_busy(comm_interface_id_t id)
+{
     comm_interface_t *iface = comm_get_interface(id);
     return iface && (iface->state & COMM_STATE_TX_BUSY) != 0;
 }
 
-bool comm_interface_has_error(comm_interface_id_t id) {
+bool comm_interface_has_error(comm_interface_id_t id)
+{
     comm_interface_t *iface = comm_get_interface(id);
     return iface && (iface->state & COMM_STATE_ERROR) != 0;
 }
 
-void comm_interface_set_rx_active(comm_interface_id_t id, bool active) {
+void comm_interface_set_rx_active(comm_interface_id_t id, bool active)
+{
     comm_interface_t *iface = comm_get_interface(id);
-    if (iface) {
-        if (active) {
+    if (iface)
+    {
+        if (active)
+        {
             iface->state |= COMM_STATE_RX_ACTIVE;
-        } else {
+        }
+        else
+        {
             iface->state &= ~COMM_STATE_RX_ACTIVE;
         }
     }
+    else
+    {
+        error_set(ERROR_INTERFACE_NOT_REGISTERED);
+    }
 }
 
-void comm_interface_set_tx_busy(comm_interface_id_t id, bool busy) {
+void comm_interface_set_tx_busy(comm_interface_id_t id, bool busy)
+{
     comm_interface_t *iface = comm_get_interface(id);
-    if (iface) {
-        if (busy) {
+    if (iface)
+    {
+        if (busy)
+        {
             iface->state |= COMM_STATE_TX_BUSY;
-        } else {
+        }
+        else
+        {
             iface->state &= ~COMM_STATE_TX_BUSY;
         }
     }
+    else
+    {
+        error_set(ERROR_INTERFACE_NOT_REGISTERED);
+    }
 }
 
-void comm_interface_set_error(comm_interface_id_t id, bool error) {
+void comm_interface_set_error(comm_interface_id_t id, bool error)
+{
     comm_interface_t *iface = comm_get_interface(id);
-    if (iface) {
-        if (error) {
+    if (iface)
+    {
+        if (error)
+        {
             iface->state |= COMM_STATE_ERROR;
-        } else {
+        }
+        else
+        {
             iface->state &= ~COMM_STATE_ERROR;
         }
     }
-}
-
-void comm_interface_set_state(comm_interface_id_t id, comm_interface_state_t state) {
-    comm_interface_t *iface = comm_get_interface(id);
-    if (iface) {
-        iface->state = state;
+    else
+    {
+        error_set(ERROR_INTERFACE_NOT_REGISTERED);
     }
 }
 
-comm_interface_state_t comm_interface_get_state(comm_interface_id_t id) {
+void comm_interface_set_state(comm_interface_id_t id, comm_interface_state_t state)
+{
     comm_interface_t *iface = comm_get_interface(id);
-    return iface ? iface->state : COMM_STATE_NONE;
+    if (iface)
+    {
+        iface->state = state;
+    }
+    else
+    {
+        error_set(ERROR_INTERFACE_NOT_REGISTERED);
+    }
 }
 
-void comm_interface_reset(comm_interface_id_t id) {
+comm_interface_state_t comm_interface_get_state(comm_interface_id_t id)
+{
     comm_interface_t *iface = comm_get_interface(id);
-    if (!iface) return;
-    
+    if (iface)
+    {
+        return iface->state;
+    }
+    error_set(ERROR_INTERFACE_NOT_REGISTERED);
+    return COMM_STATE_NONE;
+}
+
+void comm_interface_reset(comm_interface_id_t id)
+{
+    comm_interface_t *iface = comm_get_interface(id);
+    if (!iface)
+    {
+        error_set(ERROR_INTERFACE_NOT_REGISTERED);
+        return;
+    }
+
     comm_interface_stop_rx(id);
     iface->state = COMM_STATE_NONE;
     cb_clear(&rx_buffers[id]);
