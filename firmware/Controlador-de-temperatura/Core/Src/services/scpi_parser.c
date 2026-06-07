@@ -2,6 +2,7 @@
 #include "hardware/adc_hw.h"
 #include "usart.h"
 #include "hardware/usart_hw.h"
+#include "hardware/oled_hw.h"
 #include "control/pid_controller.h"
 #include <string.h>
 #include <stdio.h>

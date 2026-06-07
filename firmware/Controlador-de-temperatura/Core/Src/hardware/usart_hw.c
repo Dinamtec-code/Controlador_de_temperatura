@@ -17,11 +17,18 @@ static bool usart_hw_is_connected(void *context)
     return true;
 }
 
+static inline void comm_buffer_protect_rx(void) { __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE); }
+static inline void comm_buffer_unprotect_rx(void) { __HAL_UART_DISABLE_IT(&huart2, UART_IT_IDLE); }
+
+static inline void comm_buffer_protect_tx(void) { __HAL_DMA_DISABLE_IT(&hdma_usart2_tx, DMA_IT_HT); }
+static inline void comm_buffer_unprotect_tx(void) { __HAL_DMA_ENABLE_IT(&hdma_usart2_tx, DMA_IT_HT); }
+
 void usart_hw_init(void)
 {
-    usart_interface.id = COMM_IFACE_USART;
     usart_interface.context = NULL;
     usart_interface.name = "USART2";
+    usart_interface.state = COMM_STATE_NONE;
+    usart_interface.id = COMM_IFACE_USART;
     usart_interface.send = usart_hw_send;
     usart_interface.is_connected = usart_hw_is_connected;
     usart_interface.start_rx = usart_hw_start_rx;
@@ -30,9 +37,12 @@ void usart_hw_init(void)
     usart_interface.start_tx = usart_hw_transmit_from_system_buffer;
     usart_interface.rx_indication_cb = NULL;
     usart_interface.tx_complete_cb = NULL;
+    usart_interface.rx_protect = comm_buffer_protect_rx;
+    usart_interface.rx_unprotect = comm_buffer_unprotect_rx;
+    usart_interface.tx_protect = comm_buffer_protect_tx;
+    usart_interface.tx_unprotect = comm_buffer_unprotect_tx;
 
     comm_register_interface(&usart_interface);
-    usart_interface.state = COMM_STATE_NONE;
 }
 
 /* USART RX start helper function for HW abstraction layer */
@@ -43,7 +53,6 @@ void usart_hw_start_rx(void *context)
     __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
     HAL_UART_Receive_DMA(&huart2, dma_uart_rx_buffer, DMA_RX_BUFFER_SIZE);
     __HAL_DMA_DISABLE_IT(huart2.hdmarx, DMA_IT_HT);
-
 }
 
 void usart_hw_stop_rx(void *context)
@@ -69,15 +78,20 @@ void usart_hw_idle_handler(void)
 
 void usart_hw_send_str(const char *str)
 {
-    while (*str)
+    if (!str || !usart_interface.send)
+        return;
+
+    size_t len = strlen(str);
+    if (len > 0)
     {
-        usart_interface.send((const uint8_t *)str, 1);
-        str++;
+        usart_interface.send((const uint8_t *)str, len);
     }
 }
 
 void usart_hw_send_buf(uint8_t *data, size_t len)
 {
+    if (!data || !usart_interface.send || len == 0)
+        return;
     usart_interface.send(data, len);
 }
 
