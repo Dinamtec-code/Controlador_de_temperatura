@@ -1,4 +1,5 @@
 #include "tasks/task_comm.h"
+#include "hardware/oled_hw.h"
 #include "communication/comm_interface.h"
 #include "services/scpi_parser.h"
 #include "communication/comm_buffers.h"
@@ -33,9 +34,12 @@ static void process_rx_data(void)
             cmd_buffer[cmd_len] = '\0';
             if (cmd_len > 0)
             {
+                oled_hw_clear();
+                oled_hw_print_str_at(cmd_buffer, 2, 0);
+                oled_hw_update();
                 scpi_process_line(cmd_buffer);
+                HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
             }
-            HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
             cmd_len = 0;
         }
         else
@@ -58,34 +62,33 @@ void task_comm(void)
         output_iface_set = true;
     }
 
-    comm_interface_state_t state = comm_interface_get_state(COMM_IFACE_USART);
+    comm_interface_t *iface = comm_get_interface(COMM_IFACE_USART);
 
-    if (state == COMM_STATE_UNINIT)
+    if (!iface || !comm_interface_is_rx_active(COMM_IFACE_USART))
     {
         comm_interface_start_rx(COMM_IFACE_USART);
+        comm_interface_set_rx_active(COMM_IFACE_USART, true);
         return;
     }
 
-    if (state == COMM_STATE_ERROR)
+    if (comm_interface_has_error(COMM_IFACE_USART))
     {
         comm_interface_reset(COMM_IFACE_USART);
         return;
     }
 
-    if (state == COMM_STATE_RX_ACTIVE)
+    process_rx_data();
+
+    if (comm_buffer_tx_count(COMM_IFACE_USART) > 0)
     {
-        process_rx_data();
-        if (comm_buffer_tx_count(COMM_IFACE_USART) > 0)
-        {
-            comm_interface_set_state(COMM_IFACE_USART, COMM_STATE_TX_BUSY);
-        }
+        comm_interface_set_tx_busy(COMM_IFACE_USART, true);
     }
 
-    if (state == COMM_STATE_TX_BUSY && comm_interface_is_tx_ready(COMM_IFACE_USART))
+    if (comm_interface_is_tx_busy(COMM_IFACE_USART) && comm_interface_is_tx_ready(COMM_IFACE_USART))
     {
         if (!comm_interface_start_tx(COMM_IFACE_USART))
         {
-            comm_interface_set_state(COMM_IFACE_USART, COMM_STATE_RX_ACTIVE);
+            comm_interface_set_tx_busy(COMM_IFACE_USART, false);
         }
     }
 

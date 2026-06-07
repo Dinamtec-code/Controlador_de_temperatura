@@ -86,9 +86,12 @@ void scpi_set_output_interface(const scpi_output_interface_t *out_iface)
 
 static void send_response(const char *resp)
 {
-    if (output_iface && output_iface->send_response) {
-        output_iface->send_response(resp, (void*)output_iface->context);
-    } else {
+    if (output_iface && output_iface->send_response)
+    {
+        output_iface->send_response(resp, (void *)output_iface->context);
+    }
+    else
+    {
         usart_hw_send_str(resp);
     }
 }
@@ -102,7 +105,10 @@ void scpi_process_line(const char *command)
 
     if (strncmp(command, "*IDN?", 5) == 0)
     {
+        oled_hw_print_str_at("TEMPCTRL,STM32F334,1.0", 4, 0);
         send_response("TEMPCTRL,STM32F334,1.0\r\n");
+        oled_hw_print_str_at("Response send", 6, 0);
+        oled_hw_update();
     }
     else if (strncmp(command, "*CLS", 4) == 0)
     {

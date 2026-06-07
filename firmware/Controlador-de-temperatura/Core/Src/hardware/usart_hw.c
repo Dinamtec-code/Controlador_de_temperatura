@@ -32,7 +32,7 @@ void usart_hw_init(void)
     usart_interface.tx_complete_cb = NULL;
 
     comm_register_interface(&usart_interface);
-    comm_interface_set_state(COMM_IFACE_USART, COMM_STATE_UNINIT);
+    usart_interface.state = COMM_STATE_NONE;
 }
 
 /* USART RX start helper function for HW abstraction layer */
@@ -43,6 +43,7 @@ void usart_hw_start_rx(void *context)
     __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
     HAL_UART_Receive_DMA(&huart2, dma_uart_rx_buffer, DMA_RX_BUFFER_SIZE);
     __HAL_DMA_DISABLE_IT(huart2.hdmarx, DMA_IT_HT);
+
 }
 
 void usart_hw_stop_rx(void *context)
@@ -54,13 +55,6 @@ void usart_hw_stop_rx(void *context)
 
 void usart_hw_idle_handler(void)
 {
-    static int idle_count = 0;
-    idle_count++;
-    if (idle_count > 1)
-    {
-        idle_count = 0;
-        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-    }
     HAL_UART_DMAStop(&huart2);
     uint32_t bytes_received = DMA_RX_BUFFER_SIZE - hdma_usart2_rx.Instance->CNDTR;
 
@@ -117,11 +111,12 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
     if (huart->Instance == USART2)
     {
-        comm_interface_set_state(COMM_IFACE_USART, COMM_STATE_RX_ACTIVE);
-        
-        if (usart_interface.tx_complete_cb)
+        comm_interface_t *iface = comm_get_interface(COMM_IFACE_USART);
+        comm_interface_set_tx_busy(COMM_IFACE_USART, false);
+
+        if (iface && iface->tx_complete_cb)
         {
-            usart_interface.tx_complete_cb(COMM_IFACE_USART);
+            iface->tx_complete_cb(COMM_IFACE_USART);
         }
     }
 }
@@ -130,6 +125,6 @@ void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
     if (huart->Instance == USART2)
     {
-        comm_interface_set_state(COMM_IFACE_USART, COMM_STATE_ERROR);
+        comm_interface_set_error(COMM_IFACE_USART, true);
     }
 }
