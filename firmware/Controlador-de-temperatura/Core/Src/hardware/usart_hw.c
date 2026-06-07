@@ -17,8 +17,8 @@ static bool usart_hw_is_connected(void *context)
     return true;
 }
 
-static inline void comm_buffer_protect_rx(void) { __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE); }
-static inline void comm_buffer_unprotect_rx(void) { __HAL_UART_DISABLE_IT(&huart2, UART_IT_IDLE); }
+static inline void comm_buffer_protect_rx(void) { __HAL_UART_DISABLE_IT(&huart2, UART_IT_IDLE); }
+static inline void comm_buffer_unprotect_rx(void) { __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE); }
 
 static inline void comm_buffer_protect_tx(void) { __HAL_DMA_DISABLE_IT(&hdma_usart2_tx, DMA_IT_HT); }
 static inline void comm_buffer_unprotect_tx(void) { __HAL_DMA_ENABLE_IT(&hdma_usart2_tx, DMA_IT_HT); }
