@@ -1,0 +1,6 @@
+# Build artifacts in this directory
+*.o
+*.elf
+*.hex
+*.map
+*.d

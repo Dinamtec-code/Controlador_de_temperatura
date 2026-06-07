@@ -42,6 +42,9 @@
 #include "tasks/task_control.h"
 #include "tasks/task_ui.h"
 
+/* Communication */
+#include "communication/comm_buffers.h"
+
 /* Services */
 #include "services/error_handler.h"
 #include "services/scpi_parser.h"
@@ -120,9 +123,10 @@ int main(void)
 
   /* USER CODE BEGIN 2 */
 
-  /* Initialize hardware layers */
-  scpi_init();
-  usart_hw_init();
+/* Initialize hardware layers */
+   comm_buffers_init();
+   usart_hw_init();
+   scpi_init();
   adc_hw_init();
   oled_hw_init();
   hrtim_hw_init();
