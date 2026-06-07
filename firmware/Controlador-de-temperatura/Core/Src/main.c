@@ -44,6 +44,7 @@
 
 /* Communication */
 #include "communication/comm_buffers.h"
+#include "communication/comm_interface.h"
 
 /* Services */
 #include "services/error_handler.h"
@@ -123,10 +124,10 @@ int main(void)
 
   /* USER CODE BEGIN 2 */
 
-/* Initialize hardware layers */
-   comm_buffers_init();
-   usart_hw_init();
-   scpi_init();
+  /* Initialize hardware layers */
+  comm_buffers_init();
+  usart_hw_init();
+  scpi_init();
   adc_hw_init();
   oled_hw_init();
   hrtim_hw_init();
@@ -139,9 +140,8 @@ int main(void)
   scheduler_add_task(TASK_CONTROL, task_control, TASK_PERIOD_MS);
   scheduler_add_task(TASK_UI, task_ui, TASK_PERIOD_MS);
 
-  /* Start HRTIM and USART reception */
-  hrtim_hw_start();
-  usart_hw_start_rx();
+/* Start HRTIM (USART RX started by task_comm FSM) */
+   hrtim_hw_start();
 
   /* USER CODE END 2 */
 
