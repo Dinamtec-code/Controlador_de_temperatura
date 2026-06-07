@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stddef.h>
 
-/* Cuando se opera sobre el bufer este puede devolver los estadop ssiguientes
+/* Cuando se opera sobre el bufer este puede devolver los estados siguientes
  *  BUF_OK: la operacion salió bien y el buffer esta integro.
  *  BUF_EMPTY: el buffer esta vacio, no se puede leer.
  *  BUF_FULL: el buffer esta lleno, no se puede escribir.

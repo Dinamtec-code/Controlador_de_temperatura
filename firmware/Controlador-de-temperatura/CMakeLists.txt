@@ -75,7 +75,6 @@ set(APP_SOURCES
     Core/Src/gpio.c
     Core/Src/dma.c
     # Hardware abstraction layer
-    Core/Src/hardware/circular_buffer.c
     Core/Src/hardware/usart_hw.c
     Core/Src/hardware/adc_hw.c
     Core/Src/hardware/lcd_hw.c
@@ -89,6 +88,7 @@ set(APP_SOURCES
     Core/Src/tasks/task_control.c
     Core/Src/tasks/task_ui.c
     # Services
+    Core/Src/services/circular_buffer.c
     Core/Src/services/scpi_parser.c
     Core/Src/services/error_handler.c
     # Control

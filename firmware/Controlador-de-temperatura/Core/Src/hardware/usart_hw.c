@@ -1,127 +1,83 @@
 #include "hardware/usart_hw.h"
 #include "usart.h"
 #include "dma.h"
+#include "communication/comm_interface.h"
+#include "communication/comm_buffers.h"
 #include <string.h>
 
-/* Buffer de recepción circular */
-circular_buffer_t rx_circular_buffer;
-static uint8_t rx_buffer[USART_HW_RX_BUFFER_SIZE];
+static comm_interface_t usart_interface;
 
-/* Buffer de transmisión DMA */
-static uint8_t tx_buffer[USART_HW_TX_BUFFER_SIZE];
-static volatile size_t tx_head = 0;
-static volatile size_t tx_tail = 0;
-static volatile size_t tx_count = 0;
-static volatile bool tx_busy = false;
-
-/* Internal: start next DMA transmission if data pending */
-static void usart_hw_start_tx(void)
-{
-    if (tx_count > 0 && huart2.gState == HAL_UART_STATE_READY)
-    {
-        tx_busy = true;
-        size_t to_send = tx_count;
-        if (tx_tail + to_send > USART_HW_TX_BUFFER_SIZE)
-        {
-            to_send = USART_HW_TX_BUFFER_SIZE - tx_tail;
-        }
-        
-        HAL_UART_Transmit_DMA(&huart2, &tx_buffer[tx_tail], to_send);
-        tx_tail = (tx_tail + to_send) % USART_HW_TX_BUFFER_SIZE;
-        tx_count -= to_send;
-    }
+static bool usart_hw_send(const uint8_t *data, size_t len) {
+    return comm_buffer_tx_put(COMM_IFACE_USART, data, len);
 }
 
-/* Función interna para encolar caracteres */
-static void usart_hw_send_char(uint8_t ch)
-{
-    if (tx_count >= USART_HW_TX_BUFFER_SIZE)
-    {
-        return;
-    }
+static bool usart_hw_is_connected(void *context) {
+    return true;
+}
+
+void usart_hw_init(void) {
+    usart_interface.id = COMM_IFACE_USART;
+    usart_interface.context = NULL;
+    usart_interface.name = "USART2";
+    usart_interface.send = usart_hw_send;
+    usart_interface.is_connected = usart_hw_is_connected;
+    usart_interface.rx_indication_cb = NULL;
+    usart_interface.tx_complete_cb = NULL;
     
-    __disable_irq();
-    tx_buffer[tx_head] = ch;
-    tx_head = (tx_head + 1) % USART_HW_TX_BUFFER_SIZE;
-    tx_count++;
-    
-    if (!tx_busy && huart2.gState == HAL_UART_STATE_READY)
-    {
-        usart_hw_start_tx();
-    }
-    __enable_irq();
+    comm_register_interface(&usart_interface);
 }
 
-void usart_hw_init(void)
-{
-    cb_init(&rx_circular_buffer, rx_buffer, USART_HW_RX_BUFFER_SIZE);
-}
-
-void usart_hw_start_rx(void)
-{
-    HAL_UART_DMAStop(&huart2);
-    uint32_t bytes_received = DMA_RX_BUFFER_SIZE - hdma_usart2_rx.Instance->CNDTR;
-    for (size_t i = 0; i < bytes_received; i++)
-    {
-        uint8_t byte = dma_uart_rx_buffer[i];
-        cb_put(&rx_circular_buffer, byte);
-    }
+void usart_hw_start_rx(void) {
     usart_rx_start();
 }
 
-void usart_hw_idle_handler(void)
-{
+void usart_hw_idle_handler(void) {
     HAL_UART_DMAStop(&huart2);
     uint32_t bytes_received = DMA_RX_BUFFER_SIZE - hdma_usart2_rx.Instance->CNDTR;
-    for (size_t i = 0; i < bytes_received; i++)
-    {
+    
+    for (size_t i = 0; i < bytes_received; i++) {
         uint8_t byte = dma_uart_rx_buffer[i];
-        cb_put(&rx_circular_buffer, byte);
+        comm_buffer_rx_put(COMM_IFACE_USART, byte);
     }
+    
     usart_rx_start();
 }
 
-void usart_hw_send_str(const char *str)
-{
-    while (*str)
-    {
-        usart_hw_send_char((uint8_t)*str++);
+void usart_hw_send_str(const char *str) {
+    while (*str) {
+        usart_interface.send((const uint8_t *)str, 1);
+        str++;
     }
 }
 
-void usart_hw_send_buf(uint8_t *data, size_t len)
-{
-    for (size_t i = 0; i < len; i++)
-    {
-        usart_hw_send_char(data[i]);
+void usart_hw_send_buf(uint8_t *data, size_t len) {
+    usart_interface.send(data, len);
+}
+
+bool usart_hw_is_tx_ready(void) {
+    return huart2.gState == HAL_UART_STATE_READY;
+}
+
+bool usart_hw_transmit_from_system_buffer(void) {
+    if (huart2.gState != HAL_UART_STATE_READY) {
+        return false;
     }
+    
+    uint8_t chunk[COMM_BUFFER_TX_SIZE];
+    size_t chunk_len = COMM_BUFFER_TX_SIZE;
+    
+    if (!comm_buffer_tx_get(COMM_IFACE_USART, chunk, &chunk_len) || chunk_len == 0) {
+        return false;
+    }
+    
+    HAL_UART_Transmit_DMA(&huart2, chunk, chunk_len);
+    return true;
 }
 
-bool usart_hw_is_tx_ready(void)
-{
-    return (huart2.gState == HAL_UART_STATE_READY);
-}
-
-/* Called from HAL UART TX complete callback - continues transmission */
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
-{
-    if (huart->Instance == USART2)
-    {
-        if (tx_count > 0)
-        {
-            size_t to_send = tx_count;
-            if (tx_tail + to_send > USART_HW_TX_BUFFER_SIZE)
-            {
-                to_send = USART_HW_TX_BUFFER_SIZE - tx_tail;
-            }
-            
-            HAL_UART_Transmit_DMA(&huart2, &tx_buffer[tx_tail], to_send);
-            tx_tail = (tx_tail + to_send) % USART_HW_TX_BUFFER_SIZE;
-            tx_count -= to_send;
-        }
-        else
-        {
-            tx_busy = false;
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+    if (huart->Instance == USART2) {
+        if (usart_interface.tx_complete_cb) {
+            usart_interface.tx_complete_cb(COMM_IFACE_USART);
         }
     }
 }

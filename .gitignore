@@ -1,7 +1,6 @@
 # Firmware build artifacts
 firmware/**/Debug/
 firmware/**/Release/
-firmware/**/build/
 firmware/**/*.o
 firmware/**/*.elf
 firmware/**/*.hex

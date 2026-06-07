@@ -192,21 +192,29 @@ Para SCPI necesitamos delimitar líneas. El cb_buffer puede usarse con un wrappe
 - [x] **Punto 2**: Buffer separado por interfaz ✅  
 - [x] **Punto 3**: No interfaces simultáneas por ahora ✅
 - [x] **Punto 5**: Mantener parser actual ✅
-- [?] **Direccionamiento de respuestas**: Opción A (task_comm orquestador) o Opción B (parser con callback)
+- [x] **Direccionamiento de respuestas**: Opción A (task_comm orquestador) - Parser usa output interface abstraction ✅
 
-## Archivos a Crear/Modificar
+## Archivos Creados
 
 ### Crear:
-- `Core/Inc/communication/comm_interface.h` - API estándar de interfaces
-- `Core/Inc/communication/comm_buffers.h` - Buffers únicos del sistema (RX/TX por interfaz)
-- `Core/Src/communication/comm_buffers.c` - Gestión de buffers
-- `Core/Inc/communication/parser_types.h` - Tipos para parser callbacks
+- [x] `Core/Inc/communication/comm_interface.h` - API estándar de interfaces
+- [x] `Core/Inc/communication/comm_buffers.h` - Buffers únicos del sistema
+- [x] `Core/Src/communication/comm_buffers.c` - Gestión de buffers
+- [x] `Core/Inc/communication/parser_types.h` - Tipos para parser callbacks (no requerido - usa scpi_output_interface_t)
 
 ### Modificar:
-- `Core/Inc/hardware/usart_hw.h` - Añadir callbacks estándar
-- `Core/Src/hardware/usart_hw.c` - Implementar callbacks, usar comm_buffers
-- `Core/Src/tasks/task_comm.c` - Usar nueva arquitectura con buffers
-- `Core/Inc/services/scpi_parser.h` - Añadir función con origen de interfaz
-- `Core/Src/services/scpi_parser.c` - Usar comm_buffers para respuestas
-- `Core/Src/stm32f3xx_it.c` - Llamar a comm_tx_complete callback
-- `Core/Src/main.c` - Inicializar comm_buffers, registrar usart_hw como interface
+- [x] `Core/Inc/hardware/usart_hw.h` - Refactorizado, ahora implementa comm_interface_t
+- [x] `Core/Src/hardware/usart_hw.c` - Implementa callbacks, usa comm_buffers
+- [x] `Core/Src/tasks/task_comm.c` - Usa nueva arquitectura con buffers
+- [x] `Core/Src/services/scpi_parser.c` - Usa output interface abstraction
+- [x] `Core/Src/main.c` - Inicializa comm_buffers, registra usart_hw como interface
+
+## Notas de Implementación
+
+### Implementada Opción B (Parser con callback):
+El parser usa `scpi_output_interface_t` que llama a `comm_buffer_tx_put()` en el callback. Esto simplifica el flujo ya que el parser no necesita conocer el origen de la respuesta.
+
+### Próximos pasos:
+- Verificar compilación
+- Testear flujo de datos USART → task_comm → parser → respuesta
+- Si agregan interfaces TCP/USB, implementar capa hardware correspondiente

@@ -56,7 +56,6 @@ float get_temperature_callback(void *context)
 {
     return adc_hw_read_temperature();
 }
-/* Initialize SCPI interface */
 
 void scpi_init(void)
 {
@@ -75,9 +74,23 @@ void scpi_init(void)
     output_iface = NULL;
 }
 
+void scpi_set_input_interface(const scpi_input_interface_t *in_iface)
+{
+    input_iface = in_iface;
+}
+
+void scpi_set_output_interface(const scpi_output_interface_t *out_iface)
+{
+    output_iface = out_iface;
+}
+
 static void send_response(const char *resp)
 {
-    usart_hw_send_str(resp);
+    if (output_iface && output_iface->send_response) {
+        output_iface->send_response(resp, (void*)output_iface->context);
+    } else {
+        usart_hw_send_str(resp);
+    }
 }
 
 void scpi_process_line(const char *command)
