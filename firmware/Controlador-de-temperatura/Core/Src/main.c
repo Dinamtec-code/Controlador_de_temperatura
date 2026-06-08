@@ -140,8 +140,8 @@ int main(void)
   scheduler_add_task(TASK_CONTROL, task_control, TASK_PERIOD_MS);
   scheduler_add_task(TASK_UI, task_ui, TASK_PERIOD_MS);
 
-/* Start HRTIM (USART RX started by task_comm FSM) */
-   hrtim_hw_start();
+  /* Start HRTIM (USART RX started by task_comm FSM) */
+  hrtim_hw_start();
 
   /* USER CODE END 2 */
 

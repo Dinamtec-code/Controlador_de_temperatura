@@ -57,6 +57,16 @@ float get_temperature_callback(void *context)
     return adc_hw_read_temperature();
 }
 
+bool get_output_callback(int channel, void *context)
+{
+    return pid_controller_get_out(channel);
+}
+
+void set_output_callback(int channel, bool value, void *context)
+{
+    pid_controller_set_out(channel, value);
+}
+
 void scpi_init(void)
 {
     scpi_iface.get_temp = get_temperature_callback;
@@ -148,7 +158,8 @@ void scpi_process_line(const char *command)
 
         int int_part = (int)sp;
         int dec_part = (int)((sp - (float)int_part) * 100.0f);
-        if (dec_part < 0) dec_part = -dec_part;
+        if (dec_part < 0)
+            dec_part = -dec_part;
 
         snprintf(resp, sizeof(resp), "%d.%02d\r\n", int_part, dec_part);
         send_response(resp);
@@ -173,7 +184,8 @@ void scpi_process_line(const char *command)
 
         int int_part = (int)kp;
         int dec_part = (int)((kp - (float)int_part) * 10000.0f);
-        if (dec_part < 0) dec_part = -dec_part;
+        if (dec_part < 0)
+            dec_part = -dec_part;
 
         snprintf(resp, sizeof(resp), "%d.%04d\r\n", int_part, dec_part);
         send_response(resp);
@@ -185,7 +197,8 @@ void scpi_process_line(const char *command)
 
         int int_part = (int)ki;
         int dec_part = (int)((ki - (float)int_part) * 10000.0f);
-        if (dec_part < 0) dec_part = -dec_part;
+        if (dec_part < 0)
+            dec_part = -dec_part;
 
         snprintf(resp, sizeof(resp), "%d.%04d\r\n", int_part, dec_part);
         send_response(resp);
@@ -197,7 +210,8 @@ void scpi_process_line(const char *command)
 
         int int_part = (int)kd;
         int dec_part = (int)((kd - (float)int_part) * 10000.0f);
-        if (dec_part < 0) dec_part = -dec_part;
+        if (dec_part < 0)
+            dec_part = -dec_part;
 
         snprintf(resp, sizeof(resp), "%d.%04d\r\n", int_part, dec_part);
         send_response(resp);
@@ -216,5 +230,52 @@ void scpi_process_line(const char *command)
     {
         scpi_iface_p->set_kd(atof(command + 7), scpi_iface_p->context);
         send_response("OK\r\n");
+    }
+    else if (strncmp(command, "SOURCE1:OUTP OFF", 10) == 0)
+    {
+        scpi_iface_p->set_out(0, false, scpi_iface_p->context);
+        send_response("OK\r\n");
+    }
+    else if (strncmp(command, "SOURCE1:OUTP ON", 15) == 0)
+    {
+        scpi_iface_p->set_out(0, true, scpi_iface_p->context);
+        send_response("OK\r\n");
+    }
+    else if (strncmp(command, "SOURCE2:OUTP OFF", 10) == 0)
+    {
+        scpi_iface_p->set_out(1, false, scpi_iface_p->context);
+        send_response("OK\r\n");
+    }
+    else if (strncmp(command, "SOURCE2:OUTP ON", 15) == 0)
+    {
+        scpi_iface_p->set_out(1, true, scpi_iface_p->context);
+        send_response("OK\r\n");
+    }
+    else if (strncmp(command, "SOURCE1:OUTP OFF", 16) == 0)
+    {
+        scpi_iface_p->set_out(0, false, scpi_iface_p->context);
+        send_response("OK\r\n");
+    }
+    else if (strncmp(command, "SOURCE1:OUTP?", 13) == 0)
+    {
+        if (scpi_iface_p->get_out(0, scpi_iface_p->context))
+        {
+            send_response("ON\r\n");
+        }
+        else
+        {
+            send_response("OFF\r\n");
+        }
+    }
+    else if (strncmp(command, "SOURCE2:OUTP?", 13) == 0)
+    {
+        if (scpi_iface_p->get_out(1, scpi_iface_p->context))
+        {
+            send_response("ON\r\n");
+        }
+        else
+        {
+            send_response("OFF\r\n");
+        }
     }
 }
