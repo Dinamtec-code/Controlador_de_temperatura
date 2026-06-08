@@ -1,57 +1,73 @@
 # Controlador de Temperatura - Firmware STM32
 
-## Mejoras Realizadas
+## Arquitectura del Firmware
 
-### main.c
-- **Simplificación de State Machines**: Reemplazadas `parseContext_t`/`commContext_t` con `TaskState_t` (STATE_IDLE, STATE_PROCESSING, STATE_ERROR)
-- **Corrección de conversiones de tipo**: `atof()` → `strtol()` con validación de entrada y bounds checking
-- **Validación de rangos PWM**: Rango 0-63999 (HRTIM_PERIOD)
-- **Implementado comando F**: Configura frecuencia HRTIM (ej: F,150000)
-- **Eliminada variable `frecuency`** sin uso
+```
+Core/Src/
+├── main.c                  # Punto de entrada, inicialización
+├── hardware/               # Abstracciones de hardware
+│   ├── usart_hw.c         # UART con DMA buffer
+│   ├── adc_hw.c           # Lectura temperatura ADC2
+│   ├── hrtim_hw.c         # Control PWM HRTIM
+│   ├── lcd_hw.c, oled_hw.c
+│   └── i2c_hw.c
+├── tasks/                  # Sistema de tareas (scheduler)
+│   ├── scheduler.c        # Scheduler simple sin RTOS
+│   ├── task_comm.c        # Procesamiento UART/SCPI
+│   ├── task_control.c     # Control PID temperatura
+│   ├── task_system.c
+│   └── task_ui.c
+├── services/               # Servicios
+│   ├── scpi_parser.c      # Parser SCPI para UART
+│   ├── error_handler.c
+│   └── circular_buffer.c
+├── control/                # Control PID
+│   ├── pid_controller.c
+│   └── arm_pid_init_f32.c
+└── communication/
+    └── comm_buffers.c      # Buffer UART circular
+```
 
-### usart.c
-- **Buffer circular inicializado correctamente**: `BufferStartOffset=0`, `BufferEndOffset=0`
-- **Protección de race conditions**: `sendChar()` y `__io_putchar()` usan `__disable_irq()`/`__enable_irq()`
-- **Mejorado manejo de buffer**: Cambiado `Error_Handler()` por retorno `HAL_ERROR` en overflow
-- **Recepción DMA no bloqueante**: Los datos se copian y se reinicia la recepción inmediatamente, no se espera a que el buffer esté libre
-- **Nueva función `uartConsumeData()`**: Llama después de procesar datos para liberar el buffer
+## Características Implementadas
 
-### hrtim.c
-- **Corregido TIMER_B duplicado**: Línea 133 tenía configuración duplicada, se cambió por TIMER_C
-- **Agregado TIMER_E faltante**: Entre TIMER_D y el TimerConfig final
+### Control PID de Temperatura
+- Setpoint configurable: 0-200°C
+- Ganancia KP, KI, KD ajustable vía SCPI
+- Límites de salida: 0.5% - 49.5%
+- Salida PWM controlada en canales TA1/TB1
 
-### STM32F334R8Tx_FLASH.ld
-- **Heap aumentado**: De 0x200 (512 bytes) a 0x1000 (4KB) - preparación para FreeRTOS
+### HRTIM Multifásico
+- 5 canales PWM (TA1, TB1, TC1, TD1, TE1)
+- Dead time: 200 ticks (prescaler ×8)
+- ADC trigger desde master timer
+
+### UART SCPI
+- Comunicación a 115200 baudios
+- Buffer circular con DMA
+- Respuestas formateadas
 
 ## Build System
 
 ### Herramientas Necesarias (Windows)
-1. **GNU Arm Embedded Toolchain 10+**: `C:\Program Files (x86)\GNU Arm Embedded Toolchain\10 2021.10\`
+1. **GNU Arm Embedded Toolchain 10+** (o Arm GNU Toolchain)
 2. **STM32CubeProgrammer**: `C:\Program Files\STMicroelectronics\STM32Cube\STM32CubeProgrammer\bin\STM32_Programmer_CLI.exe`
-3. **CMake 4+**: `C:\Program Files\CMake\bin\`
-4. **Ninja** (viene con extensión CMake Tools de VS Code)
+3. **CMake 3.20+**
 
-### Archivos de Configuración
-- `build.bat` - Script de compilación directa (funciona inmediatamente)
-- `toolchain.cmake` - Configuración de toolchain para CMake
-- `CMakeLists.txt` - Build system CMake
-- `.vscode/c_cpp_properties.json` - Paths para IntelliSense
-- `.vscode/cmake-kits.json` - Kit de compilador GCC ARM
-- `.vscode/tasks.json` - Tasks: Build, Flash
+### Compilar
 
-### Compilar (2 opciones)
-```bash
-# Opción 1: build.bat (rápido, sin CMake)
-build.bat
+```powershell
+# Desde el directorio firmware/Controlador-de-temperatura/build
+.\build.bat
 
-# Opción 2: CMake con VSCode
-# Ctrl+Shift+P → "CMake: Configure" 
+# O con CMake + VS Code
+# Ctrl+Shift+P → "CMake: Configure"
 # Ctrl+Shift+B → Build
 ```
 
 ### Flashear
-```bash
-STM32_Programmer_CLI.exe -c port=SWD -w Controlador-de-temperatura.hex -r 0x08000000 -v
+
+```powershell
+STM32_Programmer_CLI.exe -c port=SWD -w ..\build\Controlador-de-temperatura.hex -r 0x08000000 -v
 ```
 
 ## Estado Actual del Firmware
@@ -61,26 +77,29 @@ STM32_Programmer_CLI.exe -c port=SWD -w Controlador-de-temperatura.hex -r 0x0800
 | FLASH (text) | 25,068 bytes | 64KB | 39% |
 | RAM (data+bss) | 6,640 bytes | 12KB | 54% |
 
-## Próximos Pasos para RTOS
-1. Añadir FreeRTOS (CubeIDE o manualmente)
-2. Crear colas para comunicación UART
-3. Tarea dedicada para ADC con trigger HRTIM
-4. Implementar control PID (funciones stub creadas)
+## Comandos UART Soportados (SCPI)
 
-## Comandos UART Soportados
 ```
-S,A    - Start todos los outputs PWM
-S,O    - Stop todos los outputs PWM
-X,1234 - Set PWM axis X (timers A/B)
-Y,567  - Set PWM axis Y (timers C/D)
-Z,890  - Set PWM axis Z (timer E)
-P,180  - Set fase (phase)
-F,150k - Set frecuencia (ej: 150000 = 150kHz)
+*IDN?            - Identificación del dispositivo
+*CLS             - Limpiar estado
+*RST             - Reset (setpoint=25°C, PID gains=0)
+MEAS:TEMP?       - Medir temperatura actual
+TEMP:SP?         - Leer setpoint temperatura
+TEMP:SP <valor>  - Establecer setpoint (0-200°C)
+PID:KP?          - Leer ganancia proporcional
+PID:KP <valor>   - Establecer KP
+PID:KI?          - Leer ganancia integral
+PID:KI <valor>   - Establecer KI
+PID:KD?          - Leer ganancia derivativa
+PID:KD <valor>   - Establecer KD
+SOUR1:OUTP ON/OFF - Control salida 1 (GPIO PC13)
+SOUR2:OUTP ON/OFF - Control salida 2 (GPIO PB4)
+SOUR1:OUTP?      - Estado salida 1
+SOUR2:OUTP?      - Estado salida 2
 ```
 
 ## Notas de Configuración HRTIM
 - Clock: 144 MHz (PLL * 9 / 2)
 - Periodo Master: 64000 → frecuencia ≈ 2.25 kHz
 - Dead time: 200 ticks (prescaler ×8)
-- ADC1: 2 canales disparado por HRTIM_TRG1
-- Timer mode: SINGLESHOT_RETRIGGERABLE para A-D, CONTINUOUS para E
+- Pin mapping: CHA1/PA8, CHB1/PA10, CHC1/PB12, CHD1/PB14, CHE1/PC8
