@@ -55,7 +55,7 @@ float get_setpoint_callback(void *context)
 
 float get_temperature_callback(void *context)
 {
-    return adc_hw_read_temperature();
+    return adc_hw_get_temp_diff();
 }
 
 bool get_output_callback(int channel, void *context)
