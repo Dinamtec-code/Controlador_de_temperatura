@@ -1,4 +1,5 @@
 #include "services/scpi_parser.h"
+#include "main.h"
 #include "hardware/adc_hw.h"
 #include "usart.h"
 #include "hardware/usart_hw.h"
@@ -59,12 +60,20 @@ float get_temperature_callback(void *context)
 
 bool get_output_callback(int channel, void *context)
 {
-    return pid_controller_get_out(channel);
+    return pid_controller_get_output(get_temp_pid_instance(), channel);
 }
 
 void set_output_callback(int channel, bool value, void *context)
 {
-    pid_controller_set_out(channel, value);
+    pid_controller_set_output(get_temp_pid_instance(), channel, value);
+    if (channel == 0)
+    {
+        HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, value ? GPIO_PIN_RESET : GPIO_PIN_SET);
+    }
+    else if (channel == 1)
+    {
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, value ? GPIO_PIN_RESET : GPIO_PIN_SET);
+    }
 }
 
 void scpi_init(void)
@@ -78,6 +87,8 @@ void scpi_init(void)
     scpi_iface.get_kp = get_kp_callback;
     scpi_iface.get_ki = get_ki_callback;
     scpi_iface.get_kd = get_kd_callback;
+    scpi_iface.get_output = get_output_callback;
+    scpi_iface.set_output = set_output_callback;
     scpi_iface.context = NULL;
     scpi_iface_p = &scpi_iface;
     input_iface = NULL;
@@ -231,34 +242,29 @@ void scpi_process_line(const char *command)
         scpi_iface_p->set_kd(atof(command + 7), scpi_iface_p->context);
         send_response("OK\r\n");
     }
-    else if (strncmp(command, "SOURCE1:OUTP OFF", 10) == 0)
+    else if (strncmp(command, "SOUR1:OUTP OFF", 14) == 0)
     {
-        scpi_iface_p->set_out(0, false, scpi_iface_p->context);
-        send_response("OK\r\n");
+        scpi_iface_p->set_output(0, false, scpi_iface_p->context);
+        send_response("OK off\r\n");
     }
-    else if (strncmp(command, "SOURCE1:OUTP ON", 15) == 0)
+    else if (strncmp(command, "SOUR1:OUTP ON", 13) == 0)
     {
-        scpi_iface_p->set_out(0, true, scpi_iface_p->context);
-        send_response("OK\r\n");
+        scpi_iface_p->set_output(0, true, scpi_iface_p->context);
+        send_response("OK on\r\n");
     }
-    else if (strncmp(command, "SOURCE2:OUTP OFF", 10) == 0)
+    else if (strncmp(command, "SOUR2:OUTP OFF", 14) == 0)
     {
-        scpi_iface_p->set_out(1, false, scpi_iface_p->context);
-        send_response("OK\r\n");
+        scpi_iface_p->set_output(1, false, scpi_iface_p->context);
+        send_response("OK off\r\n");
     }
-    else if (strncmp(command, "SOURCE2:OUTP ON", 15) == 0)
+    else if (strncmp(command, "SOUR2:OUTP ON", 13) == 0)
     {
-        scpi_iface_p->set_out(1, true, scpi_iface_p->context);
-        send_response("OK\r\n");
+        scpi_iface_p->set_output(1, true, scpi_iface_p->context);
+        send_response("OK on\r\n");
     }
-    else if (strncmp(command, "SOURCE1:OUTP OFF", 16) == 0)
+    else if (strncmp(command, "SOUR1:OUTP?", 11) == 0)
     {
-        scpi_iface_p->set_out(0, false, scpi_iface_p->context);
-        send_response("OK\r\n");
-    }
-    else if (strncmp(command, "SOURCE1:OUTP?", 13) == 0)
-    {
-        if (scpi_iface_p->get_out(0, scpi_iface_p->context))
+        if (scpi_iface_p->get_output(0, scpi_iface_p->context))
         {
             send_response("ON\r\n");
         }
@@ -267,9 +273,9 @@ void scpi_process_line(const char *command)
             send_response("OFF\r\n");
         }
     }
-    else if (strncmp(command, "SOURCE2:OUTP?", 13) == 0)
+    else if (strncmp(command, "SOUR2:OUTP?", 13) == 0)
     {
-        if (scpi_iface_p->get_out(1, scpi_iface_p->context))
+        if (scpi_iface_p->get_output(1, scpi_iface_p->context))
         {
             send_response("ON\r\n");
         }

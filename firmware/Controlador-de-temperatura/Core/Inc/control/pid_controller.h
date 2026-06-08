@@ -34,7 +34,7 @@ float pid_get_ki(pid_controller_t *pid);
 float pid_get_kd(pid_controller_t *pid);
 float pid_get_setpoint(pid_controller_t *pid);
 float pid_get_out(pid_controller_t *pid);
-bool pid_controller_get_output(int channel);
-void pid_controller_set_output(int channel, bool value);
+bool pid_controller_get_output(pid_controller_t *pid, int channel);
+void pid_controller_set_output(pid_controller_t *pid, int channel, bool value);
 
 #endif
