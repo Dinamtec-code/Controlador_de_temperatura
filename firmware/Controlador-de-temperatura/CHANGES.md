@@ -100,6 +100,7 @@ SOUR2:OUTP?      - Estado salida 2
 
 ## Notas de Configuración HRTIM
 - Clock: 144 MHz (PLL * 9 / 2)
-- Periodo Master: 64000 → frecuencia ≈ 2.25 kHz
+- Prescaler: MUL32 (alta resolución 217 ps, fHRCK = 4.608 GHz)
+- Periodo Master: 64000 → frecuencia ≈ 72 kHz (144MHz×32/64000)
 - Dead time: 200 ticks (prescaler ×8)
 - Pin mapping: CHA1/PA8, CHB1/PA10, CHC1/PB12, CHD1/PB14, CHE1/PC8

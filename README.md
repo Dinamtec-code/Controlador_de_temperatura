@@ -83,6 +83,11 @@ STM32F334R8 con:
 
 Implementa control PID de temperatura con comunicación SCPI a través de UART.
 
+### Especificaciones Técnicas HRTIM
+- Clock: 144 MHz (PLL ×9)
+- Prescaler: MUL32 (alta resolución 217 ps)
+- fHRCK: 4.608 GHz → frecuencia PWM ≈ 72 kHz (periodo 64000)
+
 ### Comandos UART Soportados (SCPI)
 
 ```
