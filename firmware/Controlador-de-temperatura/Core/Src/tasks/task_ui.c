@@ -19,7 +19,7 @@ void task_ui(void)
     {
         oled_hw_clear();
 
-        temp = 0.3 * adc_hw_read_temperature() + 0.7 * temp;
+        temp = 0.3 * adc_hw_get_temp_diff() + 0.7 * temp;
 
         oled_hw_print_str("Temp = ", 1);
         oled_hw_print_float_at(temp, 1, 32);

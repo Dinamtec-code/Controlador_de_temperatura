@@ -38,7 +38,7 @@ void task_control(void)
         HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, GPIO_PIN_SET);
     }
 
-    float temp = adc_hw_read_temperature();
+    float temp = adc_hw_get_temp_ch1();
     float output = pid_compute(get_temp_pid_instance(), temp);
 
     if (output >= 0)
