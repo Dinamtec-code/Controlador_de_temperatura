@@ -7,6 +7,8 @@
 typedef void (*scpi_response_callback_t)(const char *resp, void *context);
 typedef float (*scpi_get_sensor_callback_t)(void *context);
 typedef void (*scpi_set_float_callback_t)(float value, void *context);
+typedef bool (*scpi_get_output_callback_t)(int channel, void *context);
+typedef void (*scpi_set_output_callback_t)(int channel, bool value, void *context);
 
 typedef struct
 {
@@ -19,6 +21,8 @@ typedef struct
     scpi_get_sensor_callback_t get_kp;
     scpi_get_sensor_callback_t get_ki;
     scpi_get_sensor_callback_t get_kd;
+    scpi_get_output_callback_t get_out;
+    scpi_set_output_callback_t set_out;
     void *context;
 } scpi_interface_t;
 

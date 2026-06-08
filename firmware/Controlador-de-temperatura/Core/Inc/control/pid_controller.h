@@ -6,6 +6,8 @@
 #include "arm_math_types.h"
 #include "control/controller_functions.h"
 
+#define PID_OUTPUT_CHANNELS 2
+
 typedef struct
 {
     arm_pid_instance_f32 cmsis_pid;
@@ -13,6 +15,7 @@ typedef struct
     float output_limit_max;
     uint8_t initialized;
     float setpoint;
+    bool output_state[PID_OUTPUT_CHANNELS];
 } pid_controller_t;
 
 void pid_init(pid_controller_t *pid, float kp, float ki, float kd);
@@ -30,5 +33,8 @@ float pid_get_kp(pid_controller_t *pid);
 float pid_get_ki(pid_controller_t *pid);
 float pid_get_kd(pid_controller_t *pid);
 float pid_get_setpoint(pid_controller_t *pid);
+float pid_get_out(pid_controller_t *pid);
+bool pid_controller_get_output(int channel);
+void pid_controller_set_output(int channel, bool value);
 
 #endif
