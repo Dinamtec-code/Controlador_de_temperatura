@@ -76,21 +76,32 @@ STM32_Programmer_CLI.exe -c port=SWD -w ..\build\Controlador-de-temperatura.hex 
 ## Firmware
 
 STM32F334R8 con:
-- HRTIM: Control PWM multifase (5 canales: A, B, C, D, E)
-- ADC: Lectura triggered por HRTIM_TRG1 (2 canales)
-- USART: Comunicación con DMA IDLE
+- HRTIM: Control PWM multifásico (5 canales: A, B, C, D, E) con trigger ADC
+- ADC: Lectura temperatura (canal interno en ADC2)
+- USART: Comunicación serial con DMA
 - Scheduler: Sistema de tareas sin RTOS
 
-### Comandos UART Soportados
+Implementa control PID de temperatura con comunicación SCPI a través de UART.
+
+### Comandos UART Soportados (SCPI)
 
 ```
-S,A    - Start todos los outputs PWM
-S,O    - Stop todos los outputs PWM
-X,1234 - Set PWM axis X (timers A/B)
-Y,567  - Set PWM axis Y (timers C/D)
-Z,890  - Set PWM axis Z (timer E)
-P,180  - Set fase (phase)
-F,150k - Set frecuencia (ej: 150000 = 150kHz)
+*IDN?            - Identificación del dispositivo
+*CLS             - Limpiar estado
+*RST             - Reset (setpoint=25°C, PID gains=0)
+MEAS:TEMP?       - Medir temperatura actual
+TEMP:SP?         - Leer setpoint temperatura
+TEMP:SP <valor>  - Establecer setpoint (0-200°C)
+PID:KP?          - Leer ganancia proporcional
+PID:KP <valor>   - Establecer KP
+PID:KI?          - Leer ganancia integral
+PID:KI <valor>   - Establecer KI
+PID:KD?          - Leer ganancia derivativa
+PID:KD <valor>   - Establecer KD
+SOUR1:OUTP ON/OFF - Control salida 1 (GPIO PC13)
+SOUR2:OUTP ON/OFF - Control salida 2 (GPIO PB4)
+SOUR1:OUTP?      - Estado salida 1
+SOUR2:OUTP?      - Estado salida 2
 ```
 
 ### Estado Actual del Firmware
