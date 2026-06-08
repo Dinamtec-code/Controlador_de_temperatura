@@ -1,5 +1,6 @@
 #include "hardware/adc_hw.h"
 #include "stm32f3xx_hal.h"
+#include "main.h"
 #include "adc.h"
 #include <math.h>
 
@@ -21,7 +22,7 @@ static void process_adc_samples(uint32_t start_idx, uint32_t count)
         adc_raw_ch1_filtered = (alpha * (float)val1) + ((1.0f - alpha) * adc_raw_ch1_filtered);
         adc_raw_ch2_filtered = (alpha * (float)val2) + ((1.0f - alpha) * adc_raw_ch2_filtered);
     }
-    // HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin); // Toggle LED for debugging
+    //HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin); // Toggle LED for debugging
 }
 
 static inline void alpha_calculate(float fc_fs_ratio)
