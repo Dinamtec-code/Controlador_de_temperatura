@@ -14,7 +14,7 @@ void task_control(void)
     if (!(get_temp_pid_instance()->initialized))
     {
         pid_init(get_temp_pid_instance(), def_pidKp, def_pidKi, def_pidKd);
-        pid_set_limits(get_temp_pid_instance(), 5.0f, 95.0f);
+        pid_set_limits(get_temp_pid_instance(), 0.5f, 49.5f);
         pid_set_setpoint(get_temp_pid_instance(), def_temperatureSetpoint);
 
         hrtim_hw_start();
