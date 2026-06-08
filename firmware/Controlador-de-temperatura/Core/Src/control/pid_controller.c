@@ -18,8 +18,8 @@ void pid_init(pid_controller_t *pid, float kp, float ki, float kd)
     pid->cmsis_pid.Kp = kp;
     pid->cmsis_pid.Ki = ki;
     pid->cmsis_pid.Kd = kd;
-    pid->output_limit_min = -100.0f;
-    pid->output_limit_max = 100.0f;
+    pid->output_limit_min = 5.0f;
+    pid->output_limit_max = 95.0f;
     pid->initialized = 1;
     pid->output_state[0] = false;
     pid->output_state[1] = false;
@@ -112,11 +112,11 @@ float pid_get_out(pid_controller_t *pid)
 {
     return pid->cmsis_pid.state[2];
 }
-bool pid_controller_get_out(pid_controller_t *pid, int channel)
+bool pid_controller_get_output(pid_controller_t *pid, int channel)
 {
     return pid->output_state[channel];
 }
-void pid_controller_set_out(pid_controller_t *pid, int channel, bool value)
+void pid_controller_set_output(pid_controller_t *pid, int channel, bool value)
 {
     pid->output_state[channel] = value;
 }
