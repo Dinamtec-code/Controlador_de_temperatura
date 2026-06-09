@@ -227,6 +227,19 @@ void scpi_process_line(const char *command)
         snprintf(resp, sizeof(resp), "%d.%04d\r\n", int_part, dec_part);
         send_response(resp);
     }
+    else if (strncmp(command, "PID:OUT?", 8) == 0)
+    {
+        float out = scpi_iface_p->get_out(scpi_iface_p->context);
+        char resp[20];
+
+        int int_part = (int)out;
+        int dec_part = (int)((out - (float)int_part) * 10000.0f);
+        if (dec_part < 0)
+            dec_part = -dec_part;
+
+        snprintf(resp, sizeof(resp), "%d.%04d\r\n", int_part, dec_part);
+        send_response(resp);
+    }
     else if (strncmp(command, "PID:KP ", 7) == 0)
     {
         scpi_iface_p->set_kp(atof(command + 7), scpi_iface_p->context);

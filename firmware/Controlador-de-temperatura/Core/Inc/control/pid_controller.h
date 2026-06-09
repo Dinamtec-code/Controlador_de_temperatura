@@ -22,6 +22,8 @@ void pid_init(pid_controller_t *pid, float kp, float ki, float kd);
 void pid_set_parameters(pid_controller_t *pid, float kp, float ki, float kd);
 void pid_set_setpoint(pid_controller_t *pid, float setpoint);
 void pid_set_limits(pid_controller_t *pid, float out_min, float out_max);
+float pid_get_limit_min(pid_controller_t *pid);
+float pid_get_limit_max(pid_controller_t *pid);
 float pid_compute(pid_controller_t *pid, float input);
 void pid_reset(pid_controller_t *pid);
 
