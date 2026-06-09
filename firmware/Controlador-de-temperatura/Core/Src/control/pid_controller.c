@@ -41,6 +41,14 @@ void pid_set_limits(pid_controller_t *pid, float out_min, float out_max)
     pid->output_limit_max = out_max;
 }
 
+float pid_get_limit_min(pid_controller_t *pid){
+    return pid->output_limit_min;
+}
+
+float pid_get_limit_max(pid_controller_t *pid){
+    return pid->output_limit_max;
+}
+
 float pid_compute(pid_controller_t *pid, float input)
 {
     if (!pid->initialized)

@@ -21,6 +21,7 @@ typedef struct
     scpi_get_sensor_callback_t get_kp;
     scpi_get_sensor_callback_t get_ki;
     scpi_get_sensor_callback_t get_kd;
+    scpi_get_output_callback_t get_out;
     scpi_get_output_callback_t get_output;
     scpi_set_output_callback_t set_output;
     void *context;

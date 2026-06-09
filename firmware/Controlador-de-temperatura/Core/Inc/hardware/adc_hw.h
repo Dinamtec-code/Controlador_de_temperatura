@@ -7,8 +7,8 @@
 
 void adc_hw_init(void);
 
-float adc_hw_get_temp_ch1(void);
-float adc_hw_get_temp_ch2(void);
+float adc_hw_get_ch1(void);
+float adc_hw_get_ch2(void);
 float adc_hw_get_temp_diff(void);
 
 #endif
