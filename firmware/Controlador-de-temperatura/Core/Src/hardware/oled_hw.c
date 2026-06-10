@@ -228,7 +228,7 @@ void oled_hw_print_num(int num, uint8_t page)
 
 void oled_hw_print_float(float val, uint8_t page)
 {
-    char buf[12];
+    char buf[23];
 
     int int_part = (int)val;
     int dec_part = (int)((val - (float)int_part) * 100.0f);
@@ -246,7 +246,7 @@ void oled_hw_print_float(float val, uint8_t page)
 
 void oled_hw_print_float_at(float val, uint8_t page, uint8_t x_offset)
 {
-    char buf[12];
+    char buf[23];
 
     int int_part = (int)val;
     int dec_part = (int)((val - (float)int_part) * 100.0f);
@@ -262,6 +262,7 @@ void oled_hw_print_float_at(float val, uint8_t page, uint8_t x_offset)
     }
 }
 
-void oled_draw_char_at(uint8_t c, uint8_t x, uint8_t page){
+void oled_draw_char_at(uint8_t c, uint8_t x, uint8_t page)
+{
     oled_draw_char(c, x, page);
 }
