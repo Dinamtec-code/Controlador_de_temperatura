@@ -7,8 +7,8 @@ Script de ejemplo del control de temperatura
     TEMP:SP?         - Leer setpoint temperatura
     TEMP:SP <valor>  - Establecer setpoint (0-200°C)
     PID:KP?          - Leer ganancia proporcional
-    PID:KP <valor>   - Establecer KP
-    PID:KI?          - Leer ganancia integral
+    PID:KP <valor>   - Establecer KP en 1/C°
+    PID:KI?          - Leer ganancia integral 1/(C° min)
     PID:KI <valor>   - Establecer KI
     PID:KD?          - Leer ganancia derivativa
     PID:KD <valor>   - Establecer KD
@@ -51,7 +51,7 @@ ctemp.timeout = 2000          # 2 segundos es suficiente a esta velocidad
 try:
     idn = ctemp.query('*IDN?')
     print(f"Dispositivo conectado: {idn}")
-    
+    time.sleep(.1)
     # Ahora puedes ejecutar el resto de tu script de temperatura
     temp = ctemp.query('MEAS:TEMP?')
     print(f"Temperatura: {temp}")
@@ -73,12 +73,22 @@ def encender_salidas():
     ctemp.write('SOUR2:OUTP ON')
     time.sleep(.1)
     ctemp.flush(vi.constants.VI_READ_BUF)
+#%% configurar constantes
+ctemp.write('PID:KP 1.0')
+time.sleep(.1)
+ctemp.write('PID:KI 2.0')
+time.sleep(.1)
+
 #%% Medición de la temperatura
 temp = []
 duty = []
 tiempo = []
 
-duracion_de_medicion = 10
+ctemp.write('TEMP:SP 40.0')
+time.sleep(.1)
+
+
+duracion_de_medicion = 5
 periodo_de_muestreo = 0.2 
 i = 0
 
@@ -165,3 +175,6 @@ finally:
         apagar_salidas()
     except:
         pass
+
+time.sleep(.1)    
+ctemp.write('TEMP:SP 20.0')
