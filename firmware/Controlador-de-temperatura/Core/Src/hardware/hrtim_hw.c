@@ -13,6 +13,11 @@ void hrtim_hw_init(void)
 
 void hrtim_hw_set_duty(hrtim_output_t output, float duty)
 {
+    if (duty < 0)
+        duty = 0;
+    else if (duty > 100)
+        duty = 100;
+
     uint32_t compare_value = (uint32_t)((100 - duty) * HRTIM_PERIOD / 100.0f);
 
     if (compare_value > HRTIM_PERIOD)
