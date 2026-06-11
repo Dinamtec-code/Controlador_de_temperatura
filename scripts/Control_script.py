@@ -71,7 +71,7 @@ def query_con_reintento(instrumento, comando, reintentos=3, pausa=0.05):
 rm = vi.ResourceManager()
 print("Recursos disponibles:", rm.list_resources())
 
-ctemp = rm.open_resource('ASRL5::INSTR')
+ctemp = rm.open_resource('ASRL6::INSTR')
 
 # Configuración física
 ctemp.baud_rate = 115200
@@ -102,7 +102,7 @@ try:
     # Configurar constantes PID iniciales
     ctemp.write('PID:KP 5.0')
     time.sleep(.1)
-    ctemp.write('PID:KI 5.0')
+    ctemp.write('PID:KI 25.0')
     time.sleep(.1)
 
 except Exception as e:
@@ -117,8 +117,8 @@ except Exception as e:
 temp, duty, tiempo, error_temp = [], [], [], []
 
 # Parámetros de la prueba
-setpoint = 35.0 
-duracion_de_medicion = 120  # Segundos
+setpoint = 50.0 
+duracion_de_medicion = 600  # Segundos
 periodo_de_muestreo = 0.5   # Segundos
 
 ctemp.write(f'TEMP:SP {setpoint}')
@@ -204,9 +204,6 @@ try:
             
             plt.pause(0.01)
 
-    plt.ioff()
-    plt.show()
-
 except KeyboardInterrupt:
     print("\nMedición interrumpida por el usuario.")
 except vi.VisaIOError as e:
@@ -249,8 +246,6 @@ finally:
         ctemp.write('TEMP:SP 30.0')
         time.sleep(0.1)
         apagar_salidas(ctemp)
-        ctemp.close()
-        rm.close()
-        print("-> Puerto liberado y salidas apagadas.")
+        print("-> Salidas apagadas.")
     except Exception as e:
         print(f"-> Error al intentar cerrar el equipo: {e}")
