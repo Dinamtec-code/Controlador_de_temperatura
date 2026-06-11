@@ -3,6 +3,7 @@
 #include "hardware/adc_hw.h"
 #include "hardware/hrtim_hw.h"
 #include "main.h"
+#include <math.h>
 
 float def_temperatureSetpoint = 25.0f;
 float def_pidKp = 0.0f;
@@ -48,22 +49,37 @@ void task_control(void)
 
     if (output < 0)
     {
+        float cooling_duty = fabsf(output);
         hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TB1, 0);
-        if (output >= pid_get_limit_min(pid_instance))
+        if (cooling_duty <= pid_get_limit_max(pid_instance))
         {
-            hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TA1, output);
+            if (cooling_duty >= pid_get_limit_min(pid_instance))
+            {
+                hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TA1, cooling_duty);
+            }
+            else
+            {
+                hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TA1, pid_get_limit_min(pid_instance));
+            }
         }
         else
         {
-            hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TA1, pid_get_limit_min(pid_instance));
+            hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TA1, pid_get_limit_max(pid_instance));
         }
     }
-    else if (output >= 0)
+    else
     {
         hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TA1, 0);
         if (output <= pid_get_limit_max(pid_instance))
         {
-            hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TB1, output);
+            if (output >= pid_get_limit_min(pid_instance))
+            {
+                hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TB1, output);
+            }
+            else
+            {
+                hrtim_hw_set_duty(HRTIM_OUTPUT_CH_TB1, pid_get_limit_min(pid_instance));
+            }
         }
         else
         {
