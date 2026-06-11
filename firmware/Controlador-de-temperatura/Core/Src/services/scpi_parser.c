@@ -152,7 +152,7 @@ void scpi_process_line(const char *command)
         {
             scpi_iface_p->set_kd(0.0f, scpi_iface_p->context);
         }
-        send_response("OK\r\n");
+        // send_response("OK\r\n");
     }
     else if (strncmp(command, "MEAS:TEMP?", 10) == 0)
     {

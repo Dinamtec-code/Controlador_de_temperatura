@@ -18,7 +18,7 @@ void pid_init(pid_controller_t *pid, float kp, float ki, float kd)
     pid->cmsis_pid.Kp = kp;
     pid->cmsis_pid.Ki = ki;
     pid->cmsis_pid.Kd = kd;
-    pid->output_limit_min = 5.0f;
+    pid->output_limit_min = -95.0f;
     pid->output_limit_max = 95.0f;
     pid->initialized = 1;
     pid->output_state[0] = false;
@@ -41,11 +41,13 @@ void pid_set_limits(pid_controller_t *pid, float out_min, float out_max)
     pid->output_limit_max = out_max;
 }
 
-float pid_get_limit_min(pid_controller_t *pid){
+float pid_get_limit_min(pid_controller_t *pid)
+{
     return pid->output_limit_min;
 }
 
-float pid_get_limit_max(pid_controller_t *pid){
+float pid_get_limit_max(pid_controller_t *pid)
+{
     return pid->output_limit_max;
 }
 
