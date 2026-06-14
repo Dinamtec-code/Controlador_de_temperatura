@@ -15,6 +15,8 @@ firmware/**/CMakeFiles/
 firmware/**/cmake_install.cmake
 firmware/**/Makefile
 firmware/**/build.ninja
+firmware/**/.ninja*
+firmware/**/compile_commands.json
 
 # Hardware - PCB (gerber se pueden versionar pero son pesados)
 hardware/**/*.gerber.db
@@ -35,8 +37,8 @@ hardware/**/*.ipn
 
 # Documentation build artifacts
 docs/build/
-docs/**/*.aux
 docs/**/*.log
+docs/**/*.aux
 docs/**/*.toc
 docs/**/*.out
 docs/**/*.lof
