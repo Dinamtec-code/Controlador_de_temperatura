@@ -1,12 +1,20 @@
 # Firmware build artifacts
 firmware/**/Debug/
 firmware/**/Release/
+firmware/build/
 firmware/**/*.o
 firmware/**/*.elf
 firmware/**/*.hex
 firmware/**/*.bin
 firmware/**/*.map
 firmware/**/*.d
+
+# CMake generated files
+firmware/**/CMakeCache.txt
+firmware/**/CMakeFiles/
+firmware/**/cmake_install.cmake
+firmware/**/Makefile
+firmware/**/build.ninja
 
 # Hardware - PCB (gerber se pueden versionar pero son pesados)
 hardware/**/*.gerber.db

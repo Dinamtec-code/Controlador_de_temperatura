@@ -1,41 +1,55 @@
-cmake_minimum_required(VERSION 3.20)
+cmake_minimum_required(VERSION 3.16)
+project(Controlador-de-temperatura C ASM)
 
-# Project settings
-set(PROJECT_NAME "Controlador-de-temperatura")
-project(${PROJECT_NAME} C ASM)
+set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type")
 
-# Target settings for STM32F334R8 (Cortex-M4, FPU)
-set(TARGET_CPU "cortex-m4")
-set(TARGET_FPU "-mfpu=fpv4-sp-d16 -mfloat-abi=hard")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
-# Toolchain prefix
-set(TOOLCHAIN_PREFIX "arm-none-eabi-")
-
-# Include directories
-set(INCLUDE_DIRS
-    Core/Inc
-    Drivers/STM32F3xx_HAL_Driver/Inc
-    Drivers/STM32F3xx_HAL_Driver/Inc/Legacy
-    Drivers/CMSIS/Include
-    Drivers/CMSIS/Device/ST/STM32F3xx/Include
+set(CORE_SOURCES
+    Core/Src/main.c
+    Core/Src/stm32f3xx_it.c
+    Core/Src/stm32f3xx_hal_msp.c
+    Core/Src/system_stm32f3xx.c
+    Core/Src/syscalls.c
+    Core/Src/usart.c
+    Core/Src/hrtim.c
+    Core/Src/adc.c
+    Core/Src/gpio.c
+    Core/Src/dma.c
 )
 
-# Compiler flags
-set(COMMON_FLAGS "-mcpu=${TARGET_CPU} -mthumb ${TARGET_FPU} -Wall -O2 -g3 -ffunction-sections -fdata-sections")
-set(CMAKE_C_FLAGS "${COMMON_FLAGS}" CACHE STRING "" FORCE)
-set(CMAKE_ASM_FLAGS "${COMMON_FLAGS}" CACHE STRING "" FORCE)
-
-# Linker flags
-set(LINKER_FLAGS "-mcpu=${TARGET_CPU} -mthumb ${TARGET_FPU} --specs=nano.specs --specs=nosys.specs -T${CMAKE_SOURCE_DIR}/STM32F334R8Tx_FLASH.ld -Wl,-Map=${PROJECT_NAME}.map,--cref -Wl,--gc-sections -Wl,--print-memory-usage")
-
-# Definitions
-set(COMMON_DEFINES 
-    "-DSTM32F334x8"
-    "-DUSE_HAL_DRIVER"
-    "-DARM_M4"
+set(HARDWARE_SOURCES
+    Core/Src/hardware/usart_hw.c
+    Core/Src/hardware/adc_hw.c
+    Core/Src/hardware/lcd_hw.c
+    Core/Src/hardware/oled_hw.c
+    Core/Src/hardware/hrtim_hw.c
+    Core/Src/hardware/i2c_hw.c
 )
 
-# HAL Driver source files
+set(TASKS_SOURCES
+    Core/Src/tasks/scheduler.c
+    Core/Src/tasks/task_comm.c
+    Core/Src/tasks/task_system.c
+    Core/Src/tasks/task_control.c
+    Core/Src/tasks/task_ui.c
+)
+
+set(SERVICES_SOURCES
+    Core/Src/services/circular_buffer.c
+    Core/Src/services/scpi_parser.c
+    Core/Src/services/error_handler.c
+)
+
+set(CONTROL_SOURCES
+    Core/Src/control/pid_controller.c
+    Core/Src/control/arm_pid_init_f32.c
+)
+
+set(COMMUNICATION_SOURCES
+    Core/Src/communication/comm_buffers.c
+)
+
 set(HAL_SOURCES
     Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal.c
     Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_cortex.c
@@ -54,99 +68,55 @@ set(HAL_SOURCES
     Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_flash_ex.c
     Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_adc.c
     Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_adc_ex.c
-)
-
-# HAL I2C source
-set(HAL_I2C_SOURCE
     Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_i2c.c
     Drivers/STM32F3xx_HAL_Driver/Src/stm32f3xx_hal_i2c_ex.c
 )
 
-# Application source files (refactored architecture)
-set(APP_SOURCES
-    Core/Src/main.c
-    Core/Src/stm32f3xx_it.c
-    Core/Src/stm32f3xx_hal_msp.c
-    Core/Src/system_stm32f3xx.c
-    Core/Src/syscalls.c
-    Core/Src/usart.c
-    Core/Src/hrtim.c
-    Core/Src/adc.c
-    Core/Src/gpio.c
-    Core/Src/dma.c
-    # Hardware abstraction layer
-    Core/Src/hardware/usart_hw.c
-    Core/Src/hardware/adc_hw.c
-    Core/Src/hardware/lcd_hw.c
-    Core/Src/hardware/oled_hw.c
-    Core/Src/hardware/hrtim_hw.c
-    Core/Src/hardware/i2c_hw.c
-    # Tasks
-    Core/Src/tasks/scheduler.c
-    Core/Src/tasks/task_comm.c
-    Core/Src/tasks/task_system.c
-    Core/Src/tasks/task_control.c
-    Core/Src/tasks/task_ui.c
-    # Services
-    Core/Src/services/circular_buffer.c
-    Core/Src/services/scpi_parser.c
-    Core/Src/services/error_handler.c
-    # Control
-    Core/Src/control/pid_controller.c
+set(STARTUP_SOURCES
+    startup/startup_stm32f334x8.s
 )
 
-set(STARTUP_SOURCE ${CMAKE_SOURCE_DIR}/startup/startup_stm32f334x8.s)
+set(INCLUDE_PATHS
+    ${PROJECT_SOURCE_DIR}/Core/Inc
+    ${PROJECT_SOURCE_DIR}/Drivers/STM32F3xx_HAL_Driver/Inc
+    ${PROJECT_SOURCE_DIR}/Drivers/STM32F3xx_HAL_Driver/Inc/Legacy
+    ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Device/ST/STM32F3xx/Include
+    ${PROJECT_SOURCE_DIR}/Drivers/CMSIS/Include
+)
 
-# Build executable
-add_executable(${PROJECT_NAME}.elf 
-    ${APP_SOURCES}
+set(LINKER_SCRIPT ${PROJECT_SOURCE_DIR}/STM32F334R8Tx_FLASH.ld)
+
+add_executable(${PROJECT_NAME}
+    ${CORE_SOURCES}
+    ${HARDWARE_SOURCES}
+    ${TASKS_SOURCES}
+    ${SERVICES_SOURCES}
+    ${CONTROL_SOURCES}
+    ${COMMUNICATION_SOURCES}
     ${HAL_SOURCES}
-    ${HAL_I2C_SOURCE}
-    ${STARTUP_SOURCE}
+    ${STARTUP_SOURCES}
 )
 
-# Include directories
-target_include_directories(${PROJECT_NAME}.elf PRIVATE ${INCLUDE_DIRS})
+target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_PATHS})
 
-# Compiler definitions
-target_compile_definitions(${PROJECT_NAME}.elf PRIVATE 
-    ${COMMON_DEFINES}
+set_target_properties(${PROJECT_NAME} PROPERTIES
+    LINK_DEPENDS ${LINKER_SCRIPT}
 )
 
-# Linker options
-set(CMAKE_EXE_LINKER_FLAGS "${LINKER_FLAGS}" CACHE STRING "" FORCE)
-
-# Custom targets for post-build
-add_custom_command(TARGET ${PROJECT_NAME}.elf POST_BUILD
-    COMMAND ${CMAKE_OBJCOPY} -O ihex $<TARGET_FILE:${PROJECT_NAME}.elf> ${PROJECT_NAME}.hex
-    COMMAND ${CMAKE_OBJCOPY} -O binary $<TARGET_FILE:${PROJECT_NAME}.elf> ${PROJECT_NAME}.bin
-    COMMAND ${CMAKE_SIZE_UTIL} $<TARGET_FILE:${PROJECT_NAME}.elf>
-    COMMENT "Generating hex and binary files..."
+target_link_options(${PROJECT_NAME} PRIVATE
+    "-Wl,-T${LINKER_SCRIPT}"
+    "-Wl,-Map,${PROJECT_SOURCE_DIR}/build/${PROJECT_NAME}.map"
+    "-Wl,--print-memory-usage"
 )
 
-# Flash target using OpenOCD (falls back to STM32CubeProgrammer)
-set(OPENOCD_EXE "C:/Ac6/SystemWorkbench/plugins/fr.ac6.mcu.externaltools.openocd.win32_1.23.0.201904120827/tools/openocd/bin/openocd.exe")
-if(EXISTS "${OPENOCD_EXE}")
-    add_custom_target(flash
-        COMMAND "${OPENOCD_EXE}" -f interface/stlink.cfg -f target/stm32f3x.cfg -c "program ${PROJECT_NAME}.hex verify reset exit"
-        DEPENDS ${PROJECT_NAME}.elf
-        COMMENT "Flashing device with OpenOCD..."
-    )
-else()
-    set(STLINK_CLI "C:/Program Files/STMicroelectronics/STM32Cube/STM32CubeProgrammer/bin/STM32_Programmer_CLI.exe")
-    if(EXISTS "${STLINK_CLI}")
-        add_custom_target(flash
-            COMMAND "${STLINK_CLI}" -c port=SWD -w ${PROJECT_NAME}.hex -r 0x08000000
-            COMMAND "${STLINK_CLI}" -c port=SWD -hardrst
-            DEPENDS ${PROJECT_NAME}.elf
-            COMMENT "Flashing device..."
-        )
-    endif()
-endif()
+target_link_libraries(${PROJECT_NAME} PRIVATE
+    -lg_nano
+    -lc_nano
+    -lgcc
+)
 
-# Clean extended target
-add_custom_target(clean_all
-    COMMAND ${CMAKE_COMMAND} -P ${CMAKE_BINARY_DIR}/cmake_clean.cmake
-    COMMAND ${CMAKE_COMMAND} -E remove -f *.hex *.bin *.map
-    COMMENT "Cleaning all generated files..."
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND "${TOOLCHAIN_ARM_OBJCOPY}" -O ihex "$<TARGET_FILE:${PROJECT_NAME}>" "${PROJECT_SOURCE_DIR}/build/${PROJECT_NAME}.hex"
+    COMMAND "${TOOLCHAIN_ARM_SIZE}" "$<TARGET_FILE:${PROJECT_NAME}>"
+    COMMENT "Generating hex and printing size info..."
 )
