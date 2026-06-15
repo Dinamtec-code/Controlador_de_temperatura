@@ -3,6 +3,7 @@
 #include "dma.h"
 #include "communication/comm_interface.h"
 #include "communication/comm_buffers.h"
+#include "main.h"
 #include <string.h>
 
 static comm_interface_t usart_interface;
@@ -50,30 +51,29 @@ void usart_hw_start_rx(void *context)
 {
     (void)context;
     memset(dma_uart_rx_buffer, 0, DMA_RX_BUFFER_SIZE);
-    __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
-    HAL_UART_Receive_DMA(&huart2, dma_uart_rx_buffer, DMA_RX_BUFFER_SIZE);
-    __HAL_DMA_DISABLE_IT(huart2.hdmarx, DMA_IT_HT);
+    HAL_UARTEx_ReceiveToIdle_DMA(&huart2, dma_uart_rx_buffer, DMA_RX_BUFFER_SIZE);
 }
 
 void usart_hw_stop_rx(void *context)
 {
     (void)context;
-    __HAL_UART_DISABLE_IT(&huart2, UART_IT_IDLE);
+    //__HAL_UART_DISABLE_IT(&huart2, UART_IT_IDLE);
     HAL_UART_DMAStop(&huart2);
 }
 
-void usart_hw_idle_handler(void)
+void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t data_size)
 {
-    HAL_UART_DMAStop(&huart2);
-    uint32_t bytes_received = DMA_RX_BUFFER_SIZE - hdma_usart2_rx.Instance->CNDTR;
-
-    for (size_t i = 0; i < bytes_received; i++)
+    if (huart->Instance == USART2)
     {
-        uint8_t byte = dma_uart_rx_buffer[i];
-        comm_buffer_rx_put(COMM_IFACE_USART, byte);
+        uint32_t bytes_received = data_size;
+        HAL_UART_DMAStop(&huart2);
+        for (size_t i = 0; i < bytes_received; i++)
+        {
+            uint8_t byte = dma_uart_rx_buffer[i];
+            comm_buffer_rx_put(COMM_IFACE_USART, byte);
+        }
+        usart_hw_start_rx(NULL);
     }
-
-    usart_hw_start_rx(NULL);
 }
 
 void usart_hw_send_str(const char *str)

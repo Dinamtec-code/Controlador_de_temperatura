@@ -130,14 +130,13 @@ int main(void)
   usart_hw_init();
   scpi_init();
   oled_hw_init();
-  
 
   /* Initialize scheduler */
   scheduler_init();
   scheduler_add_task(TASK_COMM, task_comm, TASK_PERIOD_MS);
   scheduler_add_task(TASK_SYSTEM, task_system, TASK_PERIOD_MS);
-  scheduler_add_task(TASK_CONTROL, task_control, TASK_PERIOD_MS);
-  scheduler_add_task(TASK_UI, task_ui, TASK_PERIOD_MS);
+  scheduler_add_task(TASK_CONTROL, task_control, 4 * TASK_PERIOD_MS);
+  scheduler_add_task(TASK_UI, task_ui, 100 * TASK_PERIOD_MS);
 
   /* Initialize OLED last - uses blocking I2C which can hang if device not present */
 

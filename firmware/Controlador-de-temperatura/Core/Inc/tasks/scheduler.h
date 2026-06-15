@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-#define TASK_PERIOD_MS 20
+#define TASK_PERIOD_MS 5
 
 typedef enum
 {

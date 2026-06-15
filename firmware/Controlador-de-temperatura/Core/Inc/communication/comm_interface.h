@@ -24,12 +24,14 @@ typedef enum
     COMM_STATE_NONE = 0x00,
     COMM_STATE_ERROR = 0x01,
     COMM_STATE_RX_ACTIVE = 0x02,
-    COMM_STATE_TX_BUSY = 0x04
+    COMM_STATE_TX_BUSY = 0x04,
+    COMM_STATE_RESPONSE_PENDING = 0x08
 } comm_interface_state_t;
 
 #define COMM_STATE_MASK_ERROR 0x01
 #define COMM_STATE_MASK_RX_ACTIVE 0x02
 #define COMM_STATE_MASK_TX_BUSY 0x04
+#define COMM_STATE_MASK_RESPONSE_PENDING 0x08
 
 /**
  * @brief Declaración anticipada de la estructura de interfaz de comunicación.
@@ -203,9 +205,23 @@ void comm_interface_set_state(comm_interface_id_t id, comm_interface_state_t sta
 comm_interface_state_t comm_interface_get_state(comm_interface_id_t id);
 
 /**
- * @brief Reiniciar una interfaz (detener RX, limpiar buffers, reiniciar RX).
- * @param id Identificador de la interfaz.
- */
+  * @brief Reiniciar una interfaz (detener RX, limpiar buffers, reiniciar RX).
+  * @param id Identificador de la interfaz.
+  */
 void comm_interface_reset(comm_interface_id_t id);
+
+/**
+  * @brief Establecer el estado de respuesta pendiente.
+  * @param id Identificador de la interfaz.
+  * @param pending true para marcar respuesta pendiente, false para limpiar.
+  */
+void comm_interface_set_response_pending(comm_interface_id_t id, bool pending);
+
+/**
+  * @brief Comprobar si hay respuesta pendiente.
+  * @param id Identificador de la interfaz.
+  * @return true si hay respuesta pendiente.
+  */
+bool comm_interface_is_response_pending(comm_interface_id_t id);
 
 #endif

@@ -105,10 +105,20 @@ size_t comm_buffer_rx_count(comm_interface_id_t iface_id);
 size_t comm_buffer_tx_count(comm_interface_id_t iface_id);
 
 /**
- * @brief Limpiar todos los datos del buffer RX.
- * 
- * @param iface_id  Identificador de la interfaz.
- */
+  * @brief Limpiar todos los datos del buffer RX.
+  * 
+  * @param iface_id  Identificador de la interfaz.
+  */
 void comm_buffer_rx_clear(comm_interface_id_t iface_id);
+
+/**
+  * @brief Prepend data to the front of TX buffer.
+  * 
+  * @param iface_id  Identificador de la interfaz.
+  * @param data      Puntero a los datos a insertar al frente.
+  * @param len       Cantidad de bytes a insertar.
+  * @return true si todos los datos se insertaron, false si el buffer está lleno o el ID es inválido.
+  */
+bool comm_buffer_tx_prepend(comm_interface_id_t iface_id, const uint8_t *data, size_t len);
 
 #endif

@@ -48,6 +48,7 @@ set(CONTROL_SOURCES
 
 set(COMMUNICATION_SOURCES
     Core/Src/communication/comm_buffers.c
+    Core/Src/communication/comm_message_buffer.c
 )
 
 set(HAL_SOURCES
