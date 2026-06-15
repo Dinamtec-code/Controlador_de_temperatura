@@ -30,7 +30,9 @@ void msg_extract_from_rx(comm_interface_id_t iface_id)
 
     size_t available = comm_buffer_rx_count(iface_id);
     if (available == 0)
+    {
         return;
+    }
 
     uint8_t byte;
     size_t to_read = available;
@@ -43,17 +45,24 @@ void msg_extract_from_rx(comm_interface_id_t iface_id)
 
         to_read--;
 
-        if (byte == '\n' || byte == '\r')
+        if (msg->len < MESSAGE_BUFFER_SIZE - 1)
         {
-            if (msg->len > 0)
+            if (byte == '\r')
             {
-                msg->state = MSG_STATE_READY;
-                return;
+                NULL; // se ignoran los \r para compativilidad con el standar SCPI
             }
-        }
-        else if (msg->len < MESSAGE_BUFFER_SIZE - 1)
-        {
-            msg->data[msg->len++] = byte;
+            else
+            {
+                msg->data[msg->len++] = byte;
+                if (byte == '\n')
+                {
+                    if (msg->len > 1)
+                    {
+                        msg->state = MSG_STATE_READY;
+                        return;
+                    }
+                }
+            }
         }
         else
         {

@@ -93,23 +93,25 @@ try:
     print(f"Dispositivo conectado: {idn}")
     
     # Verificación de parámetros actuales
-    temp_val = float(ctemp.query('MEAS:TEMP?').strip())
-    print(f"Temperatura actual: {temp_val:.2f} °C")
-    print(f"Kp actual: {float(ctemp.query('PID:KP?').strip()):.4f}")
-    print(f"Ki actual: {float(ctemp.query('PID:KI?').strip()):.4f}")
-    print(f"Kd actual: {float(ctemp.query('PID:KD?').strip()):.4f}")
+    temp_val,kp,ki,kd,sp = [float(x) for x in (ctemp.query('MEAS:TEMP?;PID:KP?;PID:KI?;PID:KD?;TEMP:SP?').split(';'))]
+    print(f"Temperatura anterior: {temp_val:.2f} °C")
+    print(f"El setpoint anterior: {sp:.2f} °C")
+    print(f"Kp anterior: {kp:.4f}")
+    print(f"Ki anterior: {ki:.4f}")
+    print(f"Kd anterior: {kd:.4f}")
 
     # Configurar constantes PID iniciales
-    ctemp.write('PID:KP 5.0')
+    ctemp.write('PID:KP 5.0;PID:KI 25.0;PID:KI 0.0')
     time.sleep(.1)
-    ctemp.write('PID:KI 25.0')
-    time.sleep(.1)
+    temp_val,kp,ki,kd,sp = [float(x) for x in (ctemp.query('MEAS:TEMP?;PID:KP?;PID:KI?;PID:KD?;TEMP:SP?').split(';'))]
+    print(f"La temperatura actual: {temp_val:.2f} °C")
+    print(f"El setpoint actual: {sp:.2f} °C")
+    print(f"Kp actual: {kp:.4f}")
+    print(f"Ki actual: {ki:.4f}")
+    print(f"Kd actual: {kd:.4f}")
 
 except Exception as e:
     print(f"Error durante la inicialización: {e}")
-    ctemp.close()
-    rm.close()
-    exit()
 
 # ==========================================
 #%% 4. MEDICIÓN Y GRAFICACIÓN EN TIEMPO REAL

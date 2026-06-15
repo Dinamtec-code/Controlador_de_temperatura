@@ -50,14 +50,13 @@ void usart_hw_init(void)
 void usart_hw_start_rx(void *context)
 {
     (void)context;
-    memset(dma_uart_rx_buffer, 0, DMA_RX_BUFFER_SIZE);
+    // memset(dma_uart_rx_buffer, 0, DMA_RX_BUFFER_SIZE);
     HAL_UARTEx_ReceiveToIdle_DMA(&huart2, dma_uart_rx_buffer, DMA_RX_BUFFER_SIZE);
 }
 
 void usart_hw_stop_rx(void *context)
 {
     (void)context;
-    //__HAL_UART_DISABLE_IT(&huart2, UART_IT_IDLE);
     HAL_UART_DMAStop(&huart2);
 }
 
