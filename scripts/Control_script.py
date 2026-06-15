@@ -83,7 +83,7 @@ ctemp.flow_control = 0
 # Configuración de protocolo
 ctemp.write_termination = '\n'
 ctemp.read_termination = '\n'
-ctemp.timeout = 200
+ctemp.timeout = 2000
 
 # ==========================================
 #%% 3. PRUEBA DE COMUNICACIÓN Y SETEO INICIAL
@@ -101,7 +101,7 @@ try:
     print(f"Kd anterior: {kd:.4f}")
 
     # Configurar constantes PID iniciales
-    ctemp.write('PID:KP 5.0;PID:KI 25.0;PID:KI 0.0')
+    ctemp.write('PID:KP 5.0;PID:KI 25.0;PID:KD 0.0')
     time.sleep(.1)
     temp_val,kp,ki,kd,sp = [float(x) for x in (ctemp.query('MEAS:TEMP?;PID:KP?;PID:KI?;PID:KD?;TEMP:SP?').split(';'))]
     print(f"La temperatura actual: {temp_val:.2f} °C")
@@ -119,8 +119,8 @@ except Exception as e:
 temp, duty, tiempo, error_temp = [], [], [], []
 
 # Parámetros de la prueba
-setpoint = 50.0 
-duracion_de_medicion = 600  # Segundos
+setpoint = 5.0 
+duracion_de_medicion = 20  # Segundos
 periodo_de_muestreo = 0.5   # Segundos
 
 ctemp.write(f'TEMP:SP {setpoint}')
