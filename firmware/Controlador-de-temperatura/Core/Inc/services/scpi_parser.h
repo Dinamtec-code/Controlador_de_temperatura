@@ -44,5 +44,7 @@ void scpi_init(void);
 void scpi_set_input_interface(const scpi_input_interface_t *input_iface);
 void scpi_set_output_interface(const scpi_output_interface_t *output_iface);
 void scpi_process_line(const char *command);
+void scpi_process_message(const char *message);
+void scpi_flush_responses(void);
 
 #endif

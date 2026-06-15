@@ -1,7 +1,22 @@
 #include "tasks/task_system.h"
+#include "tasks/task_comm.h"
+#include "communication/comm_interface.h"
+#include "communication/comm_buffers.h"
+#include "communication/comm_message_buffer.h"
+#include "services/scpi_parser.h"
 #include "services/error_handler.h"
 
 void task_system(void)
 {
-    /* Los errores críticos se manejan en task_comm ahora */
+    if (task_system_msg_available())
+    {
+        const char *msg = msg_get_next(COMM_IFACE_USART);
+        if (msg)
+        {
+            scpi_process_message(msg);
+            msg_mark_processed(COMM_IFACE_USART);
+            comm_interface_set_response_pending(COMM_IFACE_USART, true);
+            task_system_msg_clear();
+        }
+    }
 }

@@ -1,53 +1,25 @@
 #include "tasks/task_comm.h"
 #include "hardware/oled_hw.h"
 #include "communication/comm_interface.h"
-#include "services/scpi_parser.h"
 #include "communication/comm_buffers.h"
+#include "communication/comm_message_buffer.h"
+#include "services/scpi_parser.h"
 #include "services/error_handler.h"
 #include "main.h"
 #include <stdio.h>
 #include <string.h>
 
-static char cmd_buffer[128];
-static size_t cmd_len = 0;
+static volatile bool msg_ready_flag = false;
 
 static void send_response_to_interface(const char *resp, void *context)
 {
     comm_buffer_tx_put(COMM_IFACE_USART, (const uint8_t *)resp, strlen(resp));
 }
 
-static void process_rx_data(void)
-{
-    uint8_t byte;
-    size_t available = comm_buffer_rx_count(COMM_IFACE_USART);
-
-    for (size_t i = 0; i < available && cmd_len < sizeof(cmd_buffer) - 1; i++)
-    {
-        size_t read_len = 1;
-        if (comm_buffer_rx_get(COMM_IFACE_USART, &byte, &read_len) != true)
-        {
-            continue;
-        }
-
-        if (byte == '\n' || byte == '\r' || byte == '\0')
-        {
-            cmd_buffer[cmd_len] = '\0';
-            if (cmd_len > 0)
-            {
-                scpi_process_line(cmd_buffer);
-            }
-            cmd_len = 0;
-        }
-        else
-        {
-            cmd_buffer[cmd_len++] = (char)byte;
-        }
-    }
-}
-
 void task_comm(void)
 {
     static bool output_iface_set = false;
+    static bool prev_msg_ready = false;
 
     if (!output_iface_set)
     {
@@ -55,6 +27,7 @@ void task_comm(void)
             .send_response = send_response_to_interface,
             .context = NULL};
         scpi_set_output_interface(&out_iface);
+        msg_buffer_init();
         output_iface_set = true;
     }
 
@@ -69,11 +42,51 @@ void task_comm(void)
 
     if (comm_interface_has_error(COMM_IFACE_USART))
     {
+        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+        HAL_Delay(100);
+        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+        HAL_Delay(100);
+        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+        HAL_Delay(100);
+        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+        HAL_Delay(100);
+        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+        HAL_Delay(100);
+        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+        HAL_Delay(100);
+        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+        HAL_Delay(100);
+        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+        HAL_Delay(100);
+        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+        HAL_Delay(100);
         comm_interface_reset(COMM_IFACE_USART);
         return;
     }
 
-    process_rx_data();
+    msg_extract_from_rx(COMM_IFACE_USART);
+
+    if (comm_buffer_tx_count(COMM_IFACE_USART) == 0 && comm_interface_is_response_pending(COMM_IFACE_USART))
+    {
+        comm_interface_set_response_pending(COMM_IFACE_USART, false);
+    }
+
+    if (msg_is_ready(COMM_IFACE_USART) && !prev_msg_ready)
+    {
+        if (comm_buffer_tx_count(COMM_IFACE_USART) > 0 && msg_contains_query(COMM_IFACE_USART))
+        {
+            const uint8_t error_prefix[] = "-410;";
+            comm_buffer_tx_prepend(COMM_IFACE_USART, error_prefix, 4);
+            error_set(ERROR_QUERY_INTERRUPTED);
+        }
+        msg_ready_flag = true;
+        prev_msg_ready = true;
+    }
+
+    if (!msg_is_ready(COMM_IFACE_USART))
+    {
+        prev_msg_ready = false;
+    }
 
     if (comm_buffer_tx_count(COMM_IFACE_USART) > 0)
     {
@@ -101,4 +114,14 @@ void task_comm(void)
         comm_interface_send(COMM_IFACE_USART, (const uint8_t *)msg, strlen(msg));
         error_clear(ERROR_TX_BUFFER_FULL);
     }
+}
+
+bool task_system_msg_available(void)
+{
+    return msg_ready_flag;
+}
+
+void task_system_msg_clear(void)
+{
+    msg_ready_flag = false;
 }

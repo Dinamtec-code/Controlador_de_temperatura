@@ -138,16 +138,7 @@ void DMA1_Channel7_IRQHandler(void)
  */
 void USART2_IRQHandler(void)
 {
-  /* USER CODE BEGIN USART2_IRQn 0 */
-  if (huart2.Instance->ISR & USART_ISR_IDLE)
-  {
-    huart2.Instance->ICR = USART_ICR_IDLECF;
-    usart_hw_idle_handler();
-  }
-  /* USER CODE END USART2_IRQn 0 */
-  /* USER CODE BEGIN USART2_IRQn 1 */
   HAL_UART_IRQHandler(&huart2);
-  /* USER CODE END USART2_IRQn 1 */
 }
 
 /* USER CODE BEGIN 1 */

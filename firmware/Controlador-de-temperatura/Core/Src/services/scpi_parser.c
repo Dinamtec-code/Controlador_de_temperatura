@@ -13,6 +13,10 @@ static const scpi_output_interface_t *output_iface = NULL;
 static const scpi_interface_t *scpi_iface_p = NULL;
 static scpi_interface_t scpi_iface;
 
+#define RESPONSE_BUFFER_SIZE 256
+static uint8_t response_buffer[RESPONSE_BUFFER_SIZE];
+static size_t response_len = 0;
+
 void set_kp_callback(float value, void *context)
 {
     pid_set_kp(get_temp_pid_instance(), value);
@@ -99,6 +103,7 @@ void scpi_init(void)
     scpi_iface_p = &scpi_iface;
     input_iface = NULL;
     output_iface = NULL;
+    response_len = 0;
 }
 
 void scpi_set_input_interface(const scpi_input_interface_t *in_iface)
@@ -111,12 +116,86 @@ void scpi_set_output_interface(const scpi_output_interface_t *out_iface)
     output_iface = out_iface;
 }
 
-static void send_response(const char *resp)
+void scpi_flush_responses(void)
 {
-    if (output_iface && output_iface->send_response)
+    if (response_len > 0)
     {
-        output_iface->send_response(resp, (void *)output_iface->context);
+        response_buffer[response_len] = '\r';
+        response_len++;
+        response_buffer[response_len] = '\n';
+        response_len++;
+        if (output_iface && output_iface->send_response)
+        {
+            output_iface->send_response((const char *)response_buffer, (void *)output_iface->context);
+        }
+        response_len = 0;
     }
+}
+
+static void buffer_response(const char *resp)
+{
+    size_t resp_len = strlen(resp);
+
+    if (response_len == 0)
+    {
+        for (size_t i = 0; i < resp_len && i < RESPONSE_BUFFER_SIZE - 1; i++)
+        {
+            response_buffer[response_len++] = resp[i];
+        }
+    }
+    else
+    {
+        if (response_len + 1 + resp_len < RESPONSE_BUFFER_SIZE)
+        {
+            response_buffer[response_len] = ';';
+            response_len++;
+            for (size_t i = 0; i < resp_len && response_len < RESPONSE_BUFFER_SIZE - 1; i++)
+            {
+                response_buffer[response_len++] = resp[i];
+            }
+        }
+    }
+}
+
+void scpi_process_message(const char *message)
+{
+    if (!scpi_iface_p || !message)
+    {
+        return;
+    }
+
+    response_len = 0;
+
+    char cmd[128];
+    size_t cmd_len = 0;
+
+    for (size_t i = 0; message[i] != '\0' && message[i] != '\n'; i++)
+    {
+        if (message[i] == ';' || message[i] == '\r')
+        {
+            cmd[cmd_len] = '\0';
+            if (cmd_len > 0)
+            {
+                scpi_process_line(cmd);
+            }
+            cmd_len = 0;
+        }
+        else
+        {
+            if (cmd_len < sizeof(cmd) - 1)
+            {
+                cmd[cmd_len++] = message[i];
+            }
+        }
+    }
+
+    if (cmd_len > 0)
+    {
+        cmd[cmd_len] = '\0';
+        scpi_process_line(cmd);
+    }
+
+    scpi_flush_responses();
 }
 
 void scpi_process_line(const char *command)
@@ -128,11 +207,10 @@ void scpi_process_line(const char *command)
 
     if (strncmp(command, "*IDN?", 5) == 0)
     {
-        send_response("TEMPCTRL,STM32F334,1.0\r\n");
+        buffer_response("TEMPCTRL,STM32F334,1.0");
     }
     else if (strncmp(command, "*CLS", 4) == 0)
     {
-        // TODO: Limpiar los bufers de salida
     }
     else if (strncmp(command, "*RST", 4) == 0)
     {
@@ -152,7 +230,6 @@ void scpi_process_line(const char *command)
         {
             scpi_iface_p->set_kd(0.0f, scpi_iface_p->context);
         }
-        // send_response("OK\r\n");
     }
     else if (strncmp(command, "MEAS:TEMP?", 10) == 0)
     {
@@ -165,8 +242,8 @@ void scpi_process_line(const char *command)
         if (dec_part < 0)
             dec_part = -dec_part;
 
-        snprintf(resp, sizeof(resp), "%d.%02d\r\n", int_part, dec_part);
-        send_response(resp);
+        snprintf(resp, sizeof(resp), "%d.%02d", int_part, dec_part);
+        buffer_response(resp);
     }
     else if (strncmp(command, "TEMP:SP?", 8) == 0)
     {
@@ -178,8 +255,8 @@ void scpi_process_line(const char *command)
         if (dec_part < 0)
             dec_part = -dec_part;
 
-        snprintf(resp, sizeof(resp), "%d.%02d\r\n", int_part, dec_part);
-        send_response(resp);
+        snprintf(resp, sizeof(resp), "%d.%02d", int_part, dec_part);
+        buffer_response(resp);
     }
     else if (strncmp(command, "TEMP:SP ", 8) == 0)
     {
@@ -204,8 +281,8 @@ void scpi_process_line(const char *command)
         if (dec_part < 0)
             dec_part = -dec_part;
 
-        snprintf(resp, sizeof(resp), "%d.%04d\r\n", int_part, dec_part);
-        send_response(resp);
+        snprintf(resp, sizeof(resp), "%d.%04d", int_part, dec_part);
+        buffer_response(resp);
     }
     else if (strncmp(command, "PID:KI?", 7) == 0)
     {
@@ -217,8 +294,8 @@ void scpi_process_line(const char *command)
         if (dec_part < 0)
             dec_part = -dec_part;
 
-        snprintf(resp, sizeof(resp), "%d.%04d\r\n", int_part, dec_part);
-        send_response(resp);
+        snprintf(resp, sizeof(resp), "%d.%04d", int_part, dec_part);
+        buffer_response(resp);
     }
     else if (strncmp(command, "PID:KD?", 7) == 0)
     {
@@ -230,8 +307,8 @@ void scpi_process_line(const char *command)
         if (dec_part < 0)
             dec_part = -dec_part;
 
-        snprintf(resp, sizeof(resp), "%d.%04d\r\n", int_part, dec_part);
-        send_response(resp);
+        snprintf(resp, sizeof(resp), "%d.%04d", int_part, dec_part);
+        buffer_response(resp);
     }
     else if (strncmp(command, "PID:DUTY?", 8) == 0)
     {
@@ -243,64 +320,57 @@ void scpi_process_line(const char *command)
         if (dec_part < 0)
             dec_part = -dec_part;
 
-        snprintf(resp, sizeof(resp), "%d.%04d\r\n", int_part, dec_part);
-        send_response(resp);
+        snprintf(resp, sizeof(resp), "%d.%04d", int_part, dec_part);
+        buffer_response(resp);
     }
     else if (strncmp(command, "PID:KP ", 7) == 0)
     {
         scpi_iface_p->set_kp(atof(command + 7), scpi_iface_p->context);
-        // send_response("OK\r\n");
     }
     else if (strncmp(command, "PID:KI ", 7) == 0)
     {
         scpi_iface_p->set_ki(atof(command + 7), scpi_iface_p->context);
-        // send_response("OK\r\n");
     }
     else if (strncmp(command, "PID:KD ", 7) == 0)
     {
         scpi_iface_p->set_kd(atof(command + 7), scpi_iface_p->context);
-        // send_response("OK\r\n");
     }
     else if (strncmp(command, "SOUR1:OUTP OFF", 14) == 0)
     {
         scpi_iface_p->set_output_on(0, false, scpi_iface_p->context);
-        // send_response("OK off\r\n");
     }
     else if (strncmp(command, "SOUR1:OUTP ON", 13) == 0)
     {
         scpi_iface_p->set_output_on(0, true, scpi_iface_p->context);
-        // send_response("OK on\r\n");
     }
     else if (strncmp(command, "SOUR2:OUTP OFF", 14) == 0)
     {
         scpi_iface_p->set_output_on(1, false, scpi_iface_p->context);
-        // send_response("OK off\r\n");
     }
     else if (strncmp(command, "SOUR2:OUTP ON", 13) == 0)
     {
         scpi_iface_p->set_output_on(1, true, scpi_iface_p->context);
-        // send_response("OK on\r\n");
     }
     else if (strncmp(command, "SOUR1:OUTP?", 11) == 0)
     {
         if (scpi_iface_p->get_output_on(0, scpi_iface_p->context))
         {
-            send_response("ON\r\n");
+            buffer_response("ON");
         }
         else
         {
-            send_response("OFF\r\n");
+            buffer_response("OFF");
         }
     }
     else if (strncmp(command, "SOUR2:OUTP?", 13) == 0)
     {
         if (scpi_iface_p->get_output_on(1, scpi_iface_p->context))
         {
-            send_response("ON\r\n");
+            buffer_response("ON");
         }
         else
         {
-            send_response("OFF\r\n");
+            buffer_response("OFF");
         }
     }
 }
