@@ -1,4 +1,5 @@
 #include "services/scpi_parser.h"
+#include "services/error_handler.h"
 #include "main.h"
 #include "hardware/adc_hw.h"
 #include "usart.h"
@@ -120,9 +121,9 @@ void scpi_flush_responses(void)
 {
     if (response_len > 0)
     {
-        response_buffer[response_len] = '\r';
-        response_len++;
         response_buffer[response_len] = '\n';
+        response_len++;
+        response_buffer[response_len] = '\0';
         response_len++;
         if (output_iface && output_iface->send_response)
         {
@@ -138,18 +139,18 @@ static void buffer_response(const char *resp)
 
     if (response_len == 0)
     {
-        for (size_t i = 0; i < resp_len && i < RESPONSE_BUFFER_SIZE - 1; i++)
+        for (size_t i = 0; i < resp_len && i < RESPONSE_BUFFER_SIZE - 2; i++)
         {
             response_buffer[response_len++] = resp[i];
         }
     }
     else
     {
-        if (response_len + 1 + resp_len < RESPONSE_BUFFER_SIZE)
+        if (response_len + resp_len < RESPONSE_BUFFER_SIZE)
         {
             response_buffer[response_len] = ';';
             response_len++;
-            for (size_t i = 0; i < resp_len && response_len < RESPONSE_BUFFER_SIZE - 1; i++)
+            for (size_t i = 0; i < resp_len && response_len < RESPONSE_BUFFER_SIZE - 2; i++)
             {
                 response_buffer[response_len++] = resp[i];
             }
@@ -171,7 +172,7 @@ void scpi_process_message(const char *message)
 
     for (size_t i = 0; message[i] != '\0' && message[i] != '\n'; i++)
     {
-        if (message[i] == ';' || message[i] == '\r')
+        if (message[i] == ';' || message[i] == '\n')
         {
             cmd[cmd_len] = '\0';
             if (cmd_len > 0)
@@ -185,6 +186,10 @@ void scpi_process_message(const char *message)
             if (cmd_len < sizeof(cmd) - 1)
             {
                 cmd[cmd_len++] = message[i];
+            }
+            else
+            {
+                error_set(ERROR_RX_COMMAND_OVERFLOW);
             }
         }
     }
@@ -207,7 +212,7 @@ void scpi_process_line(const char *command)
 
     if (strncmp(command, "*IDN?", 5) == 0)
     {
-        buffer_response("TEMPCTRL,STM32F334,1.0");
+        buffer_response("TEMP-CTRL-CT2CH-V1.01");
     }
     else if (strncmp(command, "*CLS", 4) == 0)
     {
