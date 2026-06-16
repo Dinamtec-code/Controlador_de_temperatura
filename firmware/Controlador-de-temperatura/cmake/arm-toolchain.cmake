@@ -16,8 +16,8 @@ set(CMAKE_ASM_COMPILER "${ARM_TOOLCHAIN_DIR}/arm-none-eabi-gcc.exe" CACHE FILEPA
 set(CMAKE_MAKE_PROGRAM "C:/tools/ninja/ninja.exe" CACHE FILEPATH "Make program")
 
 set(CPU_FLAGS "-mcpu=cortex-m4 -mthumb -mfpu=fpv4-sp-d16 -mfloat-abi=hard")
-set(CMAKE_C_FLAGS_INIT "${CPU_FLAGS} -DSTM32F334x8 -DUSE_HAL_DRIVER -Wall -O2 -g3 -ffunction-sections -fdata-sections")
-set(CMAKE_ASM_FLAGS_INIT "${CPU_FLAGS}")
+set(CMAKE_C_FLAGS_INIT "${CPU_FLAGS} -DSTM32F334x8 -DUSE_HAL_DRIVER -Wall -O2 -gdwarf-4 -ffunction-sections -fdata-sections")
+set(CMAKE_ASM_FLAGS_INIT "${CPU_FLAGS} -gdwarf-4")
 set(CMAKE_EXE_LINKER_FLAGS_INIT "${CPU_FLAGS} -u printf_float -Wl,--gc-sections --specs=nano.specs --specs=nosys.specs -nostdlib")
 set(CMAKE_C_IMPLICIT_LINK_LIBRARIES "" CACHE INTERNAL "")
 

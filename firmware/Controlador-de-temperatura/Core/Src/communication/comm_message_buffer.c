@@ -2,6 +2,7 @@
 #include "communication/comm_interface.h"
 #include "communication/comm_buffers.h"
 #include "services/error_handler.h"
+#include "main.h"
 #include <string.h>
 
 static msg_message_t msg_buffers[COMM_IFACE_MAX];
@@ -33,7 +34,7 @@ void msg_extract_from_rx(comm_interface_id_t iface_id)
     {
         return;
     }
-
+    
     uint8_t byte;
     size_t to_read = available;
 
@@ -72,6 +73,7 @@ void msg_extract_from_rx(comm_interface_id_t iface_id)
             return;
         }
     }
+    HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 }
 
 const char *msg_get_next(comm_interface_id_t iface_id)
