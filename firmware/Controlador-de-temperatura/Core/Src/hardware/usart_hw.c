@@ -65,7 +65,6 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t data_size)
     if (huart->Instance == USART2)
     {
         uint32_t bytes_received = data_size;
-        HAL_UART_DMAStop(&huart2);
         for (size_t i = 0; i < bytes_received; i++)
         {
             uint8_t byte = dma_uart_rx_buffer[i];

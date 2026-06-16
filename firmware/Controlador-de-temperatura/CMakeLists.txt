@@ -104,6 +104,8 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     LINK_DEPENDS ${LINKER_SCRIPT}
 )
 
+target_compile_options(${PROJECT_NAME} PRIVATE -gdwarf-4)
+
 target_link_options(${PROJECT_NAME} PRIVATE
     "-Wl,-T${LINKER_SCRIPT}"
     "-Wl,-Map,${PROJECT_SOURCE_DIR}/build/${PROJECT_NAME}.map"
@@ -117,7 +119,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E copy "$<TARGET_FILE:${PROJECT_NAME}>" "${PROJECT_SOURCE_DIR}/build/${PROJECT_NAME}.elf"
     COMMAND "${TOOLCHAIN_ARM_OBJCOPY}" -O ihex "$<TARGET_FILE:${PROJECT_NAME}>" "${PROJECT_SOURCE_DIR}/build/${PROJECT_NAME}.hex"
     COMMAND "${TOOLCHAIN_ARM_SIZE}" "$<TARGET_FILE:${PROJECT_NAME}>"
-    COMMENT "Generating hex and printing size info..."
+    COMMENT "Generating elf, hex and printing size info..."
 )
