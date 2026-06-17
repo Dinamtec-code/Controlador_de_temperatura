@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # PARÁMETROS DEL SISTEMA
 # ==========================================
 fs_original = 72000.0  # Frecuencia de muestreo del hardware (Hz)
-fc_deseada = 10.0      # Frecuencia de corte deseada (Hz)
+fc_deseada = 12.5      # Frecuencia de corte deseada (Hz)
 orden_filtro = 4       # Etapas del filtro EMA en cascada
 
 # Parámetros del Filtro Notch final (Media móvil en la ISR del DMA)
