@@ -170,9 +170,9 @@ void scpi_process_message(const char *message)
     char cmd[128];
     size_t cmd_len = 0;
 
-    for (size_t i = 0; message[i] != '\0' && message[i] != '\n'; i++)
+    for (size_t i = 0; i < strlen(message); i++)
     {
-        if (message[i] == ';' || message[i] == '\n')
+        if (message[i] == ';' || message[i] == '\n' || message[i] == '\0')
         {
             cmd[cmd_len] = '\0';
             if (cmd_len > 0)
@@ -367,7 +367,7 @@ void scpi_process_line(const char *command)
             buffer_response("OFF");
         }
     }
-    else if (strncmp(command, "SOUR2:OUTP?", 13) == 0)
+    else if (strncmp(command, "SOUR2:OUTP?", 11) == 0)
     {
         if (scpi_iface_p->get_output_on(1, scpi_iface_p->context))
         {

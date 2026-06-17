@@ -42,24 +42,11 @@ void task_comm(void)
 
     if (comm_interface_has_error(COMM_IFACE_USART))
     {
-        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-        HAL_Delay(100);
-        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-        HAL_Delay(100);
-        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-        HAL_Delay(100);
-        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-        HAL_Delay(100);
-        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-        HAL_Delay(100);
-        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-        HAL_Delay(100);
-        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-        HAL_Delay(100);
-        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-        HAL_Delay(100);
-        HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
-        HAL_Delay(100);
+        for (int i = 0; i < 40; i++)
+        {
+            HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+            HAL_Delay(200);
+        }
         comm_interface_reset(COMM_IFACE_USART);
         return;
     }

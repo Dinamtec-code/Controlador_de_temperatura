@@ -179,10 +179,8 @@ void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef *hadc)
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
-    HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
     if (hadc->Instance == ADC1)
     {
         process_adc_samples(ADC_HW_BUFFER_SIZE / 2, ADC_HW_BUFFER_SIZE / 2);
     }
-    HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 }

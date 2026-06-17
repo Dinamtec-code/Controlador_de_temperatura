@@ -14,9 +14,7 @@ void task_system(void)
         const char *msg = msg_get_next(COMM_IFACE_USART);
         if (msg)
         {
-            HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
             scpi_process_message(msg);
-            HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
             msg_mark_processed(COMM_IFACE_USART);
             comm_interface_set_response_pending(COMM_IFACE_USART, true);
             task_system_msg_clear();
