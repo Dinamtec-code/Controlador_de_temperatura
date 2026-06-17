@@ -29,6 +29,11 @@ void msg_extract_from_rx(comm_interface_id_t iface_id)
         msg->len = 0;
     }
 
+    if (msg->state == MSG_STATE_READY)
+    {
+        return;
+    }
+
     size_t available = comm_buffer_rx_count(iface_id);
     if (available == 0)
     {
@@ -104,6 +109,13 @@ void msg_mark_processed(comm_interface_id_t iface_id)
         msg->state = MSG_STATE_WAITING_DELIMITER;
         msg->len = 0;
     }
+}
+
+size_t msg_get_len(comm_interface_id_t iface_id)
+{
+    if (iface_id >= COMM_IFACE_MAX)
+        return 0;
+    return msg_buffers[iface_id].len;
 }
 
 bool msg_contains_query(comm_interface_id_t iface_id)

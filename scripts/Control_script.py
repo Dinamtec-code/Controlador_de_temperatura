@@ -34,17 +34,13 @@ import time
 # ==========================================
 def apagar_salidas(instrumento):
     instrumento.write('SOUR1:OUTP OFF')
-    time.sleep(.1)
     instrumento.write('SOUR2:OUTP OFF')
-    time.sleep(.1)
-    instrumento.flush(vi.constants.VI_READ_BUF)
 
 def encender_salidas(instrumento):
     instrumento.write('SOUR1:OUTP ON')
     time.sleep(.1)
     instrumento.write('SOUR2:OUTP ON')
     time.sleep(.1)
-    instrumento.flush(vi.constants.VI_READ_BUF)
     
 def query_con_reintento(instrumento, comando, reintentos=3, pausa=1):
     """
@@ -72,7 +68,7 @@ def query_con_reintento(instrumento, comando, reintentos=3, pausa=1):
 rm = vi.ResourceManager()
 print("Recursos disponibles:", rm.list_resources())
 
-ctemp = rm.open_resource('ASRL6::INSTR')
+ctemp = rm.open_resource('ASRL5::INSTR')
 
 # Configuración física
 ctemp.baud_rate = 115200
@@ -92,11 +88,12 @@ ctemp.timeout = 5000
 try:
     idn = ctemp.query('*IDN?').strip()
     print(f"Dispositivo conectado: {idn}")
-    
+    time.sleep(.1)    
     # Verificación de parámetros actuales
     tinit = time.time()
     temp_val,kp,ki,kd,sp = [float(x) for x in (ctemp.query('MEAS:TEMP?;PID:KP?;PID:KI?;PID:KD?;TEMP:SP?').split(';'))]
     dt = time.time()-tinit
+    time.sleep(.1)    
     print (f"Duracion de llamada {dt}segundos")
     print(f"Temperatura anterior: {temp_val:.2f} °C")
     print(f"El setpoint anterior: {sp:.2f} °C")
@@ -108,6 +105,7 @@ try:
     ctemp.write('PID:KP 5.0;PID:KI 25.0;PID:KD 0.0')
     time.sleep(.1)
     temp_val,kp,ki,kd,sp = [float(x) for x in (ctemp.query('MEAS:TEMP?;PID:KP?;PID:KI?;PID:KD?;TEMP:SP?').split(';'))]
+    time.sleep(.1)    
     print(f"La temperatura actual: {temp_val:.2f} °C")
     print(f"El setpoint actual: {sp:.2f} °C")
     print(f"Kp actual: {kp:.4f}")
@@ -123,7 +121,7 @@ except Exception as e:
 temp, duty, tiempo, error_temp = [], [], [], []
 
 # Parámetros de la prueba
-setpoint = 5.0 
+setpoint = 25.0 
 duracion_de_medicion = 20  # Segundos
 periodo_de_muestreo = 0.15   # Segundos
 
@@ -249,7 +247,7 @@ finally:
     # APAGADO DEL EQUIPO
     # ----------------------------------------
     try:
-        ctemp.write('TEMP:SP 30.0')
+        ctemp.write('TEMP:SP 25.0')
         time.sleep(0.1)
         apagar_salidas(ctemp)
         print("-> Salidas apagadas.")
