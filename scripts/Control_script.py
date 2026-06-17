@@ -27,6 +27,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import time
 import pandas as pd
+import time
 
 # ==========================================
 #%% 1. FUNCIONES AUXILIARES
@@ -45,7 +46,7 @@ def encender_salidas(instrumento):
     time.sleep(.1)
     instrumento.flush(vi.constants.VI_READ_BUF)
     
-def query_con_reintento(instrumento, comando, reintentos=3, pausa=0.05):
+def query_con_reintento(instrumento, comando, reintentos=3, pausa=1):
     """
     Envía un comando query. Si hay un timeout de Visa, limpia buffers y reintenta.
     """
@@ -83,7 +84,7 @@ ctemp.flow_control = 0
 # Configuración de protocolo
 ctemp.write_termination = '\n'
 ctemp.read_termination = '\n'
-ctemp.timeout = 2000
+ctemp.timeout = 5000
 
 # ==========================================
 #%% 3. PRUEBA DE COMUNICACIÓN Y SETEO INICIAL
@@ -93,7 +94,10 @@ try:
     print(f"Dispositivo conectado: {idn}")
     
     # Verificación de parámetros actuales
+    tinit = time.time()
     temp_val,kp,ki,kd,sp = [float(x) for x in (ctemp.query('MEAS:TEMP?;PID:KP?;PID:KI?;PID:KD?;TEMP:SP?').split(';'))]
+    dt = time.time()-tinit
+    print (f"Duracion de llamada {dt}segundos")
     print(f"Temperatura anterior: {temp_val:.2f} °C")
     print(f"El setpoint anterior: {sp:.2f} °C")
     print(f"Kp anterior: {kp:.4f}")
@@ -121,16 +125,16 @@ temp, duty, tiempo, error_temp = [], [], [], []
 # Parámetros de la prueba
 setpoint = 5.0 
 duracion_de_medicion = 20  # Segundos
-periodo_de_muestreo = 0.5   # Segundos
+periodo_de_muestreo = 0.15   # Segundos
 
 ctemp.write(f'TEMP:SP {setpoint}')
-time.sleep(.1)
+time.sleep(.5)
 
 try:
     encender_salidas(ctemp)
 
     # --- Configuración del Gráfico ---
-    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True, figsize=(8, 8))
+    fig, (ax1, ax2, ax3) = plt.subplots(3, 1, sharex=True, figsize=(8, 8)) 
     fig.tight_layout(pad=3.0)
     plt.ion()
     
