@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-#define ADC_HW_BUFFER_SIZE 64
-#define ADC_FILTTER_ORDER 8
+#define ADC_HW_BUFFER_SIZE 144
+#define ADC_FILTTER_ORDER 6
 
 void adc_hw_init(void);
 

@@ -133,10 +133,10 @@ int main(void)
 
   /* Initialize scheduler */
   scheduler_init();
-  scheduler_add_task(TASK_COMM, task_comm, TASK_PERIOD_MS);
-  scheduler_add_task(TASK_SYSTEM, task_system, TASK_PERIOD_MS);
-  scheduler_add_task(TASK_CONTROL, task_control, 4 * TASK_PERIOD_MS);
-  scheduler_add_task(TASK_UI, task_ui, 100 * TASK_PERIOD_MS);
+  scheduler_add_task(TASK_COMM, task_comm, TASK_COMM_PERIOD_MS);
+  scheduler_add_task(TASK_SYSTEM, task_system, TASK_SYSTEM_PERIOD_MS);
+  scheduler_add_task(TASK_CONTROL, task_control, TASK_CONTROL_PERIOD_MS);
+  scheduler_add_task(TASK_UI, task_ui, TASK_UI_PERIOD_MS);
 
   /* Initialize OLED last - uses blocking I2C which can hang if device not present */
 

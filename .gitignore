@@ -4,6 +4,8 @@ firmware/**/Release/
 firmware/build/
 firmware/**/*.o
 firmware/**/*.elf
+!firmware/**/flash.ps1
+!firmware/**/flash.bat
 firmware/**/*.hex
 firmware/**/*.bin
 firmware/**/*.map
