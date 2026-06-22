@@ -1,9 +1,27 @@
 #ifndef COMM_INTERFACE_H
 #define COMM_INTERFACE_H
 
+#include "services/circular_buffer.h"
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
+
+typedef enum
+{
+  COMM_ERR_NONE,
+
+  COMM_ERR_UART_OVERRUN,
+  COMM_ERR_UART_FRAMING,
+  COMM_ERR_UART_PARITY,
+
+  COMM_ERR_DMA,
+
+  COMM_ERR_TIMEOUT,
+
+  COMM_ERR_PROTOCOL,
+
+  COMM_ERR_INTERNAL
+} comm_error_t;
 
 /**
  * @brief Identificadores de interfaces de comunicación.
@@ -17,45 +35,36 @@ typedef enum
   // COMM_IFACE_TCP,       /**< Interfaz de red TCP/IP */
   // COMM_IFACE_USB,       /**< Interfaz USB CDC (puerto COM virtual) */
   COMM_IFACE_MAX /**< Valor centinela para verificación de límites de arreglo */
-} comm_interface_id_t;
+} comm_iface_id_t;
 
 typedef enum
 {
   COMM_STATE_NONE = 0x00,
-  COMM_STATE_ERROR = 0x01,
+  COMM_STATE_CONNECTED = 0x01,
   COMM_STATE_RX_ACTIVE = 0x02,
-  COMM_STATE_TX_BUSY = 0x04,
-  COMM_STATE_RESPONSE_PENDING = 0x08
-} comm_interface_state_t;
+  COMM_STATE_TX_ACTIVE = 0x04
+} comm_iface_state_t;
 
-#define COMM_STATE_MASK_ERROR 0x01
-#define COMM_STATE_MASK_RX_ACTIVE 0x02
-#define COMM_STATE_MASK_TX_BUSY 0x04
-#define COMM_STATE_MASK_RESPONSE_PENDING 0x08
+typedef enum
+{
+  IFACE_EVENT_RX_DATA_AVAILABLE = 0x0,       /**< Datos recibidos e informacion del buffer de entrada actualkizada */
+  IFACE_EVENT_TX_COMPLETE = 0x01,            /**< Transmision por DMA finalizada */
+  IFACE_EVENT_INTERFACE_CONNECTED = 0x02,    /**< La interfaz se conecto con el periferico */
+  IFACE_EVENT_INTERFACE_DISCONNECTED = 0x04, /**< La interfaz se desconecto del periferico */
+  IFACE_EVENT_ERROR = 0x08                   /**< Error de hardware detectado en el periferico */
+} comm_iface_event_t;
 
 /**
  * @brief Declaración anticipada de la estructura de interfaz de comunicación.
  */
-typedef struct comm_interface comm_interface_t;
+typedef struct comm_iface comm_iface_t;
 
 /**
- * @brief Puntero de función para callback de indicación de recepción.
  *
- * Se invoca cuando se reciben datos en la interfaz especificada.
- *
- * @param iface_id  Identificador de la interfaz que recibió datos.
- * @param len       Cantidad de bytes recibidos y disponibles en el buffer RX.
  */
-typedef void (*comm_rx_indication_callback_t)(comm_interface_id_t iface_id, size_t len);
-
-/**
- * @brief Puntero de función para callback de transmisión completada.
- *
- * Se invoca cuando se completa una transmisión en la interfaz especificada.
- *
- * @param iface_id  Identificador de la interfaz que completó la transmisión.
- */
-typedef void (*comm_tx_complete_callback_t)(comm_interface_id_t iface_id);
+typedef void (*comm_iface_sink_t)(const comm_iface_event_t *evt);
+typedef void (*comm_iface_post_event)(comm_iface_event_t *evt);
+typedef void (*comm_iface_get_event)(comm_iface_event_t *evt);
 
 /**
  * @brief Estructura de interfaz de comunicación.
@@ -64,26 +73,26 @@ typedef void (*comm_tx_complete_callback_t)(comm_interface_id_t iface_id);
  * (USART, TCP, USB) debe implementar esta estructura y registrarla usando
  * comm_register_interface() para participar en el sistema de comunicación.
  */
-struct comm_interface
+struct comm_iface
 {
-  comm_interface_id_t id;       /**< Identificador único para esta interfaz */
-  void *context;                /**< Puntero de contexto privado para la implementación de la interfaz */
-  const char *name;             /**< Nombre legible de la interfaz (ej: "USART2", "TCP0") */
-  comm_interface_state_t state; /**< Estado actual de la interfaz (bitmask) */
-
-  bool (*send)(const uint8_t *data, size_t len);
-  bool (*is_connected)(void *context);
-  void (*start_rx)(void *context);    /**< Iniciar recepción (habilita DMA/interrupts) */
-  void (*stop_rx)(void *context);     /**< Detener recepción */
-  bool (*is_tx_ready)(void *context); /**< Verificar si interfaz lista para TX */
-  bool (*start_tx)(void *context);    /**< Transmitir desde buffer del sistema, devuelve true si exitoso */
-  void (*rx_protect)(void);
-  void (*rx_unprotect)(void);
-  void (*tx_protect)(void);
-  void (*tx_unprotect)(void);
-
-  comm_rx_indication_callback_t rx_indication_cb; /**< Callback para notificación de datos entrantes */
-  comm_tx_complete_callback_t tx_complete_cb;     /**< Callback para completación de transmisión */
+  comm_iface_id_t id;       /**< Identificador único para esta interfaz */
+  void *context;            /**< Puntero de contexto privado para la implementación de la interfaz */
+  const char *name;         /**< Nombre legible de la interfaz (ej: "USART2", "TCP0") */
+  comm_iface_state_t state; /**< Estado actual de la interfaz (bitmask) */
+  comm_iface_event_t event; /**< Eventos producidos por el hardware */
+  uint8_t *rx_buffer;
+  uint8_t *tx_buffer;
+  size_t rx_len;
+  size_t tx_len;
+  int (*init)(void *ctx);
+  int (*deinit)(void *ctx);
+  void (*start_rx)(void *context);      /**< Iniciar recepción (habilita DMA/interrupt IDLE) */
+  void (*stop_rx)(void *context);       /**< Detener recepción */
+  void (*start_tx)(void *context);      /**< Transmitir desde buffer del sistema */
+  void (*restart)(void *context);       /**< Verificar si interfaz lista para TX */
+  comm_iface_event_t comm_iface_sink_t; /**< Callback para notificación de datos entrantes */
+  comm_iface_post_event post_event;
+  comm_iface_get_event get_event;
 };
 
 /**
@@ -94,7 +103,7 @@ struct comm_interface
  *
  * @param iface  Puntero a la estructura de interfaz a registrar.
  */
-void comm_register_interface(comm_interface_t *iface);
+void comm_register_interface(comm_iface_t *iface);
 
 /**
  * @brief Desregistrar una interfaz de comunicación.
@@ -103,7 +112,7 @@ void comm_register_interface(comm_interface_t *iface);
  *
  * @param iface  Puntero a la estructura de interfaz a desregistrar.
  */
-void comm_unregister_interface(comm_interface_t *iface);
+void comm_unregister_interface(comm_iface_t *iface);
 
 /**
  * @brief Obtener una interfaz de comunicación registrada.
@@ -111,117 +120,52 @@ void comm_unregister_interface(comm_interface_t *iface);
  * @param id  El identificador de interfaz a buscar.
  * @return Puntero a la estructura de interfaz, o NULL si no se encontró o el ID es inválido.
  */
-comm_interface_t *comm_get_interface(comm_interface_id_t id);
+comm_iface_id_t *comm_get_interface(comm_iface_id_t id);
 
 /**
  * @brief Iniciar recepción en la interfaz especificada.
  * @param id Identificador de la interfaz.
  */
-void comm_interface_start_rx(comm_interface_id_t id);
+void comm_iface_start_rx(comm_iface_id_t id);
 
 /**
  * @brief Detener recepción en la interfaz especificada.
  * @param id Identificador de la interfaz.
  */
-void comm_interface_stop_rx(comm_interface_id_t id);
-
-/**
- * @brief Verificar si la interfaz está lista para transmitir.
- * @param id Identificador de la interfaz.
- * @return true si puede iniciar transmisión, false en caso contrario.
- */
-bool comm_interface_is_tx_ready(comm_interface_id_t id);
+void comm_iface_stop_rx(comm_iface_id_t id);
 
 /**
  * @brief Iniciar transmisión desde el buffer del sistema.
  * @param id Identificador de la interfaz.
  * @return true si se inició la transmisión, false si falló.
  */
-bool comm_interface_start_tx(comm_interface_id_t id);
 
+void comm_iface_start_tx(comm_iface_id_t id);
 /**
- * @brief Enviar datos directamente a una interfaz (encolado en buffer TX).
+ * @brief Reiniciar una interfaz (detener RX, limpiar buffers, reiniciar RX).
  * @param id Identificador de la interfaz.
- * @param data Puntero a los datos.
- * @param len Cantidad de bytes.
- * @return true si se encoló correctamente.
  */
-bool comm_interface_send(comm_interface_id_t id, const uint8_t *data, size_t len);
-
-/**
- * @brief Comprobar si la recepción está activa en la interfaz.
- * @param id Identificador de la interfaz.
- * @return true si RX está activo.
- */
-bool comm_interface_is_rx_active(comm_interface_id_t id);
-
-/**
- * @brief Comprobar si la transmisión está ocupada.
- * @param id Identificador de la interfaz.
- * @return true si TX está ocupado.
- */
-bool comm_interface_is_tx_busy(comm_interface_id_t id);
-
-/**
- * @brief Comprobar si hay error en la interfaz.
- * @param id Identificador de la interfaz.
- * @return true si hay error.
- */
-bool comm_interface_has_error(comm_interface_id_t id);
-
-/**
- * @brief Establecer el estado de recepción activo.
- * @param id Identificador de la interfaz.
- * @param active true para activar RX, false para desactivar.
- */
-void comm_interface_set_rx_active(comm_interface_id_t id, bool active);
-
-/**
- * @brief Establecer el estado de transmisión ocupada.
- * @param id Identificador de la interfaz.
- * @param busy true para marcar TX como ocupado, false para liberar.
- */
-void comm_interface_set_tx_busy(comm_interface_id_t id, bool busy);
-
-/**
- * @brief Establecer el estado de error.
- * @param id Identificador de la interfaz.
- * @param error true para marcar error, false para limpiar.
- */
-void comm_interface_set_error(comm_interface_id_t id, bool error);
-
-/**
- * @brief Establecer el estado de una interfaz (API deprecada, usa setters específicos).
- * @param id Identificador de la interfaz.
- * @param state Nuevo estado.
- */
-void comm_interface_set_state(comm_interface_id_t id, comm_interface_state_t state);
+void comm_iface_restart(comm_iface_id_t id);
 
 /**
  * @brief Obtener el estado actual de una interfaz.
  * @param id Identificador de la interfaz.
  * @return Estado actual combinado de bits.
  */
-comm_interface_state_t comm_interface_get_state(comm_interface_id_t id);
-
-/**
- * @brief Reiniciar una interfaz (detener RX, limpiar buffers, reiniciar RX).
- * @param id Identificador de la interfaz.
- */
-void comm_interface_reset(comm_interface_id_t id);
+comm_iface_state_t comm_interface_get_state(comm_iface_id_t id);
 
 /**
  * @brief Establecer el estado de respuesta pendiente.
  * @param id Identificador de la interfaz.
  * @param pending true para marcar respuesta pendiente, false para limpiar.
  */
-void comm_interface_set_response_pending(comm_interface_id_t id, bool pending);
+void comm_interface_set_response_pending(comm_iface_id_t id, bool pending);
 
 /**
  * @brief Comprobar si hay respuesta pendiente.
  * @param id Identificador de la interfaz.
  * @return true si hay respuesta pendiente.
  */
-bool comm_interface_is_response_pending(comm_interface_id_t id);
+bool comm_interface_is_response_pending(comm_iface_id_t id);
 
 #endif

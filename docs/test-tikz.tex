@@ -1,0 +1,45 @@
+﻿\documentclass{article}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\begin{document}
+\begin{tikzpicture}[
+    block/.style={
+        draw,
+        rectangle,
+        rounded corners,
+        minimum width=4cm,
+        minimum height=1cm,
+        align=center
+    }
+]
+
+\node[block] (scpi) {Motor SCPI};
+
+\node[block, below=1.5cm of=scpi] (comm)
+{Subsistema de Comunicación};
+
+\node[block, below=1.5cm of=comm] (iface)
+{Gestor de Interfaces};
+
+\node[block, below left=2cm and 3cm of=iface] (usbtmc)
+{USBTMC};
+
+\node[block, below left=0.5cm and 1cm of=iface] (gpib)
+{GPIB};
+
+\node[block, below right=0.5cm and 1cm of=iface] (vxi)
+{VXI-11};
+
+\node[block, below right=2cm and 3cm of=iface] (hislip)
+{HiSLIP};
+
+\draw[->] (scpi) -- (comm);
+\draw[->] (comm) -- (iface);
+
+\draw[->] (iface) -- (usbtmc);
+\draw[->] (iface) -- (gpib);
+\draw[->] (iface) -- (vxi);
+\draw[->] (iface) -- (hislip);
+
+\end{tikzpicture}
+\end{document}
