@@ -27,7 +27,7 @@
  * Contiene información sobre datos recibidos para su procesamiento.
  */
 typedef struct {
-    comm_interface_id_t iface_id;  /**< Identificador de la interfaz origen */
+    comm_iface_id_t iface_id;  /**< Identificador de la interfaz origen */
     size_t len;                   /**< Longitud de los datos recibidos */
 } comm_rx_message_t;
 
@@ -38,7 +38,7 @@ typedef struct {
  */
 typedef struct {
     bool (*read_msg)(comm_rx_message_t *msg);              /**< Callback para leer un mensaje recibido */
-    size_t (*get_pending_tx_len)(comm_interface_id_t iface_id); /**< Consultar bytes TX pendientes */
+    size_t (*get_pending_tx_len)(comm_iface_id_t iface_id); /**< Consultar bytes TX pendientes */
 } comm_buffers_api_t;
 
 /**
@@ -56,7 +56,7 @@ void comm_buffers_init(void);
  * @param data      Byte recibido a almacenar.
  * @return true si el byte se almacenó, false si el buffer está lleno o el ID es inválido.
  */
-bool comm_buffer_rx_put(comm_interface_id_t iface_id, uint8_t data);
+bool comm_buffer_rx_put(comm_iface_id_t iface_id, uint8_t data);
 
 /**
  * @brief Colocar datos en el buffer TX para transmisión.
@@ -66,7 +66,7 @@ bool comm_buffer_rx_put(comm_interface_id_t iface_id, uint8_t data);
  * @param len       Cantidad de bytes a encolar.
  * @return true si todos los datos se encolaron, false si el buffer está lleno o el ID es inválido.
  */
-bool comm_buffer_tx_put(comm_interface_id_t iface_id, const uint8_t *data, size_t len);
+bool comm_buffer_tx_put(comm_iface_id_t iface_id, const uint8_t *data, size_t len);
 
 /**
  * @brief Obtener datos del buffer RX.
@@ -76,7 +76,7 @@ bool comm_buffer_tx_put(comm_interface_id_t iface_id, const uint8_t *data, size_
  * @param len       Puntero a bytes máximos a leer, actualizado con bytes reales leídos.
  * @return true si se obtuvieron datos, false si el buffer está vacío o el ID es inválido.
  */
-bool comm_buffer_rx_get(comm_interface_id_t iface_id, uint8_t *data, size_t *len);
+bool comm_buffer_rx_get(comm_iface_id_t iface_id, uint8_t *data, size_t *len);
 
 /**
  * @brief Obtener datos del buffer TX para transmisión real.
@@ -86,7 +86,7 @@ bool comm_buffer_rx_get(comm_interface_id_t iface_id, uint8_t *data, size_t *len
  * @param len       Puntero a bytes máximos a leer, actualizado con bytes reales leídos.
  * @return true si se obtuvieron datos, false si el buffer está vacío o el ID es inválido.
  */
-bool comm_buffer_tx_get(comm_interface_id_t iface_id, uint8_t *data, size_t *len);
+bool comm_buffer_tx_get(comm_iface_id_t iface_id, uint8_t *data, size_t *len);
 
 /**
  * @brief Obtener cantidad de bytes disponibles en buffer RX.
@@ -94,7 +94,7 @@ bool comm_buffer_tx_get(comm_interface_id_t iface_id, uint8_t *data, size_t *len
  * @param iface_id  Identificador de la interfaz.
  * @return Cantidad de bytes disponibles para leer, o 0 si el ID es inválido.
  */
-size_t comm_buffer_rx_count(comm_interface_id_t iface_id);
+size_t comm_buffer_rx_count(comm_iface_id_t iface_id);
 
 /**
  * @brief Obtener cantidad de bytes pendientes en buffer TX.
@@ -102,14 +102,14 @@ size_t comm_buffer_rx_count(comm_interface_id_t iface_id);
  * @param iface_id  Identificador de la interfaz.
  * @return Cantidad de bytes pendientes para transmitir, o 0 si el ID es inválido.
  */
-size_t comm_buffer_tx_count(comm_interface_id_t iface_id);
+size_t comm_buffer_tx_count(comm_iface_id_t iface_id);
 
 /**
   * @brief Limpiar todos los datos del buffer RX.
   * 
   * @param iface_id  Identificador de la interfaz.
   */
-void comm_buffer_rx_clear(comm_interface_id_t iface_id);
+void comm_buffer_rx_clear(comm_iface_id_t iface_id);
 
 /**
   * @brief Prepend data to the front of TX buffer.
@@ -119,6 +119,6 @@ void comm_buffer_rx_clear(comm_interface_id_t iface_id);
   * @param len       Cantidad de bytes a insertar.
   * @return true si todos los datos se insertaron, false si el buffer está lleno o el ID es inválido.
   */
-bool comm_buffer_tx_prepend(comm_interface_id_t iface_id, const uint8_t *data, size_t len);
+bool comm_buffer_tx_prepend(comm_iface_id_t iface_id, const uint8_t *data, size_t len);
 
 #endif
