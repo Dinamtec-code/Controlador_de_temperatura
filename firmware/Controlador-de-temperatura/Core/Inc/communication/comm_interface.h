@@ -40,18 +40,18 @@ typedef enum
 typedef enum
 {
   COMM_STATE_NONE = 0x00,
-  COMM_STATE_CONNECTED = 0x01,
-  COMM_STATE_RX_ACTIVE = 0x02,
-  COMM_STATE_TX_ACTIVE = 0x04
+  COMM_STATE_CONNECTED = (1u << 0),
+  COMM_STATE_RX_ACTIVE = (1u << 0),
+  COMM_STATE_TX_ACTIVE = (1u << 0)
 } comm_iface_state_t;
 
 typedef enum
 {
-  IFACE_EVENT_RX_DATA_AVAILABLE = 0x0,       /**< Datos recibidos e informacion del buffer de entrada actualkizada */
-  IFACE_EVENT_TX_COMPLETE = 0x01,            /**< Transmision por DMA finalizada */
-  IFACE_EVENT_INTERFACE_CONNECTED = 0x02,    /**< La interfaz se conecto con el periferico */
-  IFACE_EVENT_INTERFACE_DISCONNECTED = 0x04, /**< La interfaz se desconecto del periferico */
-  IFACE_EVENT_ERROR = 0x08                   /**< Error de hardware detectado en el periferico */
+  IFACE_EVENT_RX_DATA_AVAILABLE = (1u << 0),      /**< Datos recibidos e informacion del buffer de entrada actualkizada */
+  IFACE_EVENT_TX_COMPLETE = (1u << 1),            /**< Transmision por DMA finalizada */
+  IFACE_EVENT_INTERFACE_CONNECTED = (1u << 2),    /**< La interfaz se conecto con el periferico */
+  IFACE_EVENT_INTERFACE_DISCONNECTED = (1u << 3), /**< La interfaz se desconecto del periferico */
+  IFACE_EVENT_ERROR = (1u << 4)                   /**< Error de hardware detectado en el periferico */
 } comm_iface_event_t;
 
 /**
