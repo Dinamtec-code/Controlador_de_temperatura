@@ -39,6 +39,7 @@ hardware/**/*.ipn
 
 # Documentation build artifacts
 docs/build/
+!docs/build/main.pdf
 docs/**/*.log
 docs/**/*.aux
 docs/**/*.toc
