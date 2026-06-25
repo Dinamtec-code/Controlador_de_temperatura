@@ -3,13 +3,8 @@
 
 #include <stdint.h>
 #include <stddef.h>
+#include <stdbool.h>
 
-/* Cuando se opera sobre el bufer este puede devolver los estados siguientes
- *  BUF_OK: la operacion salió bien y el buffer esta integro.
- *  BUF_EMPTY: el buffer esta vacio, no se puede leer.
- *  BUF_FULL: el buffer esta lleno, no se puede escribir.
- *  BUF_ERROR: error general, por ejemplo puntero nulo o tamaño cero.
- **/
 typedef enum
 {
     BUF_OK = 0,
@@ -22,9 +17,8 @@ typedef struct
 {
     uint8_t *buffer;
     size_t size;
-    size_t head;
-    size_t tail;
-    size_t count;
+    volatile size_t head;
+    volatile size_t tail;
 } circular_buffer_t;
 
 void cb_init(circular_buffer_t *cb, uint8_t *buffer, size_t size);

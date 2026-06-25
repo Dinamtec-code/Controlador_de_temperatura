@@ -1,14 +1,29 @@
 #include "services/circular_buffer.h"
-#include <stdio.h>
-#include <stdbool.h>
+
+// Función auxiliar privada para evitar duplicar lógica
+size_t cb_count(circular_buffer_t *cb)
+{
+    if (cb == NULL || cb->buffer == NULL || cb->size == 0)
+    {
+        return 0;
+    }
+
+    size_t head = cb->head;
+    size_t tail = cb->tail;
+
+    if (head >= tail)
+    {
+        return (head - tail);
+    }
+    else
+    {
+        return (cb->size - tail + head);
+    }
+}
 
 static bool cb_is_valid(circular_buffer_t *cb)
 {
-    if (cb == NULL || cb->buffer == NULL || cb->size == 0 || cb->count > cb->size)
-    {
-        return false;
-    }
-    return true;
+    return (cb != NULL && cb->buffer != NULL && cb->size > 0);
 }
 
 void cb_init(circular_buffer_t *cb, uint8_t *buffer, size_t size)
@@ -21,7 +36,6 @@ void cb_init(circular_buffer_t *cb, uint8_t *buffer, size_t size)
     cb->size = size;
     cb->head = 0;
     cb->tail = 0;
-    cb->count = 0;
 }
 
 cb_status_t cb_status(circular_buffer_t *cb)
@@ -30,11 +44,13 @@ cb_status_t cb_status(circular_buffer_t *cb)
     {
         return BUF_ERROR;
     }
-    if (cb->count == 0)
+
+    size_t count = cb_count(cb);
+    if (count == 0)
     {
         return BUF_EMPTY;
     }
-    else if (cb->count >= cb->size)
+    else if (count >= (cb->size - 1)) // -1 porque en buffer circular el estado "lleno" suele ser size-1
     {
         return BUF_FULL;
     }
@@ -51,13 +67,17 @@ cb_status_t cb_put(circular_buffer_t *cb, uint8_t data)
         return BUF_ERROR;
     }
 
-    if (cb->count >= cb->size)
+    // Calculamos dónde quedaría el head si insertamos
+    size_t next_head = (cb->head + 1) % cb->size;
+
+    // Si el siguiente head es igual al tail, estamos llenos
+    if (next_head == cb->tail)
     {
         return BUF_FULL;
     }
+
     cb->buffer[cb->head] = data;
-    cb->head = (cb->head + 1) % cb->size;
-    cb->count++;
+    cb->head = next_head;
 
     return BUF_OK;
 }
@@ -69,24 +89,15 @@ cb_status_t cb_get(circular_buffer_t *cb, uint8_t *data)
         return BUF_ERROR;
     }
 
-    if (cb->count == 0)
+    if (cb->head == cb->tail)
     {
         return BUF_EMPTY;
     }
+
     *data = cb->buffer[cb->tail];
     cb->tail = (cb->tail + 1) % cb->size;
-    cb->count--;
 
     return BUF_OK;
-}
-
-size_t cb_count(circular_buffer_t *cb)
-{
-    if (!cb_is_valid(cb))
-    {
-        return 0;
-    }
-    return cb->count;
 }
 
 cb_status_t cb_clear(circular_buffer_t *cb)
@@ -97,6 +108,5 @@ cb_status_t cb_clear(circular_buffer_t *cb)
     }
     cb->head = 0;
     cb->tail = 0;
-    cb->count = 0;
     return BUF_OK;
 }
