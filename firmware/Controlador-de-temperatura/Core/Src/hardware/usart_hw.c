@@ -23,9 +23,23 @@ static comm_error_t usart_hw_configure(void *ctx)
     huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
     huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
 
+    comm_iface_t *iface = comm_get_interface(usart_iface.id);
+
     if (HAL_UART_Init(&huart2) != HAL_OK)
     {
+        if (iface != NULL)
+        {
+            iface->state = COMM_STATE_NONE;
+            usart_hw_set_event(NULL, IFACE_EVENT_INTERFACE_DISCONNECTED);
+        }
         return COMM_ERR_INTERNAL;
+    }
+
+    if (iface != NULL)
+    {
+        iface->state |= COMM_STATE_CONNECTED;
+        iface->state &= ~COMM_STATE_ERROR;
+        usart_hw_set_event(NULL, IFACE_EVENT_INTERFACE_CONNECTED);
     }
 
     return COMM_ERR_NONE;
@@ -39,6 +53,14 @@ static comm_error_t usart_hw_deinit(void *ctx)
         return COMM_ERR_INTERNAL;
     }
     HAL_UART_MspDeInit(&huart2);
+
+    comm_iface_t *iface = comm_get_interface(usart_iface.id);
+    if (iface != NULL)
+    {
+        iface->state = COMM_STATE_NONE;
+        usart_hw_set_event(NULL, IFACE_EVENT_INTERFACE_DISCONNECTED);
+    }
+
     return COMM_ERR_NONE;
 }
 
@@ -93,9 +115,6 @@ void usart_iface_register(circular_buffer_t *rx_cb, circular_buffer_t *tx_cb)
     usart_iface.stop_rx = usart_hw_stop_rx;
     usart_iface.start_tx = usart_hw_start_tx;
 
-    usart_iface.get_char_rx = usart_hw_get_char_rx;
-    usart_iface.put_char_tx = usart_hw_put_char_tx;
-
     usart_iface.set_event = usart_hw_set_event;
     usart_iface.get_event = usart_hw_get_event;
     usart_iface.protect_rx = comm_buffer_protect_rx;
@@ -106,90 +125,57 @@ void usart_iface_register(circular_buffer_t *rx_cb, circular_buffer_t *tx_cb)
     comm_register_interface(&usart_iface);
 }
 
-/* --- API DE ACCESO A DATOS --- */
-
-bool usart_hw_get_char_rx(void *ctx, uint8_t *data)
-{
-    (void)ctx;
-
-    comm_iface_t *iface = comm_get_interface(usart_iface.id);
-
-    if (!iface || !iface->rx_buffer || !data)
-    {
-        return false;
-    }
-
-    iface->protect_rx(ctx);
-
-    bool status = (cb_get(iface->rx_buffer, data) == BUF_OK);
-
-    if (status && iface->rx_buffer->head == iface->rx_buffer->tail)
-    {
-        iface->state &= ~COMM_STATE_RX_ACTIVE;
-    }
-    iface->unprotect_rx(ctx);
-
-    return status;
-}
-
-bool usart_hw_put_char_tx(void *ctx, uint8_t data)
-{
-    (void)ctx;
-
-    comm_iface_t *iface = comm_get_interface(usart_iface.id);
-    if (!iface || !iface->tx_buffer)
-    {
-        return false;
-    }
-    iface->protect_tx(ctx);
-    bool status = (cb_put(iface->tx_buffer, data) == BUF_OK);
-    iface->unprotect_tx(ctx);
-    return status;
-}
-
 /* --- CONTROL DE FLUJO Y DMA --- */
 
-void usart_hw_start_rx(void *context)
+comm_response_t usart_hw_start_rx(void *context)
 {
     (void)context;
 
     comm_iface_t *iface = comm_get_interface(usart_iface.id);
     if (!iface)
     {
-        return;
+        return COMM_IFACE_ERROR;
     }
+
     if (HAL_UARTEx_ReceiveToIdle_DMA(&huart2, usart_iface.rx_buffer->buffer, usart_iface.rx_buffer->size) == HAL_OK)
     {
         iface->state |= COMM_STATE_RX_ACTIVE;
-        iface->state &= ~COMM_STATE_ERROR; /* Limpiamos error previo si arrancó bien */
+        iface->state &= ~COMM_STATE_ERROR;
+        return COMM_IFACE_OK;
     }
     else
     {
-        /* Sincronización estricta: El HW falló, la interfaz debe reportarlo */
         iface->state &= ~COMM_STATE_RX_ACTIVE;
         iface->state |= COMM_STATE_ERROR;
         usart_hw_set_event(NULL, IFACE_EVENT_INTERNAL_ERROR);
+        return COMM_IFACE_ERROR;
     }
 }
 
-void usart_hw_stop_rx(void *context)
+comm_response_t usart_hw_stop_rx(void *context)
 {
     (void)context;
+
     HAL_UART_DMAStop(&huart2);
+
     comm_iface_t *iface = comm_get_interface(usart_iface.id);
-    if (iface)
+    if (!iface)
     {
-        iface->state &= ~COMM_STATE_RX_ACTIVE;
+        usart_hw_set_event(NULL, IFACE_EVENT_INTERNAL_ERROR);
+        return COMM_IFACE_ERROR;
     }
+
+    iface->state &= ~COMM_STATE_RX_ACTIVE;
+    return COMM_IFACE_OK;
 }
 
-bool usart_hw_start_tx(void *context)
+comm_response_t usart_hw_start_tx(void *context)
 {
     (void)context;
     comm_iface_t *iface = comm_get_interface(usart_iface.id);
     if (!iface || !iface->tx_buffer)
     {
-        return false;
+        return COMM_IFACE_ERROR;
     }
 
     /* 1. Sincronización de Estado: Si el HAL está trabado, la interfaz debe saberlo y reportarlo */
@@ -198,7 +184,7 @@ bool usart_hw_start_tx(void *context)
     {
         iface->state |= COMM_STATE_ERROR;
         usart_hw_set_event(NULL, IFACE_EVENT_TX_ERROR_BUS_FAULT);
-        return false;
+        return COMM_IFACE_BUSY;
     }
     iface->protect_tx(context);
 
@@ -209,7 +195,7 @@ bool usart_hw_start_tx(void *context)
     if (used == 0)
     {
         iface->unprotect_tx(context);
-        return false; /* No es un error, simplemente no hay datos para enviar */
+        return COMM_IFACE_IDLE; /* No es un error, simplemente no hay datos para enviar */
     }
 
     size_t contiguous_len = iface->tx_buffer->size - iface->tx_buffer->tail;
@@ -217,23 +203,21 @@ bool usart_hw_start_tx(void *context)
     uint8_t *tx_ptr = &iface->tx_buffer->buffer[iface->tx_buffer->tail];
 
     /* 2. Intentamos disparar el hardware ANTES de tocar matemáticamente el buffer */
-
     if (HAL_UART_Transmit_DMA(&huart2, tx_ptr, (uint16_t)tx_len) != HAL_OK)
     {
         iface->state |= COMM_STATE_ERROR;
         usart_hw_set_event(NULL, IFACE_EVENT_TX_ERROR_BUS_FAULT);
         iface->unprotect_tx(context);
-        return false;
+        return COMM_IFACE_ERROR;
     }
 
     /* 3. Si el hardware aceptó el envío, actualizamos el buffer y los estados */
-
     iface->tx_buffer->tail = (iface->tx_buffer->tail + tx_len) % iface->tx_buffer->size;
     iface->state |= COMM_STATE_TX_ACTIVE;
     iface->state &= ~COMM_STATE_ERROR; /* Limpiamos error previo si la transmisión fluyó */
     iface->unprotect_tx(context);
 
-    return true;
+    return COMM_IFACE_OK;
 }
 
 /* --- GESTIÓN DE EVENTOS --- */

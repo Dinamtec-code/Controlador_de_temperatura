@@ -25,8 +25,8 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:zoom="2.8284271"
-     inkscape:cx="405.70251"
-     inkscape:cy="76.897862"
+     inkscape:cx="366.10454"
+     inkscape:cy="66.291261"
      inkscape:window-width="2560"
      inkscape:window-height="1385"
      inkscape:window-x="1912"
@@ -991,16 +991,16 @@
      text-anchor="middle"
      font-size="20px"
      id="text5-0-5-9-7"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.33333346px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;white-space:pre;inline-size:46.8832;display:inline;stroke-width:1"
+     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:5.33333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;white-space:pre;inline-size:46.8832;display:inline;stroke-width:1"
      transform="scale(1.0007292,0.99927133)"
      xml:space="preserve"><tspan
        x="337.51437"
        y="147.84956"
-       id="tspan8">FSM
+       id="tspan1">FSM
 </tspan><tspan
        x="337.51437"
        y="154.51623"
-       id="tspan9">Gestion</tspan></text>
+       id="tspan2">Gestion</tspan></text>
   <text
      x="518.29626"
      y="211.5829"
@@ -1012,7 +1012,7 @@
      xml:space="preserve"><tspan
        x="518.29626"
        y="211.5829"
-       id="tspan12">statr_rx()</tspan></text>
+       id="tspan3">statr_rx()</tspan></text>
   <text
      x="518.29626"
      y="211.5829"
@@ -1024,7 +1024,7 @@
      transform="matrix(0.3453543,0,0,0.34485116,146.04911,93.785415)"><tspan
        x="518.29626"
        y="211.5829"
-       id="tspan13">init()</tspan></text>
+       id="tspan4">init()</tspan></text>
   <text
      x="518.29626"
      y="211.5829"
@@ -1036,7 +1036,7 @@
      transform="matrix(0.3453543,0,0,0.34485116,148.23118,112.66824)"><tspan
        x="518.29626"
        y="211.5829"
-       id="tspan14">reset()</tspan></text>
+       id="tspan5">reset()</tspan></text>
   <text
      x="518.29626"
      y="211.5829"
@@ -1048,7 +1048,7 @@
      transform="matrix(0.3453543,0,0,0.34485116,151.31485,106.37397)"><tspan
        x="518.29626"
        y="211.5829"
-       id="tspan15">stop_rx()</tspan></text>
+       id="tspan6">stop_rx()</tspan></text>
   <text
      x="518.29626"
      y="211.5829"
@@ -1060,7 +1060,7 @@
      transform="matrix(0.3453543,0,0,0.34485116,227.57277,3.9053499)"><tspan
        x="518.29626"
        y="211.5829"
-       id="tspan16">get_char_rx()</tspan></text>
+       id="tspan7">*rx_cb_buffer</tspan></text>
   <text
      xml:space="preserve"
      style="font-size:4.60136px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;stroke-width:1"
@@ -1072,7 +1072,7 @@
        id="tspan54"
        x="406.0498"
        y="136.58434"
-       style="stroke-width:1">put_char_tx</tspan></text>
+       style="stroke-width:1">*tx_cb_buffer</tspan></text>
   <path
      style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:fill markers stroke"
      d="m 314.30278,157.04079 h 50.21934"
@@ -1319,12 +1319,12 @@
      sodipodi:nodetypes="cc" />
   <path
      style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.377953;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#RoundedArrow);paint-order:fill markers stroke"
-     d="m 441.70472,74.63192 25.11196,0"
+     d="m 441.70472,74.63192 h 19.48604"
      id="path62"
      sodipodi:nodetypes="cc" />
   <path
      style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:0.377953;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker-end:url(#RoundedArrow-82);paint-order:fill markers stroke"
-     d="m 441.70473,132.57255 h 16.82251 c 1.31914,0 2.31405,-0.7024 2.31405,-2.05907 V 88.105599 c 0,-1.333381 1.02667,-2.047134 2.0634,-2.047134 h 3.94284"
+     d="m 441.70473,132.57255 h 6.82251 c 1.31914,0 2.31405,-0.7024 2.31405,-2.05907 V 88.105599 c 0,-1.333381 1.02667,-2.047134 2.0634,-2.047134 h 8.28607"
      id="path62-9"
      sodipodi:nodetypes="cccszc" />
   <path
@@ -1339,19 +1339,19 @@
      font-size="20px"
      id="text5-0-5-9-7-4"
      style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.60136px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;white-space:pre;inline-size:46.8832;display:inline;stroke-width:1"
-     transform="matrix(1.0007292,0,0,0.99927133,157.85461,-89.217738)"
+     transform="matrix(1.0007292,0,0,0.99927133,152.1853,-89.217738)"
      xml:space="preserve"><tspan
        x="337.51437"
        y="147.84956"
-       id="tspan18"><tspan
+       id="tspan9"><tspan
          style="font-size:5.33333px;font-family:Sans;-inkscape-font-specification:'Sans, Normal'"
-         id="tspan17">API
+         id="tspan8">API
 </tspan></tspan><tspan
        x="337.51437"
        y="154.51623"
-       id="tspan20"><tspan
+       id="tspan11"><tspan
          style="font-size:5.33333px;font-family:Sans;-inkscape-font-specification:'Sans, Normal'"
-         id="tspan19">Comunicación</tspan></tspan></text>
+         id="tspan10">Comunicación</tspan></tspan></text>
   <text
      x="518.29626"
      y="211.5829"
@@ -1360,12 +1360,12 @@
      id="text5-0-5-9-7-9-9-1"
      style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.3333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;white-space:pre;inline-size:229.759;display:inline;stroke-width:2.89769"
      xml:space="preserve"
-     transform="matrix(0.3453543,0,0,0.34485116,317.13066,3.1926319)"><tspan
+     transform="matrix(0.3453543,0,0,0.34485116,311.46135,3.1926319)"><tspan
        x="518.29626"
        y="211.5829"
-       id="tspan21">EV_MENSAGE_READY<tspan
+       id="tspan12">EV_MENSAGE_READY<tspan
    y="211.5829"
-   id="tspan22"> </tspan></tspan></text>
+   id="tspan13"> </tspan></tspan></text>
   <text
      x="518.29626"
      y="211.5829"
@@ -1374,12 +1374,12 @@
      id="text5-0-5-9-7-9-9-1-6"
      style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.3333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;white-space:pre;inline-size:229.759;display:inline;stroke-width:2.89769"
      xml:space="preserve"
-     transform="matrix(0.3453543,0,0,0.34485116,307.60758,15.385713)"><tspan
+     transform="matrix(0.3453543,0,0,0.34485116,301.93827,15.385713)"><tspan
        x="518.29626"
        y="211.5829"
-       id="tspan23">EV_TX_DONE<tspan
+       id="tspan14">EV_TX_DONE<tspan
    y="211.5829"
-   id="tspan24"> </tspan></tspan></text>
+   id="tspan15"> </tspan></tspan></text>
   <text
      x="518.29626"
      y="211.5829"
@@ -1388,26 +1388,26 @@
      id="text5-0-5-9-7-9-8-7"
      style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:13.3333px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-anchor:middle;white-space:pre;inline-size:229.759;display:inline;stroke-width:2.89769"
      xml:space="preserve"
-     transform="matrix(0.3453543,0,0,0.34485116,311.30844,9.1915099)"><tspan
+     transform="matrix(0.3453543,0,0,0.34485116,305.63913,9.1915099)"><tspan
        x="518.29626"
        y="211.5829"
-       id="tspan25">send_message()</tspan></text>
+       id="tspan16">send_message()</tspan></text>
   <path
      style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:fill markers stroke"
-     d="m 469.17409,68.531495 h 55.69244"
+     d="m 463.53812,68.531495 h 59.40576"
      id="path54-1" />
   <rect
      style="fill:none;fill-rule:evenodd;stroke:#000000;stroke-width:1;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;paint-order:fill markers stroke"
      id="rect48-5"
-     width="55.692913"
+     width="59.472439"
      height="68.154648"
-     x="469.16144"
+     x="463.4921"
      y="53.413387"
      ry="3.2318115"
-     rx="3.2320564" />
+     rx="3.4513958" />
   <path
      style="fill:#501616;fill-rule:evenodd;stroke:#000000;stroke-width:0.377953;stroke-linecap:round;stroke-linejoin:bevel;stroke-miterlimit:0;stroke-dasharray:none;stroke-opacity:1;marker-start:url(#RoundedArrow);marker-end:url(#RoundedArrow);paint-order:fill markers stroke"
-     d="m 527.17268,83.797594 h 15.07608"
+     d="m 525.22814,83.797594 h 17.02062"
      id="path1"
      sodipodi:nodetypes="cc" />
 </svg>
