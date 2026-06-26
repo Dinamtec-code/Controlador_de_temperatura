@@ -31,10 +31,15 @@ static comm_error_t usart_hw_configure(void *ctx)
     return COMM_ERR_NONE;
 }
 
-static void usart_hw_deinit(void *ctx)
+static comm_error_t usart_hw_deinit(void *ctx)
 {
     (void)ctx;
+    if (&huart2 == NULL)
+    {
+        return COMM_ERR_INTERNAL;
+    }
     HAL_UART_MspDeInit(&huart2);
+    return COMM_ERR_NONE;
 }
 
 static comm_error_t usart_hw_reset(void *ctx)
@@ -44,24 +49,28 @@ static comm_error_t usart_hw_reset(void *ctx)
 
 /* --- 2. CAPA DE INTERFAZ (Abstracción del flujo y control de buffers) --- */
 
-static inline void comm_buffer_protect_rx(void)
+static inline void comm_buffer_protect_rx(void *ctx)
 {
+    (void)ctx;
     NVIC_DisableIRQ(USART2_IRQn);
     __DSB();
 }
 
-static inline void comm_buffer_unprotect_rx(void)
+static inline void comm_buffer_unprotect_rx(void *ctx)
 {
+    (void)ctx;
     NVIC_EnableIRQ(USART2_IRQn);
 }
 
-static inline void comm_buffer_protect_tx(void)
+static inline void comm_buffer_protect_tx(void *ctx)
 {
+    (void)ctx;
     __HAL_DMA_DISABLE_IT(&hdma_usart2_tx, DMA_IT_HT);
 }
 
-static inline void comm_buffer_unprotect_tx(void)
+static inline void comm_buffer_unprotect_tx(void *ctx)
 {
+    (void)ctx;
     __HAL_DMA_ENABLE_IT(&hdma_usart2_tx, DMA_IT_HT);
 }
 
@@ -110,7 +119,7 @@ bool usart_hw_get_char_rx(void *ctx, uint8_t *data)
         return false;
     }
 
-    iface->protect_rx();
+    iface->protect_rx(ctx);
 
     bool status = (cb_get(iface->rx_buffer, data) == BUF_OK);
 
@@ -118,7 +127,7 @@ bool usart_hw_get_char_rx(void *ctx, uint8_t *data)
     {
         iface->state &= ~COMM_STATE_RX_ACTIVE;
     }
-    iface->unprotect_rx();
+    iface->unprotect_rx(ctx);
 
     return status;
 }
@@ -132,9 +141,9 @@ bool usart_hw_put_char_tx(void *ctx, uint8_t data)
     {
         return false;
     }
-    iface->protect_tx();
+    iface->protect_tx(ctx);
     bool status = (cb_put(iface->tx_buffer, data) == BUF_OK);
-    iface->unprotect_tx();
+    iface->unprotect_tx(ctx);
     return status;
 }
 
@@ -191,7 +200,7 @@ bool usart_hw_start_tx(void *context)
         usart_hw_set_event(NULL, IFACE_EVENT_TX_ERROR_BUS_FAULT);
         return false;
     }
-    iface->protect_tx();
+    iface->protect_tx(context);
 
     size_t head = iface->tx_buffer->head;
     size_t tail = iface->tx_buffer->tail;
@@ -199,7 +208,7 @@ bool usart_hw_start_tx(void *context)
 
     if (used == 0)
     {
-        iface->unprotect_tx();
+        iface->unprotect_tx(context);
         return false; /* No es un error, simplemente no hay datos para enviar */
     }
 
@@ -213,7 +222,7 @@ bool usart_hw_start_tx(void *context)
     {
         iface->state |= COMM_STATE_ERROR;
         usart_hw_set_event(NULL, IFACE_EVENT_TX_ERROR_BUS_FAULT);
-        iface->unprotect_tx();
+        iface->unprotect_tx(context);
         return false;
     }
 
@@ -222,7 +231,7 @@ bool usart_hw_start_tx(void *context)
     iface->tx_buffer->tail = (iface->tx_buffer->tail + tx_len) % iface->tx_buffer->size;
     iface->state |= COMM_STATE_TX_ACTIVE;
     iface->state &= ~COMM_STATE_ERROR; /* Limpiamos error previo si la transmisión fluyó */
-    iface->unprotect_tx();
+    iface->unprotect_tx(context);
 
     return true;
 }
@@ -237,11 +246,11 @@ void usart_hw_set_event(void *ctx, comm_iface_event_t event_flag)
     if (iface)
     {
 
-        usart_iface.protect_rx();
+        usart_iface.protect_rx(ctx);
 
         iface->event |= event_flag;
 
-        usart_iface.unprotect_rx();
+        usart_iface.unprotect_rx(ctx);
     }
 }
 
@@ -253,10 +262,10 @@ comm_iface_event_t usart_hw_get_event(void *ctx)
     comm_iface_t *iface = comm_get_interface(usart_iface.id);
     if (iface)
     {
-        usart_iface.protect_rx();
+        usart_iface.protect_rx(ctx);
         pending_events = iface->event;
         iface->event = IFACE_EVENT_NONE;
-        usart_iface.unprotect_rx();
+        usart_iface.unprotect_rx(ctx);
     }
 
     return pending_events;
