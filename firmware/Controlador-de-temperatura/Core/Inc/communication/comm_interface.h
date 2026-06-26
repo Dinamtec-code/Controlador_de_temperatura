@@ -84,7 +84,7 @@ struct comm_iface
 
     /* --- Callbacks de Ciclo de Vida del Periférico --- */
     comm_error_t (*init)(void *ctx);
-    void (*deinit)(void *ctx);
+    comm_error_t (*deinit)(void *ctx);
     comm_error_t (*reset)(void *ctx);
 
     /* --- Callbacks de Control de Flujo (I/O) --- */
@@ -101,10 +101,10 @@ struct comm_iface
     comm_iface_event_t (*get_event)(void *ctx);
 
     /* --- Callbacks de Protección de Memoria --- */
-    void (*protect_rx)(void);
-    void (*unprotect_rx)(void);
-    void (*protect_tx)(void);
-    void (*unprotect_tx)(void);
+    void (*protect_rx)(void *ctx);
+    void (*unprotect_rx)(void *ctx);
+    void (*protect_tx)(void *ctx);
+    void (*unprotect_tx)(void *ctx);
 };
 
 /* ... (Las funciones globales quedan igual) ... */
