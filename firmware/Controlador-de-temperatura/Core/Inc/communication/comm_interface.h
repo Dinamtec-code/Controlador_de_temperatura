@@ -20,6 +20,14 @@ typedef enum
     COMM_ERR_INTERNAL
 } comm_error_t;
 
+typedef enum
+{
+    COMM_IFACE_OK = 0x00,
+    COMM_IFACE_ERROR = 0x01,
+    COMM_IFACE_BUSY = 0x02,
+    COMM_IFACE_IDLE = 0x03
+} comm_response_t;
+
 /**
  * @brief Identificadores únicos de las interfaces de comunicación soportadas.
  */
@@ -88,13 +96,9 @@ struct comm_iface
     comm_error_t (*reset)(void *ctx);
 
     /* --- Callbacks de Control de Flujo (I/O) --- */
-    void (*start_rx)(void *ctx);
-    void (*stop_rx)(void *ctx);
-    bool (*start_tx)(void *ctx);
-
-    /* --- Restaurados: APIs de Acceso a Datos del Driver --- */
-    bool (*get_char_rx)(void *ctx, uint8_t *data);
-    bool (*put_char_tx)(void *ctx, uint8_t data);
+    comm_response_t (*start_rx)(void *ctx);
+    comm_response_t (*stop_rx)(void *ctx);
+    comm_response_t (*start_tx)(void *ctx);
 
     /* --- Callbacks de Gestión de Eventos --- */
     void (*set_event)(void *ctx, comm_iface_event_t event);
