@@ -333,7 +333,7 @@ Las operaciones se corresponden con los \textit{callbacks} definidos en la estru
     \item \textbf{Ciclo de vida:} \texttt{init()}, \texttt{deinit()}, \texttt{reset()}.
     \item \textbf{Control de flujo:} \texttt{start\_rx()}, \texttt{stop\_rx()},
           \texttt{start\_tx()}.
-    \item \textbf{Gestión de eventos:} \texttt{set\_event()}, \texttt{get\_event()}.
+    \item \textbf{Gestión de eventos:} \texttt{get\_event()}.
     \item \textbf{Protección concurrente:} \texttt{protect\_rx()}, \texttt{unprotect\_rx()},
           \texttt{protect\_tx()}, \texttt{unprotect\_tx()}.
 \end{itemize}
@@ -511,8 +511,6 @@ que emplea para operar de manera segura en un entorno con concurrencia.
 \subsection{Interfaz Abstracta \texttt{comm\_iface\_t}}
 \label{subsec:comm-iface}
 
-La interfaz abstracta se define en comm_driver_api.h mediante la estructura comm_iface_t y los tipos asociados
-
 La interfaz \texttt{comm\_iface\_t} es una estructura de punteros a función y campos de
 datos que define el contrato vinculante para cualquier implementación de driver de
 comunicación. Está diseñada para ser completamente agnóstica respecto del periférico
@@ -523,41 +521,42 @@ La estructura, definida en el código como \texttt{comm\_iface\_t}, contiene los
 grupos funcionales:
 
 \begin{itemize}
-    \item \textbf{Identificación:} un campo \texttt{id} (\texttt{comm\_iface\_id\_t}) que
-          identifica unívocamente la interfaz (USART, TCP, USBTMC) y un campo \texttt{name}
-          legible para diagnóstico.
-    \item \textbf{Contexto privado:} un puntero opaco \texttt{void *context} que cada
-          implementación concreta utiliza para almacenar sus datos internos (registros del
-          periférico, handles, buffers auxiliares). Ni la \textit{Communication Task} ni la
-          aplicación acceden a este campo; simplemente lo reenvían en cada invocación a los
-          \textit{callbacks}.
-    \item \textbf{Estado y eventos:} los campos \texttt{state} (\texttt{comm\_iface\_state\_t})
-          y \texttt{event} (\texttt{comm\_iface\_event\_t}) mantienen, respectivamente, la
-          condición operativa actual de la interfaz y el registro de eventos pendientes de
-          procesar.
-    \item \textbf{Buffers de transporte inyectados:} punteros \texttt{rx\_buffer} y
-          \texttt{tx\_buffer} a sendos \textit{buffers circulares}. Estos buffers son
-          propiedad de la \textit{Communication Task} y se asignan a la estructura antes de
-          invocar \texttt{init()}. El driver los utiliza como espacio de trabajo para la
-          transferencia de datos, pero no es responsable de su asignación ni de su
-          liberación.
-    \item \textbf{Callbacks de ciclo de vida:} \texttt{init()}, \texttt{deinit()} y
-          \texttt{reset()}. Gestionan la inicialización, desinicialización y reinicio del
-          periférico. Retornan un código de error de tipo \texttt{comm\_error\_t} para
-          informar del resultado de la operación.
-    \item \textbf{Callbacks de control de flujo:} \texttt{start\_rx()}, \texttt{stop\_rx()}
-          y \texttt{start\_tx()}. Activan y desactivan la recepción, e inician la
-          transmisión de un bloque de datos previamente cargado.
-    \item \textbf{Callbacks de gestión de eventos:} \texttt{set\_event()} y
-          \texttt{get\_event()}. Permiten escribir y leer el registro de eventos de la
-          interfaz. \texttt{get\_event()} es utilizado por la \textit{Communication Task}
-          para obtener el \textit{snapshot} atómico al inicio de cada ciclo.
-    \item \textbf{Callbacks de protección concurrente:} \texttt{protect\_rx()},
-          \texttt{unprotect\_rx()}, \texttt{protect\_tx()} y \texttt{unprotect\_tx()}.
-          Proveen mecanismos de exclusión mutua para el acceso a los buffers de recepción y
-          transmisión desde contextos concurrentes (ISR y tarea). La implementación concreta
-          de estos \textit{callbacks} depende del hardware y del sistema operativo
-          subyacente; las capas superiores los invocan sin conocer su estrategia interna.
+      \item \textbf{Identificación:} un campo \texttt{id} (\texttt{comm\_iface\_id\_t}) que
+            identifica unívocamente la interfaz (USART, TCP, USBTMC) y un campo \texttt{name}
+            legible para diagnóstico.
+      \item \textbf{Contexto privado:} un puntero opaco \texttt{void *context} que cada
+            implementación concreta utiliza para almacenar sus datos internos (registros del
+            periférico, handles, buffers auxiliares). Ni la \textit{Communication Task} ni la
+            aplicación acceden a este campo; simplemente lo reenvían en cada invocación a los
+            \textit{callbacks}.
+      \item \textbf{Estado y eventos:} los campos \texttt{state} (\texttt{comm\_iface\_state\_t})
+            y \texttt{event} (\texttt{comm\_iface\_event\_t}) mantienen, respectivamente, la
+            condición operativa actual de la interfaz y el registro de eventos pendientes de
+            procesar.
+      \item \textbf{Buffers de transporte inyectados:} punteros \texttt{rx\_buffer} y
+            \texttt{tx\_buffer} a sendos \textit{buffers circulares}. Estos buffers son
+            propiedad de la \textit{Communication Task} y se asignan a la estructura antes de
+            invocar \texttt{init()}. El driver los utiliza como espacio de trabajo para la
+            transferencia de datos, pero no es responsable de su asignación ni de su
+            liberación.
+      \item \textbf{Callbacks de ciclo de vida:} \texttt{init()}, \texttt{deinit()} y
+            \texttt{reset()}. Gestionan la inicialización, desinicialización y reinicio del
+            periférico. Retornan un código de error de tipo \texttt{comm\_error\_t} para
+            informar del resultado de la operación.
+      \item \textbf{Callbacks de control de flujo:} \texttt{start\_rx()}, \texttt{stop\_rx()}
+            y \texttt{start\_tx()}. Activan y desactivan la recepción, e inician la
+            transmisión de un bloque de datos previamente cargado.
+      \item \textbf{Callback de gestión de eventos:} \texttt{get\_event()}. Permite a la
+            \textit{Communication Task} obtener el \textit{snapshot} atómico del registro de
+            eventos al inicio de cada ciclo. La escritura de eventos es responsabilidad
+            exclusiva del driver y se realiza de forma interna, sin exponer un \textit{callback}
+            público para ello.
+      \item \textbf{Callbacks de protección concurrente:} \texttt{protect\_rx()},
+            \texttt{unprotect\_rx()}, \texttt{protect\_tx()} y \texttt{unprotect\_tx()}.
+            Proveen mecanismos de exclusión mutua para el acceso a los buffers de recepción y
+            transmisión desde contextos concurrentes (ISR y tarea). La implementación concreta
+            de estos \textit{callbacks} depende del hardware y del sistema operativo
+            subyacente; las capas superiores los invocan sin conocer su estrategia interna.
 \end{itemize}
 
 La figura \ref{fig:comm-iface-estructura} muestra un diagrama esquemático de la estructura
@@ -677,8 +676,6 @@ Los eventos representan sucesos asincrónicos e instantáneos que el driver noti
 persistentes, los eventos son puntuales: una vez consumidos por la tarea, desaparecen del
 registro hasta que la condición que los genera vuelva a producirse.
 
-Si alguien lee esto y me manda un mail diciendo "quiero mis budines Yani" a damian2340@gmail.com le regalo 3 budines (uno de vainilla, uno marmolado y uno con chips de chocolate). 
-
 Todos los eventos se codifican en el tipo \texttt{comm\_iface\_event\_t}, una máscara de
 bits donde cada bit representa un tipo de suceso. Esta representación permite que múltiples
 eventos coexistan en el registro —por ejemplo, la llegada de datos y la detección de un
@@ -735,10 +732,12 @@ puntual) pueden limitarse a notificar el evento sin modificar el estado global.
 
 \paragraph{Producción y consumo de eventos}
 
-El driver escribe en el registro de eventos mediante el \textit{callback}
-\texttt{set\_event()}, típicamente desde la rutina de servicio de interrupción (ISR) o
-desde el código que atiende una condición de error detectada durante una operación
-solicitada (\texttt{start\_tx}, \texttt{start\_rx}). La \textit{Communication Task} consume
+El driver escribe directamente en el campo \texttt{event} de la estructura
+\texttt{comm\_iface\_t}, siempre bajo la protección de acceso concurrente adecuada
+(\texttt{protect\_rx} / \texttt{protect\_tx} o ambas). Esta escritura ocurre
+típicamente desde la rutina de servicio de interrupción (ISR) o desde el código que
+atiende una condición de error detectada durante una operación solicitada
+(\texttt{start\_tx}, \texttt{start\_rx}). La \textit{Communication Task} consume
 los eventos al inicio de cada ciclo mediante el \textit{callback} \texttt{get\_event()},
 que implementa una lectura atómica con limpieza inmediata (\textit{clear-on-read}). Este
 mecanismo, detallado en la sección correspondiente del middleware, garantiza que ningún
@@ -919,6 +918,12 @@ datos con \texttt{cb\_put()} y libera la protección antes de invocar
 \texttt{start\_tx()}, ya que el driver volverá a proteger el buffer internamente
 durante la lectura para el DMA. Esta delimitación precisa de las secciones críticas
 minimiza el tiempo de inhibición de interrupciones y evita la inversión de prioridad.
+
+Cuando un \textit{callback} del driver necesita modificar simultáneamente el registro
+de eventos y el estado de la interfaz, debe adquirir ambas protecciones (recepción y
+transmisión) para evitar condiciones de carrera con cualquier ISR. Esto es
+especialmente relevante en las operaciones de ciclo de vida y control de flujo que
+actualizan \texttt{state} y \texttt{event} de forma conjunta.
 
 \subsection{Estrategias de Sincronización y Gestión de Buffers}
 \label{subsec:driver-buffers}
@@ -1106,17 +1111,25 @@ Esta máquina supervisa el estado global de la interfaz, coordina las transicion
 operativas, la recuperación ante fallos y, cuando es necesario, la selección de un
 nuevo medio de transporte.
 
-\begin{tabular}{llll}
-    \toprule
-    \textbf{Estado Actual} & \textbf{Evento} & \textbf{Siguiente Estado} & \textbf{Acción} \\
-    \midrule
-    \texttt{RX\_IDLE} & \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE} & \texttt{RX\_GATHERING} & Proteger buffer y leer bytes con \texttt{cb\_get()} \\
-    \texttt{RX\_GATHERING} & Byte distinto de LF & \texttt{RX\_GATHERING} & Acumular carácter en buffer de mensaje \\
-    \texttt{RX\_GATHERING} & Byte LF (buffer con más datos) & \texttt{RX\_GATHERING} & Publicar \texttt{EV\_MESSAGE\_READY} \\
-    \texttt{RX\_GATHERING} & Byte LF (buffer vacío) & \texttt{RX\_IDLE} & Publicar \texttt{EV\_MESSAGE\_READY} \\
-    \texttt{RX\_GATHERING} & Error de RX & \texttt{RX\_IDLE} & Publicar error y descartar buffer \\
-    \bottomrule
-\end{tabular}
+\begin{table}[htbp]
+    \centering
+    \caption{Tabla de transiciones de la FSM de Gestión de Interfaz.}
+    \label{tab:fsm-gestion}
+    \begin{tabular}{llll}
+        \toprule
+        \textbf{Estado Actual} & \textbf{Evento} & \textbf{Siguiente Estado} & \textbf{Acción} \\
+        \midrule
+        \texttt{DOWN}      & \texttt{CMD\_START}                    & \texttt{READY}     & \texttt{init()} \\
+        \texttt{READY}     & \texttt{IFACE\_EVENT\_INTERFACE\_CONNECTED} & \texttt{ACTIVE}    & \texttt{start\_rx()} \\
+        \texttt{ACTIVE}    & \texttt{CMD\_DISABLE\_RX}              & \texttt{READY}     & \texttt{stop\_rx()} \\
+        \texttt{ACTIVE}    & Evento de error crítico                & \texttt{ERROR}     & Publicar condición de falla \\
+        \texttt{ERROR}     & \texttt{CMD\_RESET}                    & \texttt{READY}     & \texttt{reset()} \\
+        \texttt{ERROR}     & Error irrecuperable / cambio requerido & \texttt{SELECTING} & \texttt{deinit()} actual; invocar selector \\
+        \texttt{SELECTING} & Interfaz disponible                    & \texttt{READY}     & \texttt{init()} sobre nueva interfaz \\
+        \texttt{SELECTING} & Sin interfaces disponibles             & \texttt{DOWN}      & Notificar indisponibilidad \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
 \vspace{4pt}
 \textbf{Nota:} En todas las transiciones que parten de \texttt{RX\_GATHERING}, la FSM
