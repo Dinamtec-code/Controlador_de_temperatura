@@ -1,5 +1,5 @@
-#ifndef COMM_INTERFACE_H
-#define COMM_INTERFACE_H
+#ifndef COMM_DRIVER_API_H
+#define COMM_DRIVER_API_H
 
 #include "services/circular_buffer.h"
 #include <stdint.h>
@@ -101,7 +101,6 @@ struct comm_iface
     comm_response_t (*start_tx)(void *ctx);
 
     /* --- Callbacks de Gestión de Eventos --- */
-    void (*set_event)(void *ctx, comm_iface_event_t event);
     comm_iface_event_t (*get_event)(void *ctx);
 
     /* --- Callbacks de Protección de Memoria --- */
@@ -111,6 +110,24 @@ struct comm_iface
     void (*unprotect_tx)(void *ctx);
 };
 
-/* ... (Las funciones globales quedan igual) ... */
+/* ========================================================================== */
+/* API Global del Subsistema de Gestión de Interfaces            */
+/* ========================================================================== */
 
-#endif /* COMM_INTERFACE_H */
+/**
+ * @brief Agrega una interfaz al registro global haciéndola disponible para el sistema.
+ */
+void comm_register_iface(comm_iface_t *iface);
+
+/**
+ * @brief Elimina una interfaz del registro global.
+ */
+void comm_unregister_iface(comm_iface_t *iface);
+
+/**
+ * @brief Obtiene el puntero a una interfaz registrada a partir de su ID.
+ * @return Puntero a la estructura de la interfaz, o NULL si no está registrada.
+ */
+comm_iface_t *comm_get_iface(comm_iface_id_t id); // <-- Corregido el tipo de retorno
+
+#endif /* COMM_DRIVER_API_H */

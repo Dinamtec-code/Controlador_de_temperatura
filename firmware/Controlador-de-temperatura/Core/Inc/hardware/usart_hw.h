@@ -6,7 +6,7 @@
 #include <stddef.h>
 #include "main.h"
 #include "services/circular_buffer.h"
-#include "communication/comm_interface.h"
+#include "communication/comm_driver_api.h"
 
 extern UART_HandleTypeDef huart2;
 
@@ -17,7 +17,6 @@ comm_response_t usart_hw_start_rx(void *context);
 comm_response_t usart_hw_stop_rx(void *context);
 comm_response_t usart_hw_start_tx(void *context);
 
-void usart_hw_set_event(void *ctx, comm_iface_event_t event);
 comm_iface_event_t usart_hw_get_event(void *ctx);
 
 #endif /* USART_HW_H */
