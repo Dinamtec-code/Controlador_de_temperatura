@@ -403,32 +403,39 @@ dos escenarios fundamentales: recepción de un mensaje y transmisión de una res
 \paragraph{Flujo de Recepción}
 
 \begin{enumerate}
-    \item El medio físico entrega datos al periférico. La ISR del driver o el DMA
-          transfieren los bytes al buffer de recepción inyectado (\texttt{rx\_buffer},
-          propiedad de la \textit{Communication Task}) utilizando la estructura de buffer
-          circular y respetando las protecciones definidas por el driver.
-    \item El driver activa en su registro de eventos el bit correspondiente a
-          \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE}. Si se detecta una condición de error
-          durante la recepción (overflow, framing, paridad), se activa el bit de error
-          específico en lugar del de datos, o simultáneamente con él.
-    \item Al inicio del siguiente ciclo de la \textit{Communication Task}, se captura
-          atómicamente el registro de eventos del driver en una variable local
-          (\textit{snapshot}) y se limpia el registro original. A partir de este momento,
-          todas las FSM operan sobre la copia local, cada una enmascarando los bits que le
-          corresponden.
-    \item La FSM de Recepción consume los eventos del \textit{snapshot}. Si detecta
-          \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE}, extrae uno a uno los bytes
-          directamente de su buffer \texttt{rx\_buffer} mediante la función
-          \texttt{cb\_get()} de la biblioteca de buffer circular.
-    \item Cada byte es evaluado contra el terminador \texttt{LF} (\texttt{0x0A}). Los
-          caracteres \texttt{CR} (\texttt{0x0D}) se descartan silenciosamente. Mientras no
-          aparezca \texttt{LF}, la máquina permanece en el estado \texttt{RX\_GATHERING}.
-    \item Al detectar el terminador, la FSM de Recepción considera el mensaje completo,
-          retorna al estado \texttt{RX\_IDLE} y publica el evento lógico interno
-          \texttt{EV\_MESSAGE\_READY}.
-    \item La capa de aplicación (Motor SCPI), que es notificada de este evento en el mismo
-          ciclo o en el siguiente según la implementación, toma el mensaje desde el buffer
-          de recepción del middleware y procede a su análisis sintáctico.
+      \item El medio físico entrega datos al periférico. La ISR del driver o el DMA
+            transfieren los bytes al buffer de recepción inyectado (\texttt{rx\_buffer},
+            propiedad de la \textit{Communication Task}) utilizando la estructura de buffer
+            circular y respetando las protecciones definidas por el driver.
+      \item El driver activa en su registro de eventos el bit correspondiente a
+            \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE}. Si se detecta una condición de error
+            durante la recepción (overflow, framing, paridad), se activa el bit de error
+            específico en lugar del de datos, o simultáneamente con él.
+      \item Al inicio del siguiente ciclo de la \textit{Communication Task}, se captura
+            atómicamente el registro de eventos del driver en una variable local
+            (\textit{snapshot}) y se limpia el registro original. A partir de este momento,
+            todas las FSM operan sobre la copia local, cada una enmascarando los bits que le
+            corresponden.
+      \item La FSM de Recepción consume los eventos del \textit{snapshot}. Si detecta
+            \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE}, o si su estado actual es
+            \texttt{RX\_GATHERING} (indicando que quedan datos pendientes del ciclo
+            anterior), adquiere la protección del buffer de recepción
+            (\texttt{protect\_rx()}) y extrae bytes mediante \texttt{cb\_get()}. Al
+            finalizar el ciclo, libera la protección (\texttt{unprotect\_rx()}) aunque
+            queden datos por procesar, permitiendo que la ISR del driver continúe
+            escribiendo en el buffer.
+      \item Cada byte es evaluado contra el terminador \texttt{LF} (\texttt{0x0A}). Los
+            caracteres \texttt{CR} (\texttt{0x0D}) se descartan silenciosamente. Mientras no
+            aparezca \texttt{LF}, la máquina permanece en el estado \texttt{RX\_GATHERING}.
+      \item Al detectar el terminador, la FSM de Recepción considera el mensaje completo y
+            publica el evento lógico interno \texttt{EV\_MESSAGE\_READY}. A continuación,
+            retorna el control: si el buffer circular quedó vacío, transita a
+            \texttt{RX\_IDLE}; si aún contiene bytes, permanece en \texttt{RX\_GATHERING}
+            para continuar el procesamiento en el siguiente ciclo. De este modo, se procesa
+            un único mensaje por ciclo, acotando el tiempo de ejecución de la tarea.
+      \item La capa de aplicación (Motor SCPI), que es notificada de este evento en el mismo
+            ciclo o en el siguiente según la implementación, toma el mensaje desde el buffer
+            de recepción del middleware y procede a su análisis sintáctico.
 \end{enumerate}
 
 \paragraph{Flujo de Transmisión}
@@ -891,18 +898,13 @@ La naturaleza de la protección depende del periférico y del entorno de ejecuci
             recepción puede consistir en deshabilitar temporalmente la interrupción del
             periférico (\texttt{NVIC\_DisableIRQ}) para evitar que la ISR modifique
             \texttt{head} mientras la tarea lee \texttt{tail}. La protección de
-            transmisión puede deshabilitar la interrupción de DMA correspondiente.
+            transmisión puede deshabilitar la interrupción de DMA correspondiente. 
+            (\texttt{\_\_HAL\_DMA\_DISABLE\_IT}).
       \item En un sistema con RTOS, puede emplearse un \textit{mutex} o un
             \textit{spinlock} que el driver almacena en su contexto.
       \item En periféricos con DMA que opera sobre descriptores encadenados, la protección
             puede ser innecesaria si el \textit{hardware} garantiza la atomicidad de las
             transferencias.
-      \item En un microcontrolador \textit{bare-metal} con una UART, la protección de
-            recepción consiste en deshabilitar temporalmente la interrupción del
-            periférico (\texttt{NVIC\_DisableIRQ}) para evitar que la ISR modifique
-            \texttt{head} mientras la tarea lee \texttt{tail}. La protección de
-            transmisión deshabilita la interrupción de DMA correspondiente
-            (\texttt{\_\_HAL\_DMA\_DISABLE\_IT}).
 \end{itemize}
 
 En todos los casos, la \textit{Communication Task} y la capa de aplicación permanecen
@@ -1104,25 +1106,23 @@ Esta máquina supervisa el estado global de la interfaz, coordina las transicion
 operativas, la recuperación ante fallos y, cuando es necesario, la selección de un
 nuevo medio de transporte.
 
-\begin{table}[htbp]
-    \centering
-    \caption{Tabla de transiciones de la FSM de Gestión de Interfaz.}
-    \label{tab:fsm-gestion}
-    \begin{tabular}{llll}
-        \toprule
-        \textbf{Estado Actual} & \textbf{Evento} & \textbf{Siguiente Estado} & \textbf{Acción} \\
-        \midrule
-        \texttt{DOWN}      & \texttt{CMD\_START}                    & \texttt{READY}     & \texttt{init()} \\
-        \texttt{READY}     & \texttt{IFACE\_EVENT\_INTERFACE\_CONNECTED} & \texttt{ACTIVE}    & \texttt{start\_rx()} \\
-        \texttt{ACTIVE}    & \texttt{CMD\_DISABLE\_RX}              & \texttt{READY}     & \texttt{stop\_rx()} \\
-        \texttt{ACTIVE}    & Evento de error crítico                & \texttt{ERROR}     & Publicar condición de falla \\
-        \texttt{ERROR}     & \texttt{CMD\_RESET}                    & \texttt{READY}     & \texttt{reset()} \\
-        \texttt{ERROR}     & Error irrecuperable / cambio requerido & \texttt{SELECTING} & \texttt{deinit()} actual; invocar selector \\
-        \texttt{SELECTING} & Interfaz disponible                    & \texttt{READY}     & \texttt{init()} sobre nueva interfaz \\
-        \texttt{SELECTING} & Sin interfaces disponibles             & \texttt{DOWN}      & Notificar indisponibilidad \\
-        \bottomrule
-    \end{tabular}
-\end{table}
+\begin{tabular}{llll}
+    \toprule
+    \textbf{Estado Actual} & \textbf{Evento} & \textbf{Siguiente Estado} & \textbf{Acción} \\
+    \midrule
+    \texttt{RX\_IDLE} & \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE} & \texttt{RX\_GATHERING} & Proteger buffer y leer bytes con \texttt{cb\_get()} \\
+    \texttt{RX\_GATHERING} & Byte distinto de LF & \texttt{RX\_GATHERING} & Acumular carácter en buffer de mensaje \\
+    \texttt{RX\_GATHERING} & Byte LF (buffer con más datos) & \texttt{RX\_GATHERING} & Publicar \texttt{EV\_MESSAGE\_READY} \\
+    \texttt{RX\_GATHERING} & Byte LF (buffer vacío) & \texttt{RX\_IDLE} & Publicar \texttt{EV\_MESSAGE\_READY} \\
+    \texttt{RX\_GATHERING} & Error de RX & \texttt{RX\_IDLE} & Publicar error y descartar buffer \\
+    \bottomrule
+\end{tabular}
+
+\vspace{4pt}
+\textbf{Nota:} En todas las transiciones que parten de \texttt{RX\_GATHERING}, la FSM
+libera la protección del buffer (\texttt{unprotect\_rx()}) al finalizar el ciclo. La
+protección se readquiere al inicio del ciclo siguiente si el estado es
+\texttt{RX\_GATHERING}.
 
 Cuando la FSM transita a \texttt{SELECTING}, invoca al \textit{selector de medio de
 transporte} —un componente independiente cuyo contrato se describe en la sección
@@ -1139,26 +1139,33 @@ La FSM de Recepción consume los eventos de recepción del \textit{snapshot} y e
 los bytes del buffer circular \texttt{rx\_buffer} mediante \texttt{cb\_get()}. Su
 responsabilidad es delimitar mensajes completos detectando el terminador \texttt{LF}.
 
-\begin{table}[htbp]
-    \centering
-    \caption{Tabla de transiciones de la FSM de Recepción.}
-    \label{tab:fsm-rx}
-    \begin{tabular}{llll}
-        \toprule
-        \textbf{Estado Actual} & \textbf{Evento} & \textbf{Siguiente Estado} & \textbf{Acción} \\
-        \midrule
-        \texttt{RX\_IDLE} & \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE} & \texttt{RX\_GATHERING} & Proteger buffer y leer bytes \\
-        \texttt{RX\_GATHERING} & Byte distinto de LF & \texttt{RX\_GATHERING} & Acumular carácter en buffer de mensaje \\
-        \texttt{RX\_GATHERING} & Byte LF & \texttt{RX\_IDLE} & Publicar \texttt{EV\_MESSAGE\_READY} \\
-        \texttt{RX\_GATHERING} & Error de RX & \texttt{RX\_IDLE} & Publicar error y liberar buffer \\
-        \bottomrule
-    \end{tabular}
-\end{table}
+\begin{tabular}{llll}
+    \toprule
+    \textbf{Estado Actual} & \textbf{Evento} & \textbf{Siguiente Estado} & \textbf{Acción} \\
+    \midrule
+    \texttt{RX\_IDLE} & \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE} & \texttt{RX\_GATHERING} & Proteger buffer y leer bytes con \texttt{cb\_get()} \\
+    \texttt{RX\_GATHERING} & Byte distinto de LF & \texttt{RX\_GATHERING} & Acumular carácter en buffer de mensaje \\
+    \texttt{RX\_GATHERING} & Byte LF (buffer con más datos) & \texttt{RX\_GATHERING} & Publicar \texttt{EV\_MESSAGE\_READY}; continuar \\
+    \texttt{RX\_GATHERING} & Byte LF (buffer vacío) & \texttt{RX\_IDLE} & Publicar \texttt{EV\_MESSAGE\_READY} \\
+    \texttt{RX\_GATHERING} & Error de RX & \texttt{RX\_IDLE} & Publicar error y liberar buffer \\
+    \bottomrule
+\end{tabular}
 
 Los caracteres \texttt{CR} (\texttt{0x0D}) se descartan silenciosamente durante el
 proceso de ensamblado, en conformidad con IEEE~488.2. La FSM no interactúa directamente
 con el hardware ni ejecuta rutinas de recuperación física; esa responsabilidad recae en
 la FSM de Gestión.
+
+La FSM adquiere la protección del buffer circular al iniciar el procesamiento en cada
+ciclo y la libera al finalizar, independientemente de si se completó un mensaje o no.
+Esto garantiza que la ISR del driver pueda continuar escribiendo datos en el buffer
+mientras la tarea está fuera de su sección crítica.
+
+Para preservar el determinismo del sistema, la FSM delimita un único mensaje por
+ciclo de ejecución. Si tras procesar un terminador el buffer circular aún contiene
+bytes, la FSM permanece en \texttt{RX\_GATHERING} para continuar en el ciclo próximo.
+La transición a \texttt{RX\_IDLE} solo se produce cuando el buffer queda completamente
+vacío.
 
 \subsubsection{FSM de Transmisión (TX)}
 \label{subsubsec:fsm-tx}
