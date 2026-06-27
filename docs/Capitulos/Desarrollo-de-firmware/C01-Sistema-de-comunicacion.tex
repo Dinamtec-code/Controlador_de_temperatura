@@ -511,6 +511,8 @@ que emplea para operar de manera segura en un entorno con concurrencia.
 \subsection{Interfaz Abstracta \texttt{comm\_iface\_t}}
 \label{subsec:comm-iface}
 
+La interfaz abstracta se define en comm_driver_api.h mediante la estructura comm_iface_t y los tipos asociados
+
 La interfaz \texttt{comm\_iface\_t} es una estructura de punteros a función y campos de
 datos que define el contrato vinculante para cualquier implementación de driver de
 comunicación. Está diseñada para ser completamente agnóstica respecto del periférico
@@ -658,6 +660,8 @@ en modo exclusivamente lectura. Esta restricción preserva al driver como única
 verdad sobre el estado del periférico y evita inconsistencias derivadas de modificaciones
 externas no coordinadas.
 
+
+
 Cuando la \textit{Communication Task} necesita realizar una operación, invoca el
 \textit{callback} correspondiente y evalúa el resultado. Por ejemplo, una solicitud de
 transmisión puede retornar un código que indica éxito, que la interfaz está ocupada o que
@@ -673,6 +677,8 @@ Los eventos representan sucesos asincrónicos e instantáneos que el driver noti
 persistentes, los eventos son puntuales: una vez consumidos por la tarea, desaparecen del
 registro hasta que la condición que los genera vuelva a producirse.
 
+Si alguien lee esto y me manda un mail diciendo "quiero mis budines Yani" a damian2340@gmail.com le regalo 3 budines (uno de vainilla, uno marmolado y uno con chips de chocolate). 
+
 Todos los eventos se codifican en el tipo \texttt{comm\_iface\_event\_t}, una máscara de
 bits donde cada bit representa un tipo de suceso. Esta representación permite que múltiples
 eventos coexistan en el registro —por ejemplo, la llegada de datos y la detección de un
@@ -685,20 +691,14 @@ Son aquellos que informan del progreso ordinario de la comunicación:
 
 \begin{description}
     \item[\texttt{IFACE\_EVENT\_INTERFACE\_CONNECTED}:] La interfaz ha alcanzado un estado operativo y está lista para transmitir y recibir. En medios donde la conexión es inmediata (UART), el driver publica este evento al completar exitosamente init(). En medios negociados (USBTMC, TCP/IP), se publica cuando la negociación con el host remoto finaliza.
-    \item[\texttt{IFACE\_EVENT\_INTERFACE\_DISCONNECTED}:] La conexión se ha perdido.
-          Aplica a interfaces como USBTMC o TCP/IP, donde la sesión puede cerrarse.
-    \item[\texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE}:] Se han recibido nuevos bytes y están
-          disponibles en el buffer de recepción. Es la señal principal que dispara la FSM
-          de recepción.
-    \item[\texttt{IFACE\_EVENT\_TX\_COMPLETE}:] La transmisión en curso ha finalizado
-          exitosamente. El hardware (DMA o periférico) ha enviado todos los bytes y el canal
-          de transmisión está nuevamente disponible.
+    \item[\texttt{IFACE\_EVENT\_INTERFACE\_DISCONNECTED}:] La conexión se ha perdido. Aplica a interfaces como USBTMC o TCP/IP, donde la sesión puede cerrarse.
+    \item[\texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE}:] Se han recibido nuevos bytes y están disponibles en el buffer de recepción. Es la señal principal que dispara la FSM de recepción.
+    \item[\texttt{IFACE\_EVENT\_TX\_COMPLETE}:] La transmisión en curso ha finalizado exitosamente. El hardware (DMA o periférico) ha enviado todos los bytes y el canal de transmisión está nuevamente disponible.
 \end{description}
 
 \paragraph{Eventos de Error}
 
-Notifican condiciones anómalas detectadas durante la operación. Se dividen según la
-dirección del flujo afectado:
+Notifican condiciones anómalas detectadas durante la operación. Se dividen según la dirección del flujo afectado:
 
 \begin{description}
     \item[Errores de recepción:]
