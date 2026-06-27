@@ -142,7 +142,7 @@ void usart_iface_register(circular_buffer_t *rx_cb, circular_buffer_t *tx_cb)
     usart_iface.protect_tx = comm_protect_tx;
     usart_iface.unprotect_tx = comm_unprotect_tx;
 
-    comm_register_interface(&usart_iface);
+    comm_register_iface(&usart_iface);
 }
 
 /* --- CONTROL DE FLUJO Y DMA --- */
@@ -281,6 +281,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t data_size)
             }
 
             iface->rx_buffer->head = new_head;
+            __DSB;
             iface->event |= IFACE_EVENT_RX_DATA_AVAILABLE;
             iface->state |= COMM_STATE_RX_ACTIVE;
 

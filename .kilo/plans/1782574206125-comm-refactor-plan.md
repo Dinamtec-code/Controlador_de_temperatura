@@ -1,67 +1,36 @@
 # Plan de Refactoring: Sistema de Comunicación (5 archivos)
 
-## Contexto
+## Contexto arquitectónico
 
-Refactoring estrictamente limitado a 5 archivos:
-- `comm_interface.h`
-- `circular_buffer.h`
-- `circular_buffer.c`
-- `usart_hw.h`
-- `usart_hw.c`
+Decisión establecida: **El registro de eventos es privado del driver**. Solo el driver puede publicar eventos directamente en `iface->event`. No existe callback `set_event` ni debe haber acceso externo.
 
-## Problemas detectados en el estado actual
+## Incompatibilidades detectadas
 
-### 1. `usart_hw.c` - Race condition en ISRs
+### 1. `comm_driver_api.h`
+- ✅ Callback `get_event` presente (línea 104)
+- ✅ No hay `set_event` (acceso restringido al driver) - CORRECTO según decisión
 
-**Código actual (INCORRECTO):**
-```c
-void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t data_size)
-{
-    // ...
-    iface->protect_rx(iface);  // ISR deshabilita su propia IRQ - RACE CONDITION
-    // ...
-}
-```
+### 2. `usart_hw.c` - Función externa no implementada
+- `comm_register_iface(&usart_iface)` (línea 145) - declarada en header pero NO implementada en los 5 archivos
 
-**Arquitectura documentada (sección 957-961):**
-- ISR escribe en buffer (productor) - NO necesita protección para escritura simple
-- La task usa protección cuando lee (consumidor)
-- El `head` se actualiza en ISR, el `tail` en task
-
-**Problema:** Llamar a `protect_rx()` desde ISR que deshabilita `USART2_IRQn` crea race condition cuando la ISR interrumpe a sí misma.
-
-### 2. `comm_interface.h` - Declaraciones externas faltantes
-
-`usart_hw.c` usa funciones definidas en `comm_buffers.c` (fuera del scope):
-- `comm_register_interface()` - línea 125
-- `comm_get_interface()` - múltiples llamadas
+### 3. `usart_hw.c` - Protección en ISRs
+- ISRs usan `full_protect()`/`full_unprotect()` (líneas 271, 287, 299, 302, 314, 325)
+- **Usuario quiere mantener protecciones** como práctica preventiva aunque la documentación (sección 1031-1033) indica que "la única sección crítica que requiere protección externa es la captura del snapshot de eventos"
 
 ## Tareas de Refactoring
 
-### Fase 1: `comm_interface.h`
-Agregar extern declarations antes del `#endif`:
-```c
-extern void comm_register_interface(comm_iface_t *iface);
-extern comm_iface_t *comm_get_interface(comm_iface_id_t id);
-```
+### Fase 1: `comm_driver_api.h`
+- Sin cambios requeridos
 
-### Fase 2: `usart_hw.c`
-Revertir protecciones en ISRs - según arquitectura, el productor (ISR) NO necesita protegerse:
+### Fase 2: `circular_buffer.h` y `circular_buffer.c`
+- Sin cambios - acceso directo a head/tail desde ISR es intencional (documento sección 953-955)
 
-1. `HAL_UARTEx_RxEventCallback` (líneas 258, 274): ELIMINAR llamadas a `protect_rx()`/`unprotect_rx()`
-2. `HAL_UART_TxCpltCallback` (líneas 286, 289): ELIMINAR llamadas a `protect_tx()`/`unprotect_tx()`
-3. `HAL_UART_ErrorCallback` (líneas 301, 312): ELIMINAR llamadas a `protect_rx()`/`unprotect_rx()`
-4. Agregar `__DSB()` después de actualizar `head`/`state` para consistencia de memoria
+### Fase 3: `usart_hw.h`
+- Sin cambios
 
-### Fase 3: `circular_buffer.h` y `circular_buffer.c`
-- No requieren cambios
-
-## Riesgos
-
-- Los cambios eliminan protección excesiva en ISRs, no la protección necesaria
-- La task seguirá usando protección cuando lea/escriba buffers
+### Fase 4: `usart_hw.c`
+1. Mantener protecciones en ISRs según decisión del usuario
+2. Agregar `__DSB()` después de `iface->rx_buffer->head = new_head;` (línea 283) para consistencia de memoria ARM
 
 ## Validación
-
-1. Verificar compilación de `usart_hw.c`
-2. Verificar ausencia de race conditions en ISRs
+1. Verificar `__DSB()` después de actualizaciones críticas en ISRs
