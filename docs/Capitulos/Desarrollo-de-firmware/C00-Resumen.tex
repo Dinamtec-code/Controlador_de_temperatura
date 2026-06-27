@@ -1,0 +1,40 @@
+\chapter[Desarrollo de firmware]{Desarrollo de firmware}
+\label{cp:desarrolloFirmware}
+\section{Resumen}
+Estructura y organización y resumen del desarrollo:
+
+Sistema de comunicación:
+    Driver
+        Dependencias y obligaciones
+        API
+        Injeccion de dependencias (buffers, etc)
+    Communication Task
+        Mentenimiento de intefaz
+            Manejo de errores
+        Recepción y extracción de mensajes
+        Transmisión
+        API
+    Motor SCPI
+        Busqueda de comandos
+        Parser SCPI
+        Control de errores
+        Armado de Respuestas
+        Escritura de mensajes de respuesta
+
+Panel Frontal:
+    Pantalla
+        API
+    Control
+        API
+
+Control:
+    Salida de potencia
+        Seguridad
+        API
+    Control PID
+        Modelo incremental para DSP
+    Sensores de temperatura
+        Filtros
+        API
+
+\newpage
