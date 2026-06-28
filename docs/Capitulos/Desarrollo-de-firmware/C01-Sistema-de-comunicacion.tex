@@ -10,117 +10,91 @@
 \subsection{Modelo de Capas y Responsabilidades}
 \label{subsec:modelo-capas}
 
-El sistema de comunicación se organiza en tres capas funcionales con responsabilidades
-estrictamente delimitadas y fronteras bien definidas mediante interfaces abstractas.
-Esta segmentación permite modificar o reemplazar cualquiera de las capas sin impactar a las
-demás, siempre que se respeten los contratos establecidos.
+El sistema de comunicación se organiza en tres capas funcionales con responsabilidades estrictamente delimitadas y fronteras bien definidas mediante interfaces abstractas.
+Esta segmentación permite modificar o reemplazar cualquiera de las capas sin impactar a las demás, siempre que se respeten los contratos establecidos.
 
 \begin{figure}[htbp]
-    \centering
-    \includegraphics[width=0.85\textwidth]{Figuras/Schems/sitema-comunicacion.pdf}
-    \caption{Modelo de capas del sistema de comunicación. Las flechas indican las
-             dependencias funcionales y el sentido del flujo de datos.}
-    \label{fig:capas-comunicacion}
+      \centering
+      \includegraphics[width=0.85\textwidth]{Figuras/Schems/sitema-comunicacion.pdf}
+      \caption{Modelo de capas del sistema de comunicación. Las flechas indican las dependencias funcionales y el sentido del flujo de datos.}
+      \label{fig:capas-comunicacion}
 \end{figure}
 
 \paragraph{Capa de Driver (Interfaz de Transporte Físico)}
 
-Es la capa más cercana al hardware. Su responsabilidad exclusiva es la gestión del periférico
-de comunicación (UART, USBTMC, SPI, TCP/IP, etc.) y la traducción de eventos físicos a una
-representación abstracta normalizada.
+Es la capa más cercana al hardware. Su responsabilidad exclusiva es la gestión del periférico de comunicación (UART, USBTMC, SPI, TCP/IP, etc.) y la traducción de eventos físicos a una representación abstracta normalizada.
 
-El driver expone sus servicios a través de la interfaz \texttt{comm\_iface\_t}, que constituye
-un contrato cerrado. Toda implementación concreta debe cumplir con esta interfaz para ser
-utilizable por las capas superiores. Esta abstracción oculta por completo las particularidades
-del registro de periférico, las interrupciones, el DMA o los protocolos de enlace de bajo nivel.
+El driver expone sus servicios a través de la interfaz \texttt{comm\_iface\_t}, que constituye un contrato cerrado. Toda implementación concreta debe cumplir con esta interfaz para ser utilizable por las capas superiores. Esta abstracción oculta por completo las particularidades del registro de periférico, las interrupciones, el DMA o los protocolos de enlace de bajo nivel.
 
 La capa de driver:
 \begin{itemize}
-    \item Administra los recursos de hardware (registros, interrupciones, canales DMA).
-    \item Produce eventos abstractos de interfaz (dato recibido, transmisión completada, error).
-    \item Mantiene el estado operativo de la conexión física.
-    \item No asigna buffers de aplicación ni realiza procesamiento de los datos transportados.
+      \item Administra los recursos de hardware (registros, interrupciones, canales DMA).
+      \item Produce eventos abstractos de interfaz (dato recibido, transmisión completada, error).
+      \item Mantiene el estado operativo de la conexión física.
+      \item No asigna buffers de aplicación ni realiza procesamiento de los datos transportados.
 \end{itemize}
 
 \paragraph{Capa de Middleware (Communication Task)}
 
-Esta capa constituye el núcleo del subsistema de comunicación. Se implementa como una tarea
-independiente (o un bucle dentro de un esquema cooperativo) y opera exclusivamente sobre la
-interfaz abstracta proporcionada por el driver.
+Esta capa constituye el núcleo del subsistema de comunicación. Se implementa como una tarea independiente (o un bucle dentro de un esquema cooperativo) y opera exclusivamente sobre la interfaz abstracta proporcionada por el driver.
 
 Sus responsabilidades comprenden:
 \begin{itemize}
-    \item La gestión global del ciclo de vida de la interfaz (inicialización, arranque,
-          detención, recuperación ante fallos).
-    \item La recepción de bytes desde el driver y la delimitación de mensajes completos de
-          acuerdo con las reglas del protocolo de instrumentación (detección del terminador
-          \texttt{LF} según IEEE~488.2).
-    \item La transmisión de mensajes hacia el driver cuando la aplicación lo solicita.
-    \item La publicación de eventos lógicos hacia la capa de aplicación:
-          \texttt{EV\_MESSAGE\_READY} (mensaje disponible) y \texttt{EV\_TX\_DONE}
-          (transmisión finalizada).
-    \item La coordinación de las máquinas de estado de gestión, recepción y transmisión.
+      \item La gestión global del ciclo de vida de la interfaz (inicialización, arranque, detención, recuperación ante fallos).
+      \item La recepción de bytes desde el driver y la delimitación de mensajes completos de acuerdo con las reglas del protocolo de instrumentación (detección del terminador \texttt{LF} según IEEE~488.2).
+      \item La transmisión de mensajes hacia el driver cuando la aplicación lo solicita.
+      \item La publicación de eventos lógicos hacia la capa de aplicación:
+            \texttt{EV\_MESSAGE\_READY} (mensaje disponible) y \texttt{EV\_TX\_DONE} (transmisión finalizada).
+      \item La coordinación de las máquinas de estado de gestión, recepción y transmisión.
 \end{itemize}
 
 El middleware desconoce por completo el contenido semántico de los mensajes que transporta.
-Un mensaje es, para esta capa, una secuencia de bytes delimitada por un terminador; no
-realiza análisis sintáctico ni interpreta comandos.
+Un mensaje es, para esta capa, una secuencia de bytes delimitada por un terminador; no realiza análisis sintáctico ni interpreta comandos.
 
 \paragraph{Capa de Aplicación (Motor SCPI)}
 
-Es la capa superior, consumidora de los servicios de comunicación. Recibe mensajes completos
-desde el middleware y los procesa de acuerdo con la sintaxis y semántica del protocolo
-SCPI (Standard Commands for Programmable Instruments).
+Es la capa superior, consumidora de los servicios de comunicación. Recibe mensajes completos desde el middleware y los procesa de acuerdo con la sintaxis y semántica del protocolo SCPI (Standard Commands for Programmable Instruments).
 
 Sus responsabilidades son:
 \begin{itemize}
-    \item El análisis sintáctico y semántico de los comandos recibidos.
-    \item La ejecución de las acciones solicitadas (consulta de medidas, modificación de
-          parámetros, etc.).
-    \item La generación de respuestas conformes al estándar IEEE~488.2.
-    \item La interacción con el resto del sistema del instrumento (control, medición,
-          configuración).
+      \item El análisis sintáctico y semántico de los comandos recibidos.
+      \item La ejecución de las acciones solicitadas (consulta de medidas, modificación de parámetros, etc.).
+      \item La generación de respuestas conformes al estándar IEEE~488.2.
+      \item La interacción con el resto del sistema del instrumento (control, medición, configuración).
 \end{itemize}
 
-El motor SCPI no accede directamente al hardware de comunicación ni a los buffers de
-transporte. Para enviar una respuesta, invoca la función \texttt{send\_message()} expuesta
-por el middleware.
+El motor SCPI no accede directamente al hardware de comunicación ni a los buffers de transporte. Para enviar una respuesta, invoca la función \texttt{send\_message()} expuesta por el middleware.
 
 \paragraph{Principio de Propiedad de Recursos}
 
-Cada capa es propietaria exclusiva de los recursos que administra. Este principio evita
-dependencias implícitas y condiciones de carrera:
+Cada capa es propietaria exclusiva de los recursos que administra. Este principio evita dependencias implícitas y condiciones de carrera:
 
 \begin{itemize}
-    \item Los buffers de transporte (recepción y transmisión) son propiedad de la
-          \textit{Communication Task} y se inyectan al driver por referencia durante la
-          inicialización. El driver opera sobre ellos pero no los posee.
-    \item El contexto del periférico (registros de configuración, estado interno del driver)
-          es privado de cada implementación concreta del driver y no es accesible desde fuera.
-    \item Los buffers de comandos y respuestas SCPI pertenecen al motor SCPI y son
-          independientes del transporte.
+      \item Los buffers de transporte (recepción y transmisión) son propiedad de la \textit{Communication Task} y se inyectan al driver por referencia durante la inicialización. El driver opera sobre ellos pero no los posee.
+      \item El contexto del periférico (registros de configuración, estado interno del driver) es privado de cada implementación concreta del driver y no es accesible desde fuera. 
+      \item Los buffers de comandos y respuestas SCPI pertenecen al motor SCPI y son independientes del transporte.
 \end{itemize}
 
 La tabla \ref{tab:propiedad-recursos} detalla la asignación de propiedad para cada recurso
 compartido.
 
 \begin{table}[htbp]
-    \centering
-    \caption{Propiedad de recursos en el sistema de comunicación.}
-    \label{tab:propiedad-recursos}
-    \begin{tabular}{lll}
-        \toprule
-        \textbf{Recurso} & \textbf{Propietario} & \textbf{Observación} \\
-        \midrule
-        Buffer RX de transporte & Communication Task & Asignado a la estructura \texttt{comm\_iface\_t} \\
-        Buffer TX de transporte & Communication Task & Asignado a la estructura \texttt{comm\_iface\_t} \\
-        Contexto del periférico  & Driver              & Privado de cada implementación \\
-        Registro de eventos      & Driver              & Compartido ISR/Task mediante snapshot \\
-        Estado de interfaz       & Driver              & Visible para capas superiores en modo lectura \\
-        Buffers de comandos SCPI & Motor SCPI          & Independientes del transporte \\
-        Buffers de respuesta SCPI& Motor SCPI          & Independientes del transporte \\
-        \bottomrule
-    \end{tabular}
+      \centering
+      \caption{Propiedad de recursos en el sistema de comunicación.}
+      \label{tab:propiedad-recursos}
+      \begin{tabular}{lll}
+            \toprule
+            \textbf{Recurso} & \textbf{Propietario} & \textbf{Observación} \\
+            \midrule
+            Buffer RX de transporte & Communication Task & Asignado a la estructura \texttt{comm\_iface\_t} \\
+            Buffer TX de transporte & Communication Task & Asignado a la estructura \texttt{comm\_iface\_t} \\
+            Contexto del periférico  & Driver              & Privado de cada implementación \\
+            Registro de eventos      & Driver              & Compartido ISR/Task mediante snapshot \\
+            Estado de interfaz       & Driver              & Visible para capas superiores en modo lectura \\
+            Buffers de comandos SCPI & Motor SCPI          & Independientes del transporte \\
+            Buffers de respuesta SCPI& Motor SCPI          & Independientes del transporte \\
+            \bottomrule
+      \end{tabular}
 \end{table}
 
 \paragraph{Flujo de Información entre Capas}
@@ -129,369 +103,194 @@ La comunicación entre capas sigue un modelo orientado a eventos, sin llamadas b
 El sentido del flujo es el siguiente:
 
 \begin{description}
-    \item[Recepción:] Medio físico $\rightarrow$ Driver $\rightarrow$ Eventos de interfaz
-          $\rightarrow$ Communication Task $\rightarrow$ Mensaje completo $\rightarrow$
-          Motor SCPI.
-    \item[Transmisión:] Motor SCPI $\rightarrow$ Solicitud de transmisión $\rightarrow$
-          Communication Task $\rightarrow$ Driver $\rightarrow$ Medio físico.
+      \item[Recepción:] Medio físico $\rightarrow$ Driver $\rightarrow$ Eventos de interfaz $\rightarrow$ Communication Task $\rightarrow$ Mensaje completo $\rightarrow$ Motor SCPI.
+      \item[Transmisión:] Motor SCPI $\rightarrow$ Solicitud de transmisión $\rightarrow$ Communication Task $\rightarrow$ Driver $\rightarrow$ Medio físico.
 \end{description}
 
-La capa de aplicación (Motor SCPI) se documenta en detalle en el capítulo siguiente. El
-resto de este capítulo describe la arquitectura interna de las capas de Driver y Middleware,
-así como las interfaces que las conectan.
+La capa de aplicación (Motor SCPI) se documenta en detalle en el capítulo siguiente. El resto de este capítulo describe la arquitectura interna de las capas de Driver y Middleware, así como las interfaces que las conectan.
 
 \subsection{Propiedad de Recursos}
 \label{subsec:propiedad-recursos}
 
-La asignación explícita de la propiedad de cada recurso compartido es un principio
-arquitectónico fundamental del sistema de comunicación. Establecer un propietario único para
-cada estructura de datos, buffer o registro de estado persigue tres objetivos:
+La asignación explícita de la propiedad de cada recurso compartido es un principio arquitectónico fundamental del sistema de comunicación. Establecer un propietario único para cada estructura de datos, buffer o registro de estado persigue tres objetivos:
 
 \begin{enumerate}
-    \item \textbf{Eliminar la contención implícita:} cuando dos módulos pueden modificar
-          un mismo recurso sin una mediación clara, aparecen condiciones de carrera y
-          efectos laterales difíciles de depurar.
-    \item \textbf{Permitir la verificación estática:} el propietario es responsable de
-          asignar, liberar y garantizar la validez del recurso; los demás módulos lo
-          utilizan bajo un contrato de acceso definido (lectura, escritura mediada, etc.).
-    \item \textbf{Facilitar la portabilidad:} si cada recurso tiene un dueño bien
-          identificado, reemplazar una capa (por ejemplo, cambiar el driver de USBTMC por
-          uno de TCP/IP) no obliga a modificar la gestión de memoria de las demás capas.
+      \item \textbf{Eliminar la contención implícita:} cuando dos módulos pueden modificar un mismo recurso sin una mediación clara, aparecen condiciones de carrera y efectos laterales difíciles de depurar.
+      \item \textbf{Permitir la verificación estática:} el propietario es responsable de asignar, liberar y garantizar la validez del recurso; los demás módulos lo utilizan bajo un contrato de acceso definido (lectura, escritura mediada, etc.).
+      \item \textbf{Facilitar la portabilidad:} si cada recurso tiene un dueño bien identificado, reemplazar una capa (por ejemplo, cambiar el driver de USBTMC por uno de TCP/IP) no obliga a modificar la gestión de memoria de las demás capas.
 \end{enumerate}
 
-La tabla \ref{tab:propiedad-recursos} (presentada en la sección anterior) resume la
-asignación de propiedad para los recursos principales. A continuación se detallan las
-implicancias de cada caso.
+La tabla \ref{tab:propiedad-recursos} (presentada en la sección anterior) resume la asignación de propiedad para los recursos principales. A continuación se detallan las implicancias de cada caso.
 
 \paragraph{Buffers de Transporte (RX y TX)}
 
-Los buffers de recepción y transmisión a nivel de transporte son \textbf{propiedad exclusiva
-de la \textit{Communication Task}}. Esto significa que:
+Los buffers de recepción y transmisión a nivel de transporte son \textbf{propiedad exclusiva de la \textit{Communication Task}}. Esto significa que:
 
 \begin{itemize}
-    \item La tarea de comunicación reserva estáticamente la memoria necesaria (por ejemplo,
-          en su propio stack o en la sección \texttt{.bss} de su módulo objeto).
-    \item Durante la inicialización, as referencias a estos buffers se asignan directamente en los campos \texttt{rx\_buffer} y \texttt{tx\_buffer} de la estructura \texttt{comm\_iface\_t} antes de invocar \texttt{init()}.
-    \item El driver puede leer y escribir en ellos, pero \textbf{no es responsable de su
-          ciclo de vida}. Si un driver necesita dimensionar los buffers, lo hace a través de
-          parámetros de configuración, no asignándolos por sí mismo.
-    \item Esta separación permite que, en un mismo hardware, dos interfaces distintas
-          compartan la misma tarea de comunicación sin que el driver imponga un tamaño fijo
-          de buffer.
+      \item La tarea de comunicación reserva estáticamente la memoria necesaria (por ejemplo, en su propio stack o en la sección \texttt{.bss} de su módulo objeto).
+      \item Durante la inicialización, as referencias a estos buffers se asignan directamente en los campos \texttt{rx\_buffer} y \texttt{tx\_buffer} de la estructura \texttt{comm\_iface\_t} antes de invocar \texttt{init()}.
+      \item El driver puede leer y escribir en ellos, pero \textbf{no es responsable de su ciclo de vida}. Si un driver necesita dimensionar los buffers, lo hace a través de parámetros de configuración, no asignándolos por sí mismo.
+      \item Esta separación permite que, en un mismo hardware, dos interfaces distintas compartan la misma tarea de comunicación sin que el driver imponga un tamaño fijo de buffer.
 \end{itemize}
 
 \paragraph{Contexto del Periférico}
 
-Cada implementación concreta del driver mantiene una estructura de contexto privada
-(registros de configuración, estados internos, handles de sistema operativo, etc.). Este
-contexto es \textbf{propiedad exclusiva del driver} y no es accesible desde la
-\textit{Communication Task} ni desde la aplicación. Las capas superiores desconocen por
-completo su contenido y solo interactúan con el driver a través de la interfaz abstracta
-\texttt{comm\_iface\_t}.
+Cada implementación concreta del driver mantiene una estructura de contexto privada (registros de configuración, estados internos, handles de sistema operativo, etc.). Este contexto es \textbf{propiedad exclusiva del driver} y no es accesible desde la \textit{Communication Task} ni desde la aplicación. Las capas superiores desconocen por completo su contenido y solo interactúan con el driver a través de la interfaz abstracta \texttt{comm\_iface\_t}.
 
 Esta encapsulación garantiza que:
 
 \begin{itemize}
-    \item El middleware no pueda, por error, modificar un registro de periférico sin pasar
-          por la API.
-    \item Se pueda implementar un driver simulado (\textit{mock}) para pruebas unitarias
-          del middleware, reemplazando completamente el contexto real sin que la tarea de
-          comunicación lo advierta.
+      \item El middleware no pueda, por error, modificar un registro de periférico sin pasar por la API.
+      \item Se pueda implementar un driver simulado (\textit{mock}) para pruebas unitarias del middleware, reemplazando completamente el contexto real sin que la tarea de comunicación lo advierta.
 \end{itemize}
 
 \paragraph{Registro de Eventos}
 
-El registro de eventos es una estructura de mapa de bits (\textit{bitmask}) que el driver
-actualiza de forma asíncrona (generalmente desde una ISR) y la \textit{Communication Task}
-lee en cada ciclo. La \textbf{propiedad formal} reside en el driver, pero el acceso es
-compartido:
+El registro de eventos es una estructura de mapa de bits (\textit{bitmask}) que el driver actualiza de forma asíncrona (generalmente desde una ISR) y la \textit{Communication Task} lee en cada ciclo. La \textbf{propiedad formal} reside en el driver, pero el acceso es compartido:
 
 \begin{itemize}
-    \item Al inicio del siguiente ciclo de la \textit{Communication Task}, se captura
-        atómicamente el registro de eventos del driver en una variable local
-        (\textit{snapshot}) y se limpia el registro original. A partir de este momento,
-        todas las FSM operan sobre la copia local, cada una enmascarando los bits que le
-        corresponden.
-    \item La \textit{Communication Task} \textbf{lee} el registro de manera atómica
-          (mecanismo de \textit{snapshot} descrito en la sección \ref{subsec:snapshot}) y
-          luego lo limpia.
-    \item Ninguna otra capa accede directamente a este registro, ni siquiera en modo
-          lectura. La aplicación recibe eventos lógicos de más alto nivel a través de la
-          API de comunicación (\texttt{EV\_MESSAGE\_READY}, \texttt{EV\_TX\_DONE}).
+      \item Al inicio del siguiente ciclo de la \textit{Communication Task}, se captura atómicamente el registro de eventos del driver en una variable local (\textit{snapshot}) y se limpia el registro original. A partir de este momento, todas las FSM operan sobre la copia local, cada una enmascarando los bits que le corresponden.
+      \item La \textit{Communication Task} \textbf{lee} el registro de manera atómica (mecanismo de \textit{snapshot} descrito en la sección \ref{subsec:snapshot}) y luego lo limpia.
+      \item Ninguna otra capa accede directamente a este registro, ni siquiera en modo lectura. La aplicación recibe eventos lógicos de más alto nivel a través de la API de comunicación (\texttt{EV\_MESSAGE\_READY}, \texttt{EV\_TX\_DONE}).
 \end{itemize}
 
 \paragraph{Estado de la Interfaz}
 
 El estado operativo de la interfaz (\texttt{COMM\_STATE\_CONNECTED},
-\texttt{COMM\_STATE\_RX\_ACTIVE}, etc.) es mantenido por el driver y \textbf{visible en modo
-lectura} para la \textit{Communication Task}. La tarea de middleware puede consultar este
-estado para tomar decisiones de control (por ejemplo, no intentar transmitir si la interfaz
-no está conectada), pero no puede modificarlo directamente. La modificación del estado es
-consecuencia de las operaciones invocadas a través de la API (\texttt{start\_rx()},
-\texttt{stop\_rx()}) o de eventos de hardware detectados por el driver.
+\texttt{COMM\_STATE\_RX\_ACTIVE}, etc.) es mantenido por el driver y \textbf{visible en modo lectura} para la \textit{Communication Task}. La tarea de middleware puede consultar este estado para tomar decisiones de control (por ejemplo, no intentar transmitir si la interfaz no está conectada), pero no puede modificarlo directamente. La modificación del estado es consecuencia de las operaciones invocadas a través de la API (\texttt{start\_rx()},\texttt{stop\_rx()}) o de eventos de hardware detectados por el driver.
 
 \paragraph{Buffers de Comandos y Respuestas SCPI}
 
-Los buffers donde se almacenan los comandos recibidos (ya delimitados) y las respuestas
-generadas por el instrumento son \textbf{propiedad exclusiva del Motor SCPI}. Esta decisión
-es crítica para la independencia de la aplicación respecto al transporte:
+Los buffers donde se almacenan los comandos recibidos (ya delimitados) y las respuestas generadas por el instrumento son \textbf{propiedad exclusiva del Motor SCPI}. Esta decisión es crítica para la independencia de la aplicación respecto al transporte:
 
 \begin{itemize}
-    \item El middleware entrega el mensaje completo a la capa de aplicación copiándolo en el
-          buffer de comandos SCPI o pasando una referencia que la aplicación debe consumir
-          antes del siguiente ciclo de la tarea.
-    \item La aplicación formatea sus respuestas en sus propios buffers y luego invoca
-          \texttt{send\_message()} para transferirlas al middleware.
-    \item Si en el futuro se reemplaza el protocolo SCPI por otro (por ejemplo, Modbus),
-          los buffers de la aplicación cambian, pero el middleware de comunicación permanece
-          inalterado.
+      \item El middleware entrega el mensaje completo a la capa de aplicación copiándolo en el buffer de comandos SCPI o pasando una referencia que la aplicación debe consumir antes del siguiente ciclo de la tarea.
+      \item La aplicación formatea sus respuestas en sus propios buffers y luego invoca \texttt{send\_message()} para transferirlas al middleware.
+      \item Si en el futuro se reemplaza el protocolo SCPI por otro (por ejemplo, Modbus), los buffers de la aplicación cambian, pero el middleware de comunicación permanece inalterado.
 \end{itemize}
 
 \paragraph{Principio de Inyección de Dependencias}
 
-La separación de propiedad se complementa con un patrón de \textbf{inyección de
-dependencias} en tiempo de inicialización. La \textit{Communication Task} no instancia
-directamente un driver concreto, sino que recibe una referencia a una implementación de
-\texttt{comm\_iface\_t} junto con los parámetros de configuración necesarios (incluyendo las
-referencias a los buffers de transporte). Este mecanismo, detallado en la sección
-\ref{subsec:driver-buffers}, es el que permite que el mismo código de middleware opere sobre
-UART, USBTMC o TCP/IP sin modificaciones.
+La separación de propiedad se complementa con un patrón de \textbf{inyección de dependencias} en tiempo de inicialización. La \textit{Communication Task} no instancia directamente un driver concreto, sino que recibe una referencia a una implementación de \texttt{comm\_iface\_t} junto con los parámetros de configuración necesarios (incluyendo las referencias a los buffers de transporte). Este mecanismo, detallado en la sección \ref{subsec:driver-buffers}, es el que permite que el mismo código de middleware opere sobre UART, USBTMC o TCP/IP sin modificaciones.
 
 \subsection{Conceptos Fundamentales}
 \label{subsec:conceptos-fundamentales}
 
-Para garantizar una interpretación unívoca de la arquitectura, esta sección define los
-términos que se emplean de manera recurrente en la documentación del sistema de
-comunicación. Cada concepto está acotado al contexto de este subsistema; otros módulos del
-firmware pueden utilizar definiciones complementarias.
+Para garantizar una interpretación unívoca de la arquitectura, esta sección define los términos que se emplean de manera recurrente en la documentación del sistema de comunicación. Cada concepto está acotado al contexto de este subsistema; otros módulos del firmware pueden utilizar definiciones complementarias.
 
 \paragraph{Estado}
 
-Un estado representa una condición operativa persistente de una interfaz de comunicación.
-Describe una situación que se mantiene durante un intervalo de tiempo y que puede consultarse
-en cualquier momento.
+Un estado representa una condición operativa persistente de una interfaz de comunicación. Describe una situación que se mantiene durante un intervalo de tiempo y que puede consultarse en cualquier momento.
 
-En el sistema de comunicación, los estados se implementan como una máscara de bits
-(\texttt{comm\_iface\_state\_t}), lo que permite que múltiples condiciones coexistan
-simultáneamente. Por ejemplo, una interfaz puede estar al mismo tiempo
-\texttt{CONNECTED} y \texttt{RX\_ACTIVE}.
+En el sistema de comunicación, los estados se implementan como una máscara de bits (\texttt{comm\_iface\_state\_t}), lo que permite que múltiples condiciones coexistan simultáneamente. Por ejemplo, una interfaz puede estar al mismo tiempo \texttt{CONNECTED} y \texttt{RX\_ACTIVE}.
 
-Los estados son modificados exclusivamente por el driver como resultado de operaciones
-solicitadas a través de la API (\texttt{start\_rx()}, \texttt{stop\_rx()}) o de eventos de
-hardware detectados internamente. Las capas superiores pueden leerlos, pero no alterarlos
-directamente.
+Los estados son modificados exclusivamente por el driver como resultado de operaciones solicitadas a través de la API (\texttt{start\_rx()}, \texttt{stop\_rx()}) o de eventos de hardware detectados internamente. Las capas superiores pueden leerlos, pero no alterarlos directamente.
 
 \paragraph{Evento}
 
-Un evento es la representación de un suceso instantáneo y asincrónico, producido por el
-hardware de comunicación o por el propio driver. A diferencia de los estados, un evento no
-describe una condición permanente sino una notificación puntual que debe ser procesada por
-las capas superiores.
+Un evento es la representación de un suceso instantáneo y asincrónico, producido por el hardware de comunicación o por el propio driver. A diferencia de los estados, un evento no describe una condición permanente sino una notificación puntual que debe ser procesada por las capas superiores.
 
-Los eventos se codifican como una máscara de bits (\texttt{comm\_iface\_event\_t}) en la que
-cada bit representa un tipo de suceso. Esta representación permite:
+Los eventos se codifican como una máscara de bits (\texttt{comm\_iface\_event\_t}) en la que cada bit representa un tipo de suceso. Esta representación permite:
 
 \begin{itemize}
-    \item La coexistencia de múltiples eventos simultáneos.
-    \item El filtrado eficiente mediante operaciones de enmascaramiento binario.
-    \item La transferencia atómica del registro completo (mecanismo de \textit{snapshot})
-          entre el contexto de interrupción y el de tarea.
+      \item La coexistencia de múltiples eventos simultáneos.
+      \item El filtrado eficiente mediante operaciones de enmascaramiento binario.
+      \item La transferencia atómica del registro completo (mecanismo de \textit{snapshot}) entre el contexto de interrupción y el de tarea.
 \end{itemize}
 
-Ejemplos típicos de eventos son la disponibilidad de nuevos datos en el buffer de recepción,
-la finalización de una transmisión o la detección de una condición de error de hardware.
-
+Ejemplos típicos de eventos son la disponibilidad de nuevos datos en el buffer de recepción, la finalización de una transmisión o la detección de una condición de error de hardware. 
 \paragraph{Error}
 
-Un error es una condición anómala detectada durante la operación de la interfaz de
-comunicación. Los errores pueden originarse en el medio físico (errores de paridad, de
-encuadre, desbordamiento del buffer de hardware), en la capa de transporte (timeout de
-transmisión, fallo de bus) o en la propia implementación del driver (error interno).
+Un error es una condición anómala detectada durante la operación de la interfaz de comunicación. Los errores pueden originarse en el medio físico (errores de paridad, de encuadre, desbordamiento del buffer de hardware), en la capa de transporte (timeout de transmisión, fallo de bus) o en la propia implementación del driver (error interno).
 
-La ocurrencia de un error se notifica mediante los eventos específicos definidos en
-\texttt{comm\_iface\_event\_t} (\texttt{IFACE\_EVENT\_RX\_ERROR\_OVERFLOW},
-\texttt{IFACE\_EVENT\_TX\_ERROR\_TIMEOUT}, etc.). Adicionalmente, un error crítico puede
-provocar la activación del estado persistente \texttt{COMM\_STATE\_ERROR}, lo que indica a
-las capas superiores que la interfaz no se encuentra en condición operativa normal.
+La ocurrencia de un error se notifica mediante los eventos específicos definidos en \texttt{comm\_iface\_event\_t} (\texttt{IFACE\_EVENT\_RX\_ERROR\_OVERFLOW}, \texttt{IFACE\_EVENT\_TX\_ERROR\_TIMEOUT}, etc.). Adicionalmente, un error crítico puede provocar la activación del estado persistente \texttt{COMM\_STATE\_ERROR}, lo que indica a las capas superiores que la interfaz no se encuentra en condición operativa normal.
 
-Es importante distinguir entre el código de error retornado por algunas funciones de la API
-(como \texttt{init()} o \texttt{reset()}) y los eventos de error asincrónicos. Los primeros
-informan del resultado de una operación solicitada; los segundos notifican condiciones
-sobrevenidas fuera del flujo de llamadas.
+Es importante distinguir entre el código de error retornado por algunas funciones de la API (como \texttt{init()} o \texttt{reset()}) y los eventos de error asincrónicos. Los primeros informan del resultado de una operación solicitada; los segundos notifican condiciones sobrevenidas fuera del flujo de llamadas.
 
 \paragraph{Operación}
 
-Una operación es una acción explícita solicitada por una capa superior a través de la API de
-la interfaz de comunicación. Constituye el mecanismo de control de que disponen la
-\textit{Communication Task} y, de forma mediada, la aplicación, para gobernar el
-comportamiento del driver sin exponer los detalles de implementación del periférico.
+Una operación es una acción explícita solicitada por una capa superior a través de la API de la interfaz de comunicación. Constituye el mecanismo de control de que disponen la \textit{Communication Task} y, de forma mediada, la aplicación, para gobernar el comportamiento del driver sin exponer los detalles de implementación del periférico.
 
 Las operaciones se corresponden con los \textit{callbacks} definidos en la estructura
 \texttt{comm\_iface\_t}:
 
 \begin{itemize}
-    \item \textbf{Ciclo de vida:} \texttt{init()}, \texttt{deinit()}, \texttt{reset()}.
-    \item \textbf{Control de flujo:} \texttt{start\_rx()}, \texttt{stop\_rx()},
-          \texttt{start\_tx()}.
-    \item \textbf{Gestión de eventos:} \texttt{get\_event()}.
-    \item \textbf{Protección concurrente:} \texttt{protect\_rx()}, \texttt{unprotect\_rx()},
-          \texttt{protect\_tx()}, \texttt{unprotect\_tx()}.
+      \item \textbf{Ciclo de vida:} \texttt{init()}, \texttt{deinit()}, \texttt{reset()}.
+      \item \textbf{Control de flujo:} \texttt{start\_rx()}, \texttt{stop\_rx()}, \texttt{start\_tx()}.
+      \item \textbf{Gestión de eventos:} \texttt{get\_event()}.
+      \item \textbf{Protección concurrente:} \texttt{protect\_rx()}, \texttt{unprotect\_rx()}, \texttt{protect\_tx()}, \texttt{unprotect\_tx()}.
 \end{itemize}
 
-Todas las operaciones están diseñadas para ser no bloqueantes, en coherencia con el modelo
-de ejecución cooperativa de la \textit{Communication Task}.
+Todas las operaciones están diseñadas para ser no bloqueantes, en coherencia con el modelo de ejecución cooperativa de la \textit{Communication Task}.
 
 \paragraph{Contexto}
 
-El contexto es una estructura de datos privada asociada a una instancia concreta de interfaz
-de comunicación. En la implementación, la estructura \texttt{comm\_iface\_t} incluye un campo
-\texttt{void *context} que cada driver utiliza para almacenar la información que necesita:
-registros de configuración del periférico, handles del sistema operativo, punteros a buffers
-internos, etc.
+El contexto es una estructura de datos privada asociada a una instancia concreta de interfaz de comunicación. En la implementación, la estructura \texttt{comm\_iface\_t} incluye un campo \texttt{void *context} que cada driver utiliza para almacenar la información que necesita: registros de configuración del periférico, handles del sistema operativo, punteros a buffers internos, etc.
 
-Ni la \textit{Communication Task} ni la capa de aplicación acceden al contenido del contexto;
-solo lo pasan como argumento en cada invocación a los \textit{callbacks} del driver. Esta
-opacidad garantiza la independencia de las capas superiores respecto de los detalles de
-implementación del hardware.
+Ni la \textit{Communication Task} ni la capa de aplicación acceden al contenido del contexto; solo lo pasan como argumento en cada invocación a los \textit{callbacks} del driver. Esta opacidad garantiza la independencia de las capas superiores respecto de los detalles de implementación del hardware.
 
 \paragraph{Propietario}
 
 El propietario de un recurso es el componente del sistema responsable de:
 
 \begin{itemize}
-    \item Reservar la memoria o el handle que lo representa.
-    \item Garantizar su validez durante el tiempo de uso.
-    \item Liberarlo cuando ya no es necesario.
+      \item Reservar la memoria o el handle que lo representa.
+      \item Garantizar su validez durante el tiempo de uso.
+      \item Liberarlo cuando ya no es necesario.
 \end{itemize}
 
-La asignación de propiedad está explícitamente documentada en la tabla
-\ref{tab:propiedad-recursos}. Los componentes que no son propietarios de un recurso pueden
-utilizarlo únicamente bajo las condiciones establecidas por el contrato de acceso (por
-ejemplo, el driver escribe en los buffers de transporte inyectados por la
-\textit{Communication Task}, pero no es responsable de su asignación ni de su liberación).
+La asignación de propiedad está explícitamente documentada en la tabla \ref{tab:propiedad-recursos}. Los componentes que no son propietarios de un recurso pueden utilizarlo únicamente bajo las condiciones establecidas por el contrato de acceso (por ejemplo, el driver escribe en los buffers de transporte inyectados por la \textit{Communication Task}, pero no es responsable de su asignación ni de su liberación).
 
 \paragraph{Mensaje}
 
-En el contexto del sistema de comunicación, un mensaje es la unidad de información que se
-transfiere entre la \textit{Communication Task} y la capa de aplicación. Se define como una
-secuencia contigua de bytes, delimitada por un carácter de fin de mensaje (el terminador
-\texttt{LF}, \texttt{0x0A}, conforme a IEEE~488.2), y despojada de cualquier carácter de
-control de transporte (como \texttt{CR}, \texttt{0x0D}).
+En el contexto del sistema de comunicación, un mensaje es la unidad de información que se transfiere entre la \textit{Communication Task} y la capa de aplicación. Se define como una secuencia contigua de bytes, delimitada por un carácter de fin de mensaje (el terminador \texttt{LF}, \texttt{0x0A}, conforme a IEEE~488.2), y despojada de cualquier carácter de control de transporte (como \texttt{CR}, \texttt{0x0D}).
 
-La delimitación del mensaje es responsabilidad de la máquina de estados de recepción del
-middleware. Una vez ensamblado el mensaje completo, se notifica a la aplicación mediante el
-evento lógico \texttt{EV\_MESSAGE\_READY}. La aplicación puede entonces consumir el mensaje
-desde el buffer de recepción de la \textit{Communication Task} (o copiarlo a sus buffers
-propios) y proceder a su análisis sintáctico.
+La delimitación del mensaje es responsabilidad de la máquina de estados de recepción del middleware. Una vez ensamblado el mensaje completo, se notifica a la aplicación mediante el evento lógico \texttt{EV\_MESSAGE\_READY}. La aplicación puede entonces consumir el mensaje desde el buffer de recepción de la \textit{Communication Task} (o copiarlo a sus buffers propios) y proceder a su análisis sintáctico.
 
-Análogamente, cuando la aplicación desea transmitir información, compone un mensaje en sus
-buffers de respuesta y solicita el envío invocando \texttt{send\_message()}, lo que activa la
-máquina de estados de transmisión del middleware.
+Análogamente, cuando la aplicación desea transmitir información, compone un mensaje en sus buffers de respuesta y solicita el envío invocando \texttt{send\_message()}, lo que activa la máquina de estados de transmisión del middleware.
 
-Esta definición desacopla completamente el transporte del contenido: el middleware no
-distingue entre un comando SCPI, una consulta de estado o cualquier otra carga útil; opera
-exclusivamente con mensajes como secuencias de bytes delimitadas.
+Esta definición desacopla completamente el transporte del contenido: el middleware no distingue entre un comando SCPI, una consulta de estado o cualquier otra carga útil; opera exclusivamente con mensajes como secuencias de bytes delimitadas.
 
 \subsection{Flujo de Comunicación}
 \label{subsec:flujo-comunicacion}
 
-El modelo de interacción entre capas es puramente asíncrono y orientado a eventos. No
-existen llamadas bloqueantes ni dependencias cíclicas entre la \textit{Communication Task}
-y la capa de aplicación. La secuencia de operaciones se describe a continuación para los
-dos escenarios fundamentales: recepción de un mensaje y transmisión de una respuesta.
+El modelo de interacción entre capas es puramente asíncrono y orientado a eventos. No existen llamadas bloqueantes ni dependencias cíclicas entre la \textit{Communication Task} y la capa de aplicación. La secuencia de operaciones se describe a continuación para los dos escenarios fundamentales: recepción de un mensaje y transmisión de una respuesta.
 
 \paragraph{Flujo de Recepción}
 
 \begin{enumerate}
-      \item El medio físico entrega datos al periférico. La ISR del driver o el DMA
-            transfieren los bytes al buffer de recepción inyectado (\texttt{rx\_buffer},
-            propiedad de la \textit{Communication Task}) utilizando la estructura de buffer
-            circular y respetando las protecciones definidas por el driver.
-      \item El driver activa en su registro de eventos el bit correspondiente a
-            \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE}. Si se detecta una condición de error
-            durante la recepción (overflow, framing, paridad), se activa el bit de error
-            específico en lugar del de datos, o simultáneamente con él.
-      \item Al inicio del siguiente ciclo de la \textit{Communication Task}, se captura
-            atómicamente el registro de eventos del driver en una variable local
-            (\textit{snapshot}) y se limpia el registro original. A partir de este momento,
-            todas las FSM operan sobre la copia local, cada una enmascarando los bits que le
-            corresponden.
-      \item La FSM de Recepción consume los eventos del \textit{snapshot}. Si detecta
-            \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE}, o si su estado actual es
-            \texttt{RX\_GATHERING} (indicando que quedan datos pendientes del ciclo
-            anterior), adquiere la protección del buffer de recepción
-            (\texttt{protect\_rx()}) y extrae bytes mediante \texttt{cb\_get()}. Al
-            finalizar el ciclo, libera la protección (\texttt{unprotect\_rx()}) aunque
-            queden datos por procesar, permitiendo que la ISR del driver continúe
-            escribiendo en el buffer.
-      \item Cada byte es evaluado contra el terminador \texttt{LF} (\texttt{0x0A}). Los
-            caracteres \texttt{CR} (\texttt{0x0D}) se descartan silenciosamente. Mientras no
-            aparezca \texttt{LF}, la máquina permanece en el estado \texttt{RX\_GATHERING}.
-      \item Al detectar el terminador, la FSM de Recepción considera el mensaje completo y
-            publica el evento lógico interno \texttt{EV\_MESSAGE\_READY}. A continuación,
-            retorna el control: si el buffer circular quedó vacío, transita a
-            \texttt{RX\_IDLE}; si aún contiene bytes, permanece en \texttt{RX\_GATHERING}
-            para continuar el procesamiento en el siguiente ciclo. De este modo, se procesa
-            un único mensaje por ciclo, acotando el tiempo de ejecución de la tarea.
-      \item La capa de aplicación (Motor SCPI), que es notificada de este evento en el mismo
-            ciclo o en el siguiente según la implementación, toma el mensaje desde el buffer
-            de recepción del middleware y procede a su análisis sintáctico.
+      \item El medio físico entrega datos al periférico. La ISR del driver o el DMA transfieren los bytes al buffer de recepción inyectado (\texttt{rx\_buffer}, propiedad de la \textit{Communication Task}) utilizando la estructura de buffer circular y respetando las protecciones definidas por el driver.
+      \item El driver activa en su registro de eventos el bit correspondiente a \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE}. Si se detecta una condición de error durante la recepción (overflow, framing, paridad), se activa el bit de error específico en lugar del de datos, o simultáneamente con él.
+      \item Al inicio del siguiente ciclo de la \textit{Communication Task}, se captura atómicamente el registro de eventos del driver en una variable local (\textit{snapshot}) y se limpia el registro original. A partir de este momento, todas las FSM operan sobre la copia local, cada una enmascarando los bits que le corresponden.
+      \item La FSM de Recepción consume los eventos del \textit{snapshot}. Si detecta \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE}, o si su estado actual es \texttt{RX\_GATHERING} (indicando que quedan datos pendientes del ciclo anterior), adquiere la protección del buffer de recepción (\texttt{protect\_rx()}) y extrae bytes mediante \texttt{cb\_get()}. Al finalizar el ciclo, libera la protección (\texttt{unprotect\_rx()}) aunque queden datos por procesar, permitiendo que la ISR del driver continúe escribiendo en el buffer.
+      \item Cada byte es evaluado contra el terminador \texttt{LF} (\texttt{0x0A}). Los caracteres \texttt{CR} (\texttt{0x0D}) se descartan silenciosamente. Mientras no aparezca \texttt{LF}, la máquina permanece en el estado \texttt{RX\_GATHERING}.
+      \item Al detectar el terminador, la FSM de Recepción considera el mensaje completo y publica el evento lógico interno \texttt{EV\_MESSAGE\_READY}. A continuación, retorna el control: si el buffer circular quedó vacío, transita a \texttt{RX\_IDLE}; si aún contiene bytes, permanece en \texttt{RX\_GATHERING} para continuar el procesamiento en el siguiente ciclo. De este modo, se procesa un único mensaje por ciclo, acotando el tiempo de ejecución de la tarea.
+      \item La capa de aplicación (Motor SCPI), que es notificada de este evento en el mismo ciclo o en el siguiente según la implementación, toma el mensaje desde el buffer de recepción del middleware y procede a su análisis sintáctico.
 \end{enumerate}
 
 \paragraph{Flujo de Transmisión}
 
 \begin{enumerate}
-    \item La capa de aplicación, una vez generada una respuesta en sus buffers propios,
-          invoca la función \texttt{send\_message()} provista por la API de la
-          \textit{Communication Task}, pasando la referencia al buffer de respuesta y su
-          longitud.
-    \item La \textit{Communication Task} copia los bytes desde el buffer de la aplicación
-          hacia su buffer de transmisión (\texttt{tx\_buffer}) utilizando la función
-          \texttt{cb\_put()} de la biblioteca de buffer circular. Una vez copiados los
-          datos, activa internamente el evento lógico \texttt{EV\_TX\_REQUEST}.
-    \item La FSM de Transmisión, al evaluar este evento en su ciclo correspondiente,
-          transita al estado \texttt{TX\_BUSY} e invoca directamente
-          \texttt{start\_tx()} sobre la interfaz activa.
-    \item El driver, en su implementación de \texttt{start\_tx()}, verifica el estado del
-          hardware y la disponibilidad de datos en \texttt{tx\_buffer}:
-          \begin{itemize}
-              \item Si el hardware está ocupado, retorna \texttt{COMM\_IFACE\_BUSY}. La
-                    FSM permanece en \texttt{TX\_BUSY} y reintentará en el siguiente ciclo.
-              \item Si el buffer está vacío, retorna \texttt{COMM\_IFACE\_IDLE}. La FSM
-                    retorna a \texttt{TX\_IDLE} sin realizar acción alguna.
-              \item Si el hardware está en condición de error, retorna
-                    \texttt{COMM\_IFACE\_ERROR}. La FSM transita a \texttt{TX\_IDLE} y
-                    propaga el error a la aplicación.
-              \item Si el hardware acepta la transmisión, retorna \texttt{COMM\_IFACE\_OK}.
-                    La FSM permanece en \texttt{TX\_BUSY} a la espera del evento de
-                    finalización.
-          \end{itemize}
-    \item Cuando el driver completa la transmisión (por DMA o interrupción), activa en su
-          registro de eventos el bit \texttt{IFACE\_EVENT\_TX\_COMPLETE}.
-    \item En el siguiente ciclo de la tarea de comunicación, la FSM de Transmisión captura
-          este evento desde el \textit{snapshot}, retorna al estado \texttt{TX\_IDLE} y
-          publica el evento lógico \texttt{EV\_TX\_DONE} hacia la aplicación.
-    \item Si durante la transmisión se produce un error (timeout, fallo de bus), el driver
-          activa el evento de error correspondiente (\texttt{IFACE\_EVENT\_TX\_ERROR\_...})
-          y, si corresponde, activa el estado \texttt{COMM\_STATE\_ERROR}. La FSM de
-          Transmisión, al detectar el evento de error en el \textit{snapshot}, puede
-          ejecutar \texttt{reset()} sobre el canal de transmisión y notificar el error a
-          la aplicación a través de la API de comunicación.
+      \item La capa de aplicación, una vez generada una respuesta en sus buffers propios, invoca la función \texttt{send\_message()} provista por la API de la \textit{Communication Task}, pasando la referencia al buffer de respuesta y su longitud.
+      \item La \textit{Communication Task} copia los bytes desde el buffer de la aplicación hacia su buffer de transmisión (\texttt{tx\_buffer}) utilizando la función \texttt{cb\_put()} de la biblioteca de buffer circular. Una vez copiados los datos, activa internamente el evento lógico \texttt{EV\_TX\_REQUEST}.
+      \item La FSM de Transmisión, al evaluar este evento en su ciclo correspondiente, transita al estado \texttt{TX\_BUSY} e invoca directamente \texttt{start\_tx()} sobre la interfaz activa.
+      \item El driver, en su implementación de \texttt{start\_tx()}, verifica el estado del hardware y la disponibilidad de datos en \texttt{tx\_buffer}:
+      \begin{itemize}
+            \item Si el hardware está ocupado, retorna \texttt{COMM\_IFACE\_BUSY}. La FSM permanece en \texttt{TX\_BUSY} y reintentará en el siguiente ciclo.
+            \item Si el buffer está vacío, retorna \texttt{COMM\_IFACE\_IDLE}. La FSM retorna a \texttt{TX\_IDLE} sin realizar acción alguna.
+            \item Si el hardware está en condición de error, retorna \texttt{COMM\_IFACE\_ERROR}. La FSM transita a \texttt{TX\_IDLE} y propaga el error a la aplicación.
+            \item Si el hardware acepta la transmisión, retorna \texttt{COMM\_IFACE\_OK}. La FSM permanece en \texttt{TX\_BUSY} a la espera del evento de finalización.
+      \end{itemize}
+      \item Cuando el driver completa la transmisión (por DMA o interrupción), activa en su registro de eventos el bit \texttt{IFACE\_EVENT\_TX\_COMPLETE}.
+      \item En el siguiente ciclo de la tarea de comunicación, la FSM de Transmisión captura este evento desde el \textit{snapshot}, retorna al estado \texttt{TX\_IDLE} y publica el evento lógico \texttt{EV\_TX\_DONE} hacia la aplicación.
+      \item Si durante la transmisión se produce un error (timeout, fallo de bus), el driver activa el evento de error correspondiente (\texttt{IFACE\_EVENT\_TX\_ERROR\_...}) y, si corresponde, activa el estado \texttt{COMM\_STATE\_ERROR}. La FSM de Transmisión, al detectar el evento de error en el \textit{snapshot}, puede ejecutar \texttt{reset()} sobre el canal de transmisión y notificar el error a la aplicación a través de la API de comunicación.
 \end{enumerate}
 
 \paragraph{Sincronización y No Bloqueo}
 
-Todo el ciclo de recepción y transmisión se ejecuta dentro del mismo hilo de la
-\textit{Communication Task}, sin necesidad de semáforos ni colas adicionales. La
-aplicación, si se ejecuta en el mismo contexto (esquema cooperativo), procesa los mensajes
-de forma secuencial después de que la tarea de comunicación complete su ciclo. Si la
-aplicación reside en una tarea separada, la transferencia se realiza mediante una cola de
-mensajes —implementada como un buffer circular simple— que garantiza la entrega sin
-bloqueo.
+Todo el ciclo de recepción y transmisión se ejecuta dentro del mismo hilo de la \textit{Communication Task}, sin necesidad de semáforos ni colas adicionales. La aplicación, si se ejecuta en el mismo contexto (esquema cooperativo), procesa los mensajes de forma secuencial después de que la tarea de comunicación complete su ciclo. Si la aplicación reside en una tarea separada, la transferencia se realiza mediante una cola de mensajes —implementada como un buffer circular simple— que garantiza la entrega sin bloqueo.
 
-Este flujo será refinado con las máquinas de estado concretas en la sección de Middleware,
-pero la descripción aquí presentada constituye el marco de referencia para todo el
-subsistema.
+Este flujo será refinado con las máquinas de estado concretas en la sección de Middleware, pero la descripción aquí presentada constituye el marco de referencia para todo el subsistema.
 
 %%% =========================================================
 %%% 2. CAPA DE DRIVER (INTERFAZ DE TRANSPORTE FÍSICO)
@@ -499,68 +298,29 @@ subsistema.
 \section{Capa de Driver}
 \label{sec:capa-driver}
 
-La capa de driver constituye el punto de contacto entre el \textit{hardware} de comunicación
-y el \textit{firmware} de nivel superior. Su misión es traducir las particularidades de cada
-periférico físico a una representación abstracta y homogénea, de modo que el resto del
-sistema pueda operar sin conocer los detalles de implementación del medio de transporte.
+La capa de driver constituye el punto de contacto entre el \textit{hardware} de comunicación y el \textit{firmware} de nivel superior. Su misión es traducir las particularidades de cada periférico físico a una representación abstracta y homogénea, de modo que el resto del sistema pueda operar sin conocer los detalles de implementación del medio de transporte.
 
-Esta sección describe el contrato que todo driver debe satisfacer —la interfaz abstracta
-\texttt{comm\_iface\_t}—, los recursos que administra y las estrategias de sincronización
-que emplea para operar de manera segura en un entorno con concurrencia.
+Esta sección describe el contrato que todo driver debe satisfacer —la interfaz abstracta \texttt{comm\_iface\_t}—, los recursos que administra y las estrategias de sincronización que emplea para operar de manera segura en un entorno con concurrencia.
 
 \subsection{Interfaz Abstracta \texttt{comm\_iface\_t}}
 \label{subsec:comm-iface}
 
-La interfaz \texttt{comm\_iface\_t} es una estructura de punteros a función y campos de
-datos que define el contrato vinculante para cualquier implementación de driver de
-comunicación. Está diseñada para ser completamente agnóstica respecto del periférico
-subyacente: UART, USBTMC, TCP/IP o cualquier otro medio pueden ser encapsulados detrás de
-esta misma interfaz.
+La interfaz \texttt{comm\_iface\_t} es una estructura de punteros a función y campos de datos que define el contrato vinculante para cualquier implementación de driver de comunicación. Está diseñada para ser completamente agnóstica respecto del periférico subyacente: UART, USBTMC, TCP/IP o cualquier otro medio pueden ser encapsulados detrás de esta misma interfaz.
 
-La estructura, definida en el código como \texttt{comm\_iface\_t}, contiene los siguientes
-grupos funcionales:
+La estructura, definida en el código como \texttt{comm\_iface\_t}, contiene los siguientes grupos funcionales:
 
 \begin{itemize}
-      \item \textbf{Identificación:} un campo \texttt{id} (\texttt{comm\_iface\_id\_t}) que
-            identifica unívocamente la interfaz (USART, TCP, USBTMC) y un campo \texttt{name}
-            legible para diagnóstico.
-      \item \textbf{Contexto privado:} un puntero opaco \texttt{void *context} que cada
-            implementación concreta utiliza para almacenar sus datos internos (registros del
-            periférico, handles, buffers auxiliares). Ni la \textit{Communication Task} ni la
-            aplicación acceden a este campo; simplemente lo reenvían en cada invocación a los
-            \textit{callbacks}.
-      \item \textbf{Estado y eventos:} los campos \texttt{state} (\texttt{comm\_iface\_state\_t})
-            y \texttt{event} (\texttt{comm\_iface\_event\_t}) mantienen, respectivamente, la
-            condición operativa actual de la interfaz y el registro de eventos pendientes de
-            procesar.
-      \item \textbf{Buffers de transporte inyectados:} punteros \texttt{rx\_buffer} y
-            \texttt{tx\_buffer} a sendos \textit{buffers circulares}. Estos buffers son
-            propiedad de la \textit{Communication Task} y se asignan a la estructura antes de
-            invocar \texttt{init()}. El driver los utiliza como espacio de trabajo para la
-            transferencia de datos, pero no es responsable de su asignación ni de su
-            liberación.
-      \item \textbf{Callbacks de ciclo de vida:} \texttt{init()}, \texttt{deinit()} y
-            \texttt{reset()}. Gestionan la inicialización, desinicialización y reinicio del
-            periférico. Retornan un código de error de tipo \texttt{comm\_error\_t} para
-            informar del resultado de la operación.
-      \item \textbf{Callbacks de control de flujo:} \texttt{start\_rx()}, \texttt{stop\_rx()}
-            y \texttt{start\_tx()}. Activan y desactivan la recepción, e inician la
-            transmisión de un bloque de datos previamente cargado.
-      \item \textbf{Callback de gestión de eventos:} \texttt{get\_event()}. Permite a la
-            \textit{Communication Task} obtener el \textit{snapshot} atómico del registro de
-            eventos al inicio de cada ciclo. La escritura de eventos es responsabilidad
-            exclusiva del driver y se realiza de forma interna, sin exponer un \textit{callback}
-            público para ello.
-      \item \textbf{Callbacks de protección concurrente:} \texttt{protect\_rx()},
-            \texttt{unprotect\_rx()}, \texttt{protect\_tx()} y \texttt{unprotect\_tx()}.
-            Proveen mecanismos de exclusión mutua para el acceso a los buffers de recepción y
-            transmisión desde contextos concurrentes (ISR y tarea). La implementación concreta
-            de estos \textit{callbacks} depende del hardware y del sistema operativo
-            subyacente; las capas superiores los invocan sin conocer su estrategia interna.
+      \item \textbf{Identificación:} un campo \texttt{id} (\texttt{comm\_iface\_id\_t}) que identifica unívocamente la interfaz (USART, TCP, USBTMC) y un campo \texttt{name} legible para diagnóstico.
+      \item \textbf{Contexto privado:} un puntero opaco \texttt{void *context} que cada implementación concreta utiliza para almacenar sus datos internos (registros del periférico, handles, buffers auxiliares). Ni la \textit{Communication Task} ni la aplicación acceden a este campo; simplemente lo reenvían en cada invocación a los \textit{callbacks}.
+      \item \textbf{Estado y eventos:} los campos \texttt{state} (\texttt{comm\_iface\_state\_t}) y \texttt{event} (\texttt{comm\_iface\_event\_t}) mantienen, respectivamente, la condición operativa actual de la interfaz y el registro de eventos pendientes de procesar.
+      \item \textbf{Buffers de transporte inyectados:} punteros \texttt{rx\_buffer} y \texttt{tx\_buffer} a sendos \textit{buffers circulares}. Estos buffers son propiedad de la \textit{Communication Task} y se asignan a la estructura antes de invocar \texttt{init()}. El driver los utiliza como espacio de trabajo para la transferencia de datos, pero no es responsable de su asignación ni de su liberación.
+      \item \textbf{Callbacks de ciclo de vida:} \texttt{init()}, \texttt{deinit()} y \texttt{reset()}. Gestionan la inicialización, desinicialización y reinicio del periférico. Retornan un código de error de tipo \texttt{comm\_error\_t} para informar del resultado de la operación.
+      \item \textbf{Callbacks de control de flujo:} \texttt{start\_rx()}, \texttt{stop\_rx()} y \texttt{start\_tx()}. Activan y desactivan la recepción, e inician la transmisión de un bloque de datos previamente cargado.
+      \item \textbf{Callback de gestión de eventos:} \texttt{get\_event()}. Permite a la \textit{Communication Task} obtener el \textit{snapshot} atómico del registro de eventos al inicio de cada ciclo. La escritura de eventos es responsabilidad exclusiva del driver y se realiza de forma interna, sin exponer un \textit{callback} público para ello.
+      \item \textbf{Callbacks de protección concurrente:} \texttt{protect\_rx()}, \texttt{unprotect\_rx()}, \texttt{protect\_tx()} y \texttt{unprotect\_tx()}. Proveen mecanismos de exclusión mutua para el acceso a los buffers de recepción y transmisión desde contextos concurrentes (ISR y tarea). La implementación concreta de estos \textit{callbacks} depende del hardware y del sistema operativo subyacente; las capas superiores los invocan sin conocer su estrategia interna.
 \end{itemize}
 
-La figura \ref{fig:comm-iface-estructura} muestra un diagrama esquemático de la estructura
-\texttt{comm\_iface\_t} y su relación con los componentes que la utilizan.
+La figura \ref{fig:comm-iface-estructura} muestra un diagrama esquemático de la estructura \texttt{comm\_iface\_t} y su relación con los componentes que la utilizan.
 
 \begin{figure}[htbp]
     \centering
@@ -570,127 +330,76 @@ La figura \ref{fig:comm-iface-estructura} muestra un diagrama esquemático de la
     \label{fig:comm-iface-estructura}
 \end{figure}
 
-La interfaz \texttt{comm\_iface\_t} es el único punto de acoplamiento entre el middleware
-y el hardware de comunicaciones. Cualquier driver que implemente correctamente estos
-\textit{callbacks} y respete la semántica de los campos de estado y eventos podrá ser
-utilizado por la \textit{Communication Task} sin modificar una sola línea de su código.
+La interfaz \texttt{comm\_iface\_t} es el único punto de acoplamiento entre el middleware y el hardware de comunicaciones. Cualquier driver que implemente correctamente estos \textit{callbacks} y respete la semántica de los campos de estado y eventos podrá ser utilizado por la \textit{Communication Task} sin modificar una sola línea de su código.
 
 \subsection{Estados de la Interfaz}
 \label{subsec:estados-interfaz}
 
-La condición operativa de una interfaz de comunicación se representa mediante el campo
-\texttt{state} de la estructura \texttt{comm\_iface\_t}. Este campo es una máscara de bits
-cuyo tipo, \texttt{comm\_iface\_state\_t}, define los siguientes valores:
+La condición operativa de una interfaz de comunicación se representa mediante el campo \texttt{state} de la estructura \texttt{comm\_iface\_t}. Este campo es una máscara de bits cuyo tipo, \texttt{comm\_iface\_state\_t}, define los siguientes valores:
 
 \begin{table}[htbp]
-    \centering
-    \caption{Estados definidos en \texttt{comm\_iface\_state\_t}.}
-    \label{tab:comm-iface-state}
-    \begin{tabular}{llp{6cm}}
-        \toprule
-        \textbf{Símbolo} & \textbf{Máscara} & \textbf{Significado} \\
-        \midrule
-        \texttt{COMM\_STATE\_NONE}      & \texttt{0x00} & Sin estado activo. Interfaz no inicializada o en reposo total. \\
-        \texttt{COMM\_STATE\_CONNECTED} & \texttt{0x01} & Enlace físico o lógico establecido. \\
-        \texttt{COMM\_STATE\_RX\_ACTIVE}& \texttt{0x02} & Recepción habilitada. Puede haber datos entrantes o la interfaz está escuchando. \\
-        \texttt{COMM\_STATE\_TX\_ACTIVE}& \texttt{0x04} & Transmisión en curso. El periférico o el DMA está enviando datos. \\
-        \texttt{COMM\_STATE\_ERROR}     & \texttt{0x08} & Interfaz en condición de falla global persistente. \\
-        \bottomrule
-    \end{tabular}
+      \centering
+      \caption{Estados definidos en \texttt{comm\_iface\_state\_t}.}
+      \label{tab:comm-iface-state}
+      \begin{tabular}{llp{6cm}}
+            \toprule
+            \textbf{Símbolo} & \textbf{Máscara} & \textbf{Significado} \\
+            \midrule
+            \texttt{COMM\_STATE\_NONE}      & \texttt{0x00} & Sin estado activo. Interfaz no inicializada o en reposo total. \\
+            \texttt{COMM\_STATE\_CONNECTED} & \texttt{0x01} & Enlace físico o lógico establecido. \\
+            \texttt{COMM\_STATE\_RX\_ACTIVE}& \texttt{0x02} & Recepción habilitada. Puede haber datos entrantes o la interfaz está escuchando. \\
+            \texttt{COMM\_STATE\_TX\_ACTIVE}& \texttt{0x04} & Transmisión en curso. El periférico o el DMA está enviando datos. \\
+            \texttt{COMM\_STATE\_ERROR}     & \texttt{0x08} & Interfaz en condición de falla global persistente. \\
+            \bottomrule
+      \end{tabular}
 \end{table}
 
 \paragraph{Estados como condiciones persistentes}
 
-Un estado permanece activo hasta que una operación explícita o un nuevo evento de hardware
-provoquen su modificación. Esto diferencia a los estados de los eventos: mientras que un
-evento notifica un suceso instantáneo (y es consumido por la \textit{Communication Task}), un
-estado refleja la situación actual de la interfaz y puede ser consultado en cualquier
-momento.
+Un estado permanece activo hasta que una operación explícita o un nuevo evento de hardware provoquen su modificación. Esto diferencia a los estados de los eventos: mientras que un evento notifica un suceso instantáneo (y es consumido por la \textit{Communication Task}), un estado refleja la situación actual de la interfaz y puede ser consultado en cualquier momento.
 
 \paragraph{Coexistencia de estados}
 
-Al tratarse de una máscara de bits, varios estados pueden estar activos simultáneamente,
-permitiendo representar condiciones compuestas. Por ejemplo, una interfaz puede encontrarse
-en los estados \texttt{COMM\_STATE\_CONNECTED} y \texttt{COMM\_STATE\_RX\_ACTIVE} al mismo
-tiempo, indicando que el enlace está establecido y que además se está recibiendo
-información.
+Al tratarse de una máscara de bits, varios estados pueden estar activos simultáneamente, permitiendo representar condiciones compuestas. Por ejemplo, una interfaz puede encontrarse en los estados \texttt{COMM\_STATE\_CONNECTED} y \texttt{COMM\_STATE\_RX\_ACTIVE} al mismo tiempo, indicando que el enlace está establecido y que además se está recibiendo información.
 
-La combinación \texttt{COMM\_STATE\_CONNECTED | COMM\_STATE\_TX\_ACTIVE} describe una
-interfaz que está transmitiendo datos sobre un enlace activo.
+La combinación \texttt{COMM\_STATE\_CONNECTED} | \texttt{COMM\_STATE\_TX\_ACTIVE} describe una interfaz que está transmitiendo datos sobre un enlace activo.
 
 \paragraph{Semántica de cada estado}
 
 \begin{description}
-    \item[\texttt{COMM\_STATE\_CONNECTED}:] Indica que el medio de comunicación ha
-          establecido una conexión física o lógica. En una UART simple este estado puede
-          estar siempre presente si el periférico está inicializado; en USBTMC o TCP/IP
-          refleja que el \textit{host} remoto ha establecido la sesión. La
-          \textit{Communication Task} consulta este estado antes de intentar transmitir o
-          recibir, evitando operaciones sobre una interfaz no disponible.
+    \item[\texttt{COMM\_STATE\_CONNECTED}:] Indica que el medio de comunicación ha establecido una conexión física o lógica. En una UART simple este estado puede estar siempre presente si el periférico está inicializado; en USBTMC o TCP/IP refleja que el \textit{host} remoto ha establecido la sesión. La \textit{Communication Task} consulta este estado antes de intentar transmitir o recibir, evitando operaciones sobre una interfaz no disponible.
 
-    \item[\texttt{COMM\_STATE\_RX\_ACTIVE}:] Señala que el \textit{hardware} de recepción
-          está habilitado. Se activa al invocar \texttt{start\_rx()} y se desactiva con
-          \texttt{stop\_rx()}. Cuando está activo, la ISR o el DMA pueden escribir en el
-          buffer de recepción y generar eventos \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE}.
+    \item[\texttt{COMM\_STATE\_RX\_ACTIVE}:] Señala que el \textit{hardware} de recepción está habilitado. Se activa al invocar \texttt{start\_rx()} y se desactiva con \texttt{stop\_rx()}. Cuando está activo, la ISR o el DMA pueden escribir en el buffer de recepción y generar eventos \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE}.
 
-    \item[\texttt{COMM\_STATE\_TX\_ACTIVE}:] Indica que hay una transmisión en curso. Es
-          activado por el driver al iniciar la transmisión física de un bloque (después de
-          que la \textit{Communication Task} haya cargado los datos en el buffer de transmisión 
-          mediante \texttt{cb\_put()} y llamado a \texttt{start\_tx()}). Se desactiva cuando la
-          transmisión finaliza, momento en el cual se genera el evento
-          \texttt{IFACE\_EVENT\_TX\_COMPLETE}.
+    \item[\texttt{COMM\_STATE\_TX\_ACTIVE}:] Indica que hay una transmisión en curso. Es activado por el driver al iniciar la transmisión física de un bloque (después de que la \textit{Communication Task} haya cargado los datos en el buffer de transmisión mediante \texttt{cb\_put()} y llamado a \texttt{start\_tx()}). Se desactiva cuando la transmisión finaliza, momento en el cual se genera el evento \texttt{IFACE\_EVENT\_TX\_COMPLETE}.
 
-    \item[\texttt{COMM\_STATE\_ERROR}:] Representa una condición de falla persistente que
-          impide la operación normal de la interfaz. Se activa cuando ocurre un evento de
-          error crítico (por ejemplo, \texttt{IFACE\_EVENT\_TX\_ERROR\_BUS\_FAULT}) y
-          permanece activo hasta que se ejecuta una operación de reinicio (\texttt{reset()})
-          o reinicialización (\texttt{deinit()} seguido de \texttt{init()}). Mientras este
-          estado está activo, la \textit{Communication Task} puede inhibir las operaciones
-          de recepción y transmisión.
+    \item[\texttt{COMM\_STATE\_ERROR}:] Representa una condición de falla persistente que impide la operación normal de la interfaz. Se activa cuando ocurre un evento de error crítico (por ejemplo, \texttt{IFACE\_EVENT\_TX\_ERROR\_BUS\_FAULT}) y permanece activo hasta que se ejecuta una operación de reinicio (\texttt{reset()}) o reinicialización (\texttt{deinit()} seguido de \texttt{init()}). Mientras este estado está activo, la \textit{Communication Task} puede inhibir las operaciones de recepción y transmisión.
 \end{description}
 
 \paragraph{Modificación y visibilidad}
 
-Los estados son modificados exclusivamente por el driver, ya sea como resultado de
-operaciones invocadas a través de los \textit{callbacks} de la interfaz (\texttt{start\_rx},
-\texttt{stop\_rx}, \texttt{start\_tx}, \texttt{reset}) o como respuesta a condiciones de
-\textit{hardware} detectadas en la ISR. Las capas superiores acceden al campo \texttt{state}
-en modo exclusivamente lectura. Esta restricción preserva al driver como única fuente de
-verdad sobre el estado del periférico y evita inconsistencias derivadas de modificaciones
-externas no coordinadas.
+Los estados son modificados exclusivamente por el driver, ya sea como resultado de operaciones invocadas a través de los \textit{callbacks} de la interfaz (\texttt{start\_rx}, \texttt{stop\_rx}, \texttt{start\_tx}, \texttt{reset}) o como respuesta a condiciones de \textit{hardware} detectadas en la ISR. Las capas superiores acceden al campo \texttt{state} en modo exclusivamente lectura. Esta restricción preserva al driver como única fuente de verdad sobre el estado del periférico y evita inconsistencias derivadas de modificaciones externas no coordinadas.
 
 
 
-Cuando la \textit{Communication Task} necesita realizar una operación, invoca el
-\textit{callback} correspondiente y evalúa el resultado. Por ejemplo, una solicitud de
-transmisión puede retornar un código que indica éxito, que la interfaz está ocupada o que
-no hay datos pendientes, permitiendo a la FSM reintentar en el siguiente ciclo. De este
-modo, el estado interno del driver gobierna la viabilidad de cada operación sin exponer
-su lógica a las capas superiores.
+Cuando la \textit{Communication Task} necesita realizar una operación, invoca el \textit{callback} correspondiente y evalúa el resultado. Por ejemplo, una solicitud de transmisión puede retornar un código que indica éxito, que la interfaz está ocupada o que no hay datos pendientes, permitiendo a la FSM reintentar en el siguiente ciclo. De este modo, el estado interno del driver gobierna la viabilidad de cada operación sin exponer su lógica a las capas superiores.
 
 \subsection{Eventos de Comunicación y Error}
 \label{subsec:eventos-comunicacion}
 
-Los eventos representan sucesos asincrónicos e instantáneos que el driver notifica a la
-\textit{Communication Task}. A diferencia de los estados, que reflejan condiciones
-persistentes, los eventos son puntuales: una vez consumidos por la tarea, desaparecen del
-registro hasta que la condición que los genera vuelva a producirse.
+Los eventos representan sucesos asincrónicos e instantáneos que el driver notifica a la \textit{Communication Task}. A diferencia de los estados, que reflejan condiciones persistentes, los eventos son puntuales: una vez consumidos por la tarea, desaparecen del registro hasta que la condición que los genera vuelva a producirse.
 
-Todos los eventos se codifican en el tipo \texttt{comm\_iface\_event\_t}, una máscara de
-bits donde cada bit representa un tipo de suceso. Esta representación permite que múltiples
-eventos coexistan en el registro —por ejemplo, la llegada de datos y la detección de un
-error de paridad pueden señalizarse simultáneamente— y que la \textit{Communication Task}
-los procese de manera eficiente mediante operaciones de enmascaramiento binario.
+Todos los eventos se codifican en el tipo \texttt{comm\_iface\_event\_t}, una máscara de bits donde cada bit representa un tipo de suceso. Esta representación permite que múltiples eventos coexistan en el registro —por ejemplo, la llegada de datos y la detección de un error de paridad pueden señalizarse simultáneamente— y que la \textit{Communication Task} los procese de manera eficiente mediante operaciones de enmascaramiento binario.
 
 \paragraph{Eventos de Flujo Normal}
 
 Son aquellos que informan del progreso ordinario de la comunicación:
 
 \begin{description}
-    \item[\texttt{IFACE\_EVENT\_INTERFACE\_CONNECTED}:] La interfaz ha alcanzado un estado operativo y está lista para transmitir y recibir. En medios donde la conexión es inmediata (UART), el driver publica este evento al completar exitosamente init(). En medios negociados (USBTMC, TCP/IP), se publica cuando la negociación con el host remoto finaliza.
-    \item[\texttt{IFACE\_EVENT\_INTERFACE\_DISCONNECTED}:] La conexión se ha perdido. Aplica a interfaces como USBTMC o TCP/IP, donde la sesión puede cerrarse.
-    \item[\texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE}:] Se han recibido nuevos bytes y están disponibles en el buffer de recepción. Es la señal principal que dispara la FSM de recepción.
-    \item[\texttt{IFACE\_EVENT\_TX\_COMPLETE}:] La transmisión en curso ha finalizado exitosamente. El hardware (DMA o periférico) ha enviado todos los bytes y el canal de transmisión está nuevamente disponible.
+      \item[\texttt{IFACE\_EVENT\_INTERFACE\_CONNECTED}:] La interfaz ha alcanzado un estado operativo y está lista para transmitir y recibir. En medios donde la conexión es inmediata (UART), el driver publica este evento al completar exitosamente init(). En medios negociados (USBTMC, TCP/IP), se publica cuando la negociación con el host remoto finaliza.
+      \item[\texttt{IFACE\_EVENT\_INTERFACE\_DISCONNECTED}:] La conexión se ha perdido. Aplica a interfaces como USBTMC o TCP/IP, donde la sesión puede cerrarse.
+      \item[\texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE}:] Se han recibido nuevos bytes y están disponibles en el buffer de recepción. Es la señal principal que dispara la FSM de recepción.
+      \item[\texttt{IFACE\_EVENT\_TX\_COMPLETE}:] La transmisión en curso ha finalizado exitosamente. El hardware (DMA o periférico) ha enviado todos los bytes y el canal de transmisión está nuevamente disponible.
 \end{description}
 
 \paragraph{Eventos de Error}
@@ -698,183 +407,114 @@ Son aquellos que informan del progreso ordinario de la comunicación:
 Notifican condiciones anómalas detectadas durante la operación. Se dividen según la dirección del flujo afectado:
 
 \begin{description}
-    \item[Errores de recepción:]
-    \begin{itemize}
-        \item \texttt{IFACE\_EVENT\_RX\_ERROR\_OVERFLOW}: el buffer de recepción no pudo
-              alojar todos los datos entrantes y se produjo pérdida de bytes.
-        \item \texttt{IFACE\_EVENT\_RX\_ERROR\_FRAMING}: error de encuadre en la trama
-              (UART).
-        \item \texttt{IFACE\_EVENT\_RX\_ERROR\_PARITY}: error de paridad (UART).
-    \end{itemize}
-    \item[Errores de transmisión:]
-    \begin{itemize}
-        \item \texttt{IFACE\_EVENT\_TX\_ERROR\_TIMEOUT}: el \textit{host} remoto no
-              consumió los datos dentro del tiempo estipulado.
-        \item \texttt{IFACE\_EVENT\_TX\_ERROR\_BUS\_FAULT}: error físico en el bus de
-              datos (por ejemplo, un fallo de DMA).
-    \end{itemize}
-    \item[Error interno:]
-    \begin{itemize}
-        \item \texttt{IFACE\_EVENT\_INTERNAL\_ERROR}: condición anómala no vinculada
-              directamente al medio, como un fallo de asignación de memoria o una
-              inconsistencia interna del driver.
-    \end{itemize}
+      \item[Errores de recepción:]
+      \begin{itemize}
+            \item \texttt{IFACE\_EVENT\_RX\_ERROR\_OVERFLOW}: el buffer de recepción no pudo alojar todos los datos entrantes y se produjo pérdida de bytes.
+            \item \texttt{IFACE\_EVENT\_RX\_ERROR\_FRAMING}: error de encuadre en la trama (UART).
+            \item \texttt{IFACE\_EVENT\_RX\_ERROR\_PARITY}: error de paridad (UART).
+      \end{itemize}
+      \item[Errores de transmisión:]
+      \begin{itemize}
+            \item \texttt{IFACE\_EVENT\_TX\_ERROR\_TIMEOUT}: el \textit{host} remoto no consumió los datos dentro del tiempo estipulado.
+            \item \texttt{IFACE\_EVENT\_TX\_ERROR\_BUS\_FAULT}: error físico en el bus de datos (por ejemplo, un fallo de DMA).
+      \end{itemize}
+      \item[Error interno:]
+      \begin{itemize}
+            \item \texttt{IFACE\_EVENT\_INTERNAL\_ERROR}: condición anómala no vinculada directamente al medio, como un fallo de asignación de memoria o una inconsistencia interna del driver.
+      \end{itemize}
 \end{description}
 
 \paragraph{Relación con el estado de error}
 
-La activación de un evento de error puede provocar adicionalmente la activación del estado
-persistente \texttt{COMM\_STATE\_ERROR} por parte del driver. Esta decisión queda a criterio
-de cada implementación concreta; en general, los errores que comprometen la operación futura
-de la interfaz (como un fallo de bus o un overflow que requiera reinicio del periférico)
-activan el estado de error, mientras que los errores recuperables (como un encuadre
-puntual) pueden limitarse a notificar el evento sin modificar el estado global.
+La activación de un evento de error puede provocar adicionalmente la activación del estado persistente \texttt{COMM\_STATE\_ERROR} por parte del driver. Esta decisión queda a criterio de cada implementación concreta; en general, los errores que comprometen la operación futura de la interfaz (como un fallo de bus o un overflow que requiera reinicio del periférico) activan el estado de error, mientras que los errores recuperables (como un encuadre puntual) pueden limitarse a notificar el evento sin modificar el estado global.
 
 \paragraph{Producción y consumo de eventos}
 
-El driver escribe directamente en el campo \texttt{event} de la estructura
-\texttt{comm\_iface\_t}, siempre bajo la protección de acceso concurrente adecuada
-(\texttt{protect\_rx} / \texttt{protect\_tx} o ambas). Esta escritura ocurre
-típicamente desde la rutina de servicio de interrupción (ISR) o desde el código que
-atiende una condición de error detectada durante una operación solicitada
-(\texttt{start\_tx}, \texttt{start\_rx}). La \textit{Communication Task} consume
-los eventos al inicio de cada ciclo mediante el \textit{callback} \texttt{get\_event()},
-que implementa una lectura atómica con limpieza inmediata (\textit{clear-on-read}). Este
-mecanismo, detallado en la sección correspondiente del middleware, garantiza que ningún
-evento se pierda entre ciclos y que todas las FSM trabajen sobre una instantánea coherente
-del estado del \textit{hardware}.
+El driver escribe directamente en el campo \texttt{event} de la estructura \texttt{comm\_iface\_t}, siempre bajo la protección de acceso concurrente adecuada (\texttt{protect\_rx} / \texttt{protect\_tx} o ambas). Esta escritura ocurre típicamente desde la rutina de servicio de interrupción (ISR) o desde el código que atiende una condición de error detectada durante una operación solicitada (\texttt{start\_tx}, \texttt{start\_rx}). La \textit{Communication Task} consume los eventos al inicio de cada ciclo mediante el \textit{callback} \texttt{get\_event()}, que implementa una lectura atómica con limpieza inmediata (\textit{clear-on-read}). Este mecanismo, detallado en la sección correspondiente del middleware, garantiza que ningún evento se pierda entre ciclos y que todas las FSM trabajen sobre una instantánea coherente del estado del \textit{hardware}.
 
 \subsection{APIs de Control de Flujo}
 \label{subsec:api-control-flujo}
 
-Los \textit{callbacks} de control de flujo permiten a la \textit{Communication Task}
-gestionar la recepción y la transmisión de datos a través de la interfaz física. Todas
-estas funciones son \textbf{no bloqueantes} y retornan un código de tipo
-\texttt{com\_response\_t} que informa del resultado inmediato de la operación solicitada.
+Los \textit{callbacks} de control de flujo permiten a la \textit{Communication Task} gestionar la recepción y la transmisión de datos a través de la interfaz física. Todas estas funciones son \textbf{no bloqueantes} y retornan un código de tipo \texttt{com\_response\_t} que informa del resultado inmediato de la operación solicitada.
 
 Los códigos de retorno están definidos en el tipo \texttt{com\_response\_t}:
 
 \begin{table}[htbp]
-    \centering
-    \caption{Valores definidos en \texttt{com\_response\_t}.}
-    \label{tab:com-response}
-    \begin{tabular}{llp{7cm}}
-        \toprule
-        \textbf{Símbolo} & \textbf{Valor} & \textbf{Interpretación para la FSM} \\
-        \midrule
-        \texttt{COMM\_IFACE\_OK}    & \texttt{0x00} & Operación completada con éxito. \\
-        \texttt{COMM\_IFACE\_ERROR} & \texttt{0x01} & La interfaz está en condición de error y rechazó la operación. \\
-        \texttt{COMM\_IFACE\_BUSY}  & \texttt{0x02} & La interfaz está ocupada y no puede aceptar la operación en este ciclo. \\
-        \texttt{COMM\_IFACE\_IDLE}  & \texttt{0x03} & Sin datos pendientes (aplica a \texttt{start\_tx}). \\
-        \bottomrule
-    \end{tabular}
+      \centering
+      \caption{Valores definidos en \texttt{com\_response\_t}.}
+      \label{tab:com-response}
+      \begin{tabular}{llp{7cm}}
+            \toprule
+            \textbf{Símbolo} & \textbf{Valor} & \textbf{Interpretación para la FSM} \\
+            \midrule
+            \texttt{COMM\_IFACE\_OK}    & \texttt{0x00} & Operación completada con éxito. \\
+            \texttt{COMM\_IFACE\_ERROR} & \texttt{0x01} & La interfaz está en condición de error y rechazó la operación. \\
+            \texttt{COMM\_IFACE\_BUSY}  & \texttt{0x02} & La interfaz está ocupada y no puede aceptar la operación en este ciclo. \\
+            \texttt{COMM\_IFACE\_IDLE}  & \texttt{0x03} & Sin datos pendientes (aplica a \texttt{start\_tx}). \\
+            \bottomrule
+      \end{tabular}
 \end{table}
 
 \paragraph{\texttt{start\_rx()}}
 
 \begin{description}
-    \item[Firma:] \texttt{com\_response\_t (*start\_rx)(void *ctx);}
-    \item[Propósito:] Activar el canal de recepción del periférico y prepararlo para
-          recibir datos desde el medio físico.
-    \item[Comportamiento esperado:] Configura el \textit{hardware} para que los bytes
-          entrantes se depositen directamente en el buffer de recepción inyectado
-          (\texttt{rx\_buffer}) mediante DMA o interrupciones. Si la configuración es
-          exitosa, el driver activa el estado \texttt{COMM\_STATE\_RX\_ACTIVE} y,
-          opcionalmente, limpia un error previo. En caso de fallo, desactiva el estado
-          de recepción, activa \texttt{COMM\_STATE\_ERROR} y publica el evento
-          \texttt{IFACE\_EVENT\_INTERNAL\_ERROR}.
-    \item[Valores de retorno:]
-          \begin{itemize}
-              \item \texttt{COMM\_IFACE\_OK}: la recepción se ha iniciado correctamente.
-              \item \texttt{COMM\_IFACE\_ERROR}: no se pudo iniciar la recepción (fallo
-                    del periférico o inconsistencia interna).
-          \end{itemize}
+      \item[Firma:] \texttt{com\_response\_t (*start\_rx)(void *ctx);}
+      \item[Propósito:] Activar el canal de recepción del periférico y prepararlo para recibir datos desde el medio físico.
+      \item[Comportamiento esperado:] Configura el \textit{hardware} para que los bytes entrantes se depositen directamente en el buffer de recepción inyectado (\texttt{rx\_buffer}) mediante DMA o interrupciones. Si la configuración es exitosa, el driver activa el estado \texttt{COMM\_STATE\_RX\_ACTIVE} y, opcionalmente, limpia un error previo. En caso de fallo, desactiva el estado de recepción, activa \texttt{COMM\_STATE\_ERROR} y publica el evento \texttt{IFACE\_EVENT\_INTERNAL\_ERROR}.
+      \item[Valores de retorno:]
+            \begin{itemize}
+                  \item \texttt{COMM\_IFACE\_OK}: la recepción se ha iniciado correctamente.
+                  \item \texttt{COMM\_IFACE\_ERROR}: no se pudo iniciar la recepción (fallo del periférico o inconsistencia interna).
+            \end{itemize}
 \end{description}
 
 \paragraph{\texttt{stop\_rx()}}
 
 \begin{description}
-    \item[Firma:] \texttt{com\_response\_t (*stop\_rx)(void *ctx);}
-    \item[Propósito:] Detener la recepción en curso y liberar los recursos de
-          \textit{hardware} asociados.
-    \item[Comportamiento esperado:] Detiene el DMA o las interrupciones de recepción
-          y desactiva el estado \texttt{COMM\_STATE\_RX\_ACTIVE}. Si la interfaz no
-          está disponible, publica \texttt{IFACE\_EVENT\_INTERNAL\_ERROR}.
-    \item[Valores de retorno:]
-          \begin{itemize}
-              \item \texttt{COMM\_IFACE\_OK}: la recepción se detuvo correctamente.
-              \item \texttt{COMM\_IFACE\_ERROR}: la interfaz no se encontró o hubo un
-                    error interno.
-          \end{itemize}
+      \item[Firma:] \texttt{com\_response\_t (*stop\_rx)(void *ctx);}
+      \item[Propósito:] Detener la recepción en curso y liberar los recursos de \textit{hardware} asociados.
+      \item[Comportamiento esperado:] Detiene el DMA o las interrupciones de recepción y desactiva el estado \texttt{COMM\_STATE\_RX\_ACTIVE}. Si la interfaz no está disponible, publica \texttt{IFACE\_EVENT\_INTERNAL\_ERROR}.
+      \item[Valores de retorno:]
+            \begin{itemize}
+                  \item \texttt{COMM\_IFACE\_OK}: la recepción se detuvo correctamente.
+                  \item \texttt{COMM\_IFACE\_ERROR}: la interfaz no se encontró o hubo un error interno.
+            \end{itemize}
 \end{description}
 
 \paragraph{\texttt{start\_tx()}}
 
 \begin{description}
-    \item[Firma:] \texttt{com\_response\_t (*start\_tx)(void *ctx);}
-    \item[Propósito:] Iniciar la transmisión de los datos acumulados en el buffer de
-          salida (\texttt{tx\_buffer}) hacia el medio físico.
-    \item[Comportamiento esperado:] El driver verifica el estado del \textit{hardware}
-          de transmisión y la disponibilidad de datos en \texttt{tx\_buffer}:
-          \begin{itemize}
-              \item Si el \textit{hardware} está ocupado (por ejemplo, una transmisión
-                    previa aún en curso), retorna \texttt{COMM\_IFACE\_BUSY}.
-              \item Si el buffer \texttt{tx\_buffer} está vacío, retorna
-                    \texttt{COMM\_IFACE\_IDLE}.
-              \item Si el \textit{hardware} está en condición de error, activa
-                    \texttt{COMM\_STATE\_ERROR}, publica un evento de error (por ejemplo,
-                    \texttt{IFACE\_EVENT\_TX\_ERROR\_BUS\_FAULT}) y retorna
-                    \texttt{COMM\_IFACE\_ERROR}.
-              \item Si el \textit{hardware} está listo y hay datos, lee el bloque
-                    contiguo de bytes desde \texttt{tx\_buffer} (respetando las
-                    protecciones de acceso concurrente), programa el DMA o la
-                    interrupción de transmisión, activa \texttt{COMM\_STATE\_TX\_ACTIVE}
-                    y retorna \texttt{COMM\_IFACE\_OK}.
-          \end{itemize}
-    \item[Valores de retorno:]
-          \begin{itemize}
-              \item \texttt{COMM\_IFACE\_OK}: la transmisión se ha iniciado
-                    correctamente.
-              \item \texttt{COMM\_IFACE\_BUSY}: el \textit{hardware} está ocupado; la
-                    FSM reintentará en el siguiente ciclo.
-              \item \texttt{COMM\_IFACE\_IDLE}: no hay datos pendientes en el buffer de
-                    salida.
-              \item \texttt{COMM\_IFACE\_ERROR}: fallo irrecuperable en la transmisión;
-                    la FSM debe notificar el error y ejecutar \texttt{reset()} sobre el
-                    canal.
-          \end{itemize}
+      \item[Firma:] \texttt{com\_response\_t (*start\_tx)(void *ctx);}
+      \item[Propósito:] Iniciar la transmisión de los datos acumulados en el buffer de salida (\texttt{tx\_buffer}) hacia el medio físico.
+      \item[Comportamiento esperado:] El driver verifica el estado del \textit{hardware} de transmisión y la disponibilidad de datos en \texttt{tx\_buffer}:
+            \begin{itemize}
+                  \item Si el \textit{hardware} está ocupado (por ejemplo, una transmisión previa aún en curso), retorna \texttt{COMM\_IFACE\_BUSY}.
+                  \item Si el buffer \texttt{tx\_buffer} está vacío, retorna \texttt{COMM\_IFACE\_IDLE}.
+                  \item Si el \textit{hardware} está en condición de error, activa \texttt{COMM\_STATE\_ERROR}, publica un evento de error (por ejemplo, \texttt{IFACE\_EVENT\_TX\_ERROR\_BUS\_FAULT}) y retorna
+                        \texttt{COMM\_IFACE\_ERROR}.
+                  \item Si el \textit{hardware} está listo y hay datos, lee el bloque contiguo de bytes desde \texttt{tx\_buffer} (respetando las protecciones de acceso concurrente), programa el DMA o la interrupción de transmisión, activa \texttt{COMM\_STATE\_TX\_ACTIVE} y retorna \texttt{COMM\_IFACE\_OK}.
+            \end{itemize}
+      \item[Valores de retorno:]
+            \begin{itemize}
+                  \item \texttt{COMM\_IFACE\_OK}: la transmisión se ha iniciado correctamente.
+                  \item \texttt{COMM\_IFACE\_BUSY}: el \textit{hardware} está ocupado; la FSM reintentará en el siguiente ciclo.
+                  \item \texttt{COMM\_IFACE\_IDLE}: no hay datos pendientes en el buffer de salida.
+                  \item \texttt{COMM\_IFACE\_ERROR}: fallo irrecuperable en la transmisión; la FSM debe notificar el error y ejecutar \texttt{reset()} sobre el canal.
+            \end{itemize}
 \end{description}
 
-En todos los casos, el resultado retornado es el único criterio que utiliza la
-\textit{Communication Task} para decidir la acción siguiente. Los eventos de error que
-el driver publique de manera asincrónica serán capturados en el siguiente
-\textit{snapshot} y procesados por la FSM correspondiente con independencia del código
-de retorno.
+En todos los casos, el resultado retornado es el único criterio que utiliza la \textit{Communication Task} para decidir la acción siguiente. Los eventos de error que el driver publique de manera asincrónica serán capturados en el siguiente \textit{snapshot} y procesados por la FSM correspondiente con independencia del código de retorno.
 
 \subsection{Protección de Acceso Concurrente}
 \label{subsec:proteccion-concurrente}
 
-Los buffers de recepción y transmisión son recursos compartidos entre dos contextos de
-ejecución: la \textit{Communication Task} (que los lee y escribe en el ciclo principal)
-y la rutina de servicio de interrupción o el controlador DMA (que los escribe y lee
-de manera asíncrona). Para garantizar la integridad de los datos sin recurrir a
-mecanismos de bloqueo pesados, la interfaz \texttt{comm\_iface\_t} proporciona cuatro
-\textit{callbacks} de protección que encapsulan la estrategia de sincronización
-específica de cada periférico.
+Los buffers de recepción y transmisión son recursos compartidos entre dos contextos de ejecución: la \textit{Communication Task} (que los lee y escribe en el ciclo principal) y la rutina de servicio de interrupción o el controlador DMA (que los escribe y lee de manera asíncrona). Para garantizar la integridad de los datos sin recurrir a mecanismos de bloqueo pesados, la interfaz \texttt{comm\_iface\_t} proporciona cuatro \textit{callbacks} de protección que encapsulan la estrategia de sincronización específica de cada periférico.
 
 \paragraph{Pares de protección}
 
 \begin{description}
-      \item[\texttt{protect\_rx()} / \texttt{unprotect\_rx()}:] Protegen el acceso al
-            buffer de recepción. La \textit{Communication Task} invoca
-            \texttt{protect\_rx()} antes de leer datos con \texttt{cb\_get()} y
-            \texttt{unprotect\_rx()} al finalizar. La ISR del driver invoca estas mismas
-            funciones antes y después de escribir nuevos bytes en el buffer.
-      \item[\texttt{protect\_tx()} / \texttt{unprotect\_tx()}:] Protegen el acceso al
-            buffer de transmisión. La \textit{Communication Task} las utiliza cuando
-            escribe datos con \texttt{cb\_put()} antes de solicitar el inicio de la
-            transmisión. El driver las emplea al leer datos desde \texttt{tx\_buffer}
-            para alimentar el DMA o el registro de transmisión.
+      \item[\texttt{protect\_rx()} / \texttt{unprotect\_rx()}:] Protegen el acceso al buffer de recepción. La \textit{Communication Task} invoca \texttt{protect\_rx()} antes de leer datos con \texttt{cb\_get()} y \texttt{unprotect\_rx()} al finalizar. La ISR del driver invoca estas mismas funciones antes y después de escribir nuevos bytes en el buffer.
+      \item[\texttt{protect\_tx()} / \texttt{unprotect\_tx()}:] Protegen el acceso al buffer de transmisión. La \textit{Communication Task} las utiliza cuando escribe datos con \texttt{cb\_put()} antes de solicitar el inicio de la transmisión. El driver las emplea al leer datos desde \texttt{tx\_buffer} para alimentar el DMA o el registro de transmisión.
 \end{description}
 
 \paragraph{Firma y semántica}
@@ -883,117 +523,72 @@ Las cuatro funciones comparten la misma firma:
 \begin{center}
 \texttt{void (*protect\_\ldots)(void *ctx);}
 \end{center}
-El parámetro \texttt{ctx} permite que cada implementación acceda a su contexto privado
-(por ejemplo, para deshabilitar una interrupción específica o liberar un \textit{spinlock}).
-Las capas superiores invocan estos \textit{callbacks} sin conocer la estrategia concreta
-utilizada por el periférico.
+El parámetro \texttt{ctx} permite que cada implementación acceda a su contexto privado (por ejemplo, para deshabilitar una interrupción específica o liberar un \textit{spinlock}). Las capas superiores invocan estos \textit{callbacks} sin conocer la estrategia concreta utilizada por el periférico.
 
 \paragraph{Estrategias de implementación}
 
 La naturaleza de la protección depende del periférico y del entorno de ejecución:
 
 \begin{itemize}
-      \item En un microcontrolador \textit{bare-metal} con una UART, la protección de
-            recepción puede consistir en deshabilitar temporalmente la interrupción del
-            periférico (\texttt{NVIC\_DisableIRQ}) para evitar que la ISR modifique
-            \texttt{head} mientras la tarea lee \texttt{tail}. La protección de
-            transmisión puede deshabilitar la interrupción de DMA correspondiente. 
-            (\texttt{\_\_HAL\_DMA\_DISABLE\_IT}).
-      \item En un sistema con RTOS, puede emplearse un \textit{mutex} o un
-            \textit{spinlock} que el driver almacena en su contexto.
-      \item En periféricos con DMA que opera sobre descriptores encadenados, la protección
-            puede ser innecesaria si el \textit{hardware} garantiza la atomicidad de las
-            transferencias.
+      \item En un microcontrolador \textit{bare-metal} con una UART, la protección de recepción puede consistir en deshabilitar temporalmente la interrupción del periférico (\texttt{NVIC\_DisableIRQ}) para evitar que la ISR modifique \texttt{head} mientras la tarea lee \texttt{tail}. La protección de transmisión puede deshabilitar la interrupción de DMA correspondiente. (\texttt{\_\_HAL\_DMA\_DISABLE\_IT}).
+      \item En un sistema con RTOS, puede emplearse un \textit{mutex} o un \textit{spinlock} que el driver almacena en su contexto.
+      \item En periféricos con DMA que opera sobre descriptores encadenados, la protección puede ser innecesaria si el \textit{hardware} garantiza la atomicidad de las transferencias.
 \end{itemize}
 
-En todos los casos, la \textit{Communication Task} y la capa de aplicación permanecen
-completamente desacopladas de la estrategia de sincronización subyacente. Solo invocan
-los \textit{callbacks} en los puntos definidos por el contrato de la interfaz.
+En todos los casos, la \textit{Communication Task} y la capa de aplicación permanecen completamente desacopladas de la estrategia de sincronización subyacente. Solo invocan los \textit{callbacks} en los puntos definidos por el contrato de la interfaz.
 
 \paragraph{Uso coordinado con las FSM}
 
-La FSM de Recepción protege el buffer antes de iterar con \texttt{cb\_get()} y libera
-la protección al terminar. La FSM de Transmisión protege el buffer antes de copiar los
-datos con \texttt{cb\_put()} y libera la protección antes de invocar
-\texttt{start\_tx()}, ya que el driver volverá a proteger el buffer internamente
-durante la lectura para el DMA. Esta delimitación precisa de las secciones críticas
-minimiza el tiempo de inhibición de interrupciones y evita la inversión de prioridad.
+La FSM de Recepción protege el buffer antes de iterar con \texttt{cb\_get()} y libera la protección al terminar. La FSM de Transmisión protege el buffer antes de copiar los datos con \texttt{cb\_put()} y libera la protección antes de invocar \texttt{start\_tx()}, ya que el driver volverá a proteger el buffer internamente durante la lectura para el DMA. Esta delimitación precisa de las secciones críticas minimiza el tiempo de inhibición de interrupciones y evita la inversión de prioridad.
 
-Cuando un \textit{callback} del driver necesita modificar simultáneamente el registro
-de eventos y el estado de la interfaz, debe adquirir ambas protecciones (recepción y
-transmisión) para evitar condiciones de carrera con cualquier ISR. Esto es
-especialmente relevante en las operaciones de ciclo de vida y control de flujo que
-actualizan \texttt{state} y \texttt{event} de forma conjunta.
+Cuando un \textit{callback} del driver necesita modificar simultáneamente el registro de eventos y el estado de la interfaz, debe adquirir ambas protecciones (recepción y transmisión) para evitar condiciones de carrera con cualquier ISR. Esto es especialmente relevante en las operaciones de ciclo de vida y control de flujo que actualizan \texttt{state} y \texttt{event} de forma conjunta.
 
 \subsection{Estrategias de Sincronización y Gestión de Buffers}
 \label{subsec:driver-buffers}
 
-Los buffers de recepción y transmisión son buffers circulares propiedad de la
-\textit{Communication Task} e inyectados en la estructura \texttt{comm\_iface\_t} antes de
-la inicialización. La tarea los manipula directamente mediante las funciones
-\texttt{cb\_get()} y \texttt{cb\_put()} provistas por la biblioteca de buffer circular,
-protegiendo los accesos con los \textit{callbacks} \texttt{protect\_rx()} y
-\texttt{protect\_tx()} que el propio driver proporciona.
+Los buffers de recepción y transmisión son buffers circulares propiedad de la \textit{Communication Task} e inyectados en la estructura \texttt{comm\_iface\_t} antes de la inicialización. La tarea los manipula directamente mediante las funciones \texttt{cb\_get()} y \texttt{cb\_put()} provistas por la biblioteca de buffer circular, protegiendo los accesos con los \textit{callbacks} \texttt{protect\_rx()} y \texttt{protect\_tx()} que el propio driver proporciona.
 
-La ISR o el DMA escribe cada byte en el buffer circular protegido mediante \texttt{protect\_rx()}, 
-y avanza el índice de escritura (\texttt{head}).
+La ISR o el DMA escribe cada byte en el buffer circular protegido mediante \texttt{protect\_rx()},  y avanza el índice de escritura (\texttt{head}).
 
-El driver, por su parte, solo accede a estos buffers para dos operaciones elementales:
-escribir bytes recibidos en el buffer de recepción, y leer bytes a transmitir desde el
-buffer de transmisión. La estrategia con que lo hace depende de las capacidades del
-periférico.
+El driver, por su parte, solo accede a estos buffers para dos operaciones elementales: escribir bytes recibidos en el buffer de recepción, y leer bytes a transmitir desde el buffer de transmisión. La estrategia con que lo hace depende de las capacidades del periférico.
 
 \subsubsection{Acceso Directo al Buffer Circular (con Protección ISR)}
 
-En periféricos que generan una interrupción por cada byte recibido o que disponen de DMA
-con libertad de escritura sobre un rango de memoria, el driver opera directamente sobre el
-buffer circular inyectado:
+En periféricos que generan una interrupción por cada byte recibido o que disponen de DMA con libertad de escritura sobre un rango de memoria, el driver opera directamente sobre el buffer circular inyectado:
 
 \begin{itemize}
-    \item En \textbf{recepción}, la ISR o el DMA escribe cada byte en el buffer circular
-          y avanza el índice de escritura (\texttt{head}). La \textit{Communication Task}
-          lee con \texttt{cb\_get()} y avanza el índice de lectura (\texttt{tail}).
-    \item En \textbf{transmisión}, la \textit{Communication Task} deposita los datos con
-          \texttt{cb\_put()}. Cuando se invoca \texttt{start\_tx()}, el driver lee desde el
-          buffer circular, programa el DMA y avanza el índice de lectura (\texttt{tail})
-          a medida que el hardware consume los bytes.
+      \item En \textbf{recepción}, la ISR o el DMA escribe cada byte en el buffer circular
+            y avanza el índice de escritura (\texttt{head}). La \textit{Communication Task}
+            lee con \texttt{cb\_get()} y avanza el índice de lectura (\texttt{tail}).
+      \item En \textbf{transmisión}, la \textit{Communication Task} deposita los datos con
+            \texttt{cb\_put()}. Cuando se invoca \texttt{start\_tx()}, el driver lee desde el
+            buffer circular, programa el DMA y avanza el índice de lectura (\texttt{tail})
+            a medida que el hardware consume los bytes.
 \end{itemize}
 
-La detección de desbordamiento en recepción ocurre en la ISR: si al llegar un nuevo byte
-el buffer circular está lleno, se genera el evento
-\texttt{IFACE\_EVENT\_RX\_ERROR\_OVERFLOW}. En transmisión, la \textit{Communication Task}
-no escribe si su propio buffer está lleno (lo sabe mediante \texttt{cb\_status()}), por lo
-que no se produce desbordamiento.
+La detección de desbordamiento en recepción ocurre en la ISR: si al llegar un nuevo byte el buffer circular está lleno, se genera el evento \texttt{IFACE\_EVENT\_RX\_ERROR\_OVERFLOW}. En transmisión, la \textit{Communication Task} no escribe si su propio buffer está lleno (lo sabe mediante \texttt{cb\_status()}), por lo que no se produce desbordamiento.
 
 \subsubsection{Doble Buffer Interno del Driver}
 
-Cuando el periférico no permite acceso DMA directo al buffer circular, o trabaja por
-bloques, el driver puede implementar un doble buffer como mecanismo auxiliar interno.
+Cuando el periférico no permite acceso DMA directo al buffer circular, o trabaja por bloques, el driver puede implementar un doble buffer como mecanismo auxiliar interno.
 En este esquema:
 
 \begin{itemize}
-    \item El driver reserva dos buffers locales (no expuestos a la \textit{Communication
-          Task}). El hardware escribe en uno mientras el otro se transfiere al buffer
-          circular inyectado.
-    \item Al completar un bloque, el driver intercambia los buffers y copia los datos
-          recibidos al buffer circular de recepción. Durante esta copia se aplican las
-          protecciones necesarias.
-    \item En transmisión, el driver copia datos desde el buffer circular inyectado a un
-          buffer local de trabajo antes de iniciar la transmisión por hardware.
+      \item El driver reserva dos buffers locales (no expuestos a la \textit{Communication
+            Task}). El hardware escribe en uno mientras el otro se transfiere al buffer
+            circular inyectado.
+      \item Al completar un bloque, el driver intercambia los buffers y copia los datos
+            recibidos al buffer circular de recepción. Durante esta copia se aplican las
+            protecciones necesarias.
+      \item En transmisión, el driver copia datos desde el buffer circular inyectado a un
+            buffer local de trabajo antes de iniciar la transmisión por hardware.
 \end{itemize}
 
-Para la \textit{Communication Task}, la existencia del doble buffer es transparente: sigue
-viendo un único buffer circular sobre el cual aplica \texttt{cb\_get()} y \texttt{cb\_put()}
-como en el caso anterior. La protección de acceso se limita a las secciones críticas
-durante las copias entre el buffer circular y los buffers internos del driver.
+Para la \textit{Communication Task}, la existencia del doble buffer es transparente: sigue viendo un único buffer circular sobre el cual aplica \texttt{cb\_get()} y \texttt{cb\_put()} como en el caso anterior. La protección de acceso se limita a las secciones críticas durante las copias entre el buffer circular y los buffers internos del driver.
 
 \paragraph{Independencia de la Estrategia}
 
-La \textit{Communication Task} desconoce por completo si el driver accede directamente al
-buffer circular o utiliza un doble buffer interno. Su interacción se reduce a:
-proteger el buffer (\texttt{protect\_rx}/\texttt{protect\_tx}), leer o escribir con
-\texttt{cb\_get}/\texttt{cb\_put}, y liberar la protección. Esta uniformidad permite que
-el middleware opere sin cambios sobre distintos periféricos.
+La \textit{Communication Task} desconoce por completo si el driver accede directamente al buffer circular o utiliza un doble buffer interno. Su interacción se reduce a: proteger el buffer (\texttt{protect\_rx}/\texttt{protect\_tx}), leer o escribir con \texttt{cb\_get}/\texttt{cb\_put}, y liberar la protección. Esta uniformidad permite que el middleware opere sin cambios sobre distintos periféricos.
 
 %%% =========================================================
 %%% 3. CAPA DE MIDDLEWARE (COMMUNICATION TASK)
@@ -1001,89 +596,43 @@ el middleware opere sin cambios sobre distintos periféricos.
 \section{Capa de Middleware (Communication Task)}
 \label{sec:middleware}
 
-La capa de middleware constituye el núcleo del subsistema de comunicación. Se implementa
-como una tarea independiente —denominada \textit{Communication Task}— que opera sobre la
-interfaz abstracta \texttt{comm\_iface\_t} proporcionada por el driver. Su responsabilidad
-es coordinar el ciclo de vida de la interfaz, delimitar mensajes a partir del flujo de
-bytes, gestionar la transmisión de respuestas y ofrecer a la capa de aplicación una API
-basada en mensajes completos.
+La capa de middleware constituye el núcleo del subsistema de comunicación. Se implementa como una tarea independiente —denominada \textit{Communication Task}— que opera sobre la interfaz abstracta \texttt{comm\_iface\_t} proporcionada por el driver. Su responsabilidad es coordinar el ciclo de vida de la interfaz, delimitar mensajes a partir del flujo de bytes, gestionar la transmisión de respuestas y ofrecer a la capa de aplicación una API basada en mensajes completos.
 
 \subsection{Modelo de Ejecución y Planificación}
 \label{subsec:modelo-ejecucion}
 
-La \textit{Communication Task} está diseñada para ejecutarse en un entorno cooperativo,
-ya sea como un hilo independiente dentro de un RTOS o como un bucle dentro de un esquema
-\textit{super-loop} en sistemas \textit{bare-metal}. En ambos casos, el modelo de ejecución
-respeta los siguientes principios:
+La \textit{Communication Task} está diseñada para ejecutarse en un entorno cooperativo, ya sea como un hilo independiente dentro de un RTOS o como un bucle dentro de un esquema \textit{super-loop} en sistemas \textit{bare-metal}. En ambos casos, el modelo de ejecución respeta los siguientes principios:
 
 \begin{itemize}
-    \item \textbf{Ejecución no bloqueante:} Todas las FSM evalúan sus entradas —el
-          \textit{snapshot} de eventos y el resultado de las operaciones invocadas— y
-          retornan el control sin esperas activas. Si una operación no puede completarse
-          (por ejemplo, \texttt{start\_tx()} retorna \texttt{COMM\_IFACE\_BUSY}), la FSM
-          simplemente difiere la acción al siguiente ciclo.
-    \item \textbf{Temporización simple:} Los tiempos de espera máximos (\textit{timeouts})
-          para el hardware o la recepción de mensajes incompletos se gestionan mediante una
-          única base de tiempo del sistema (\texttt{sys\_tick}) con resolución de
-          milisegundos.
-    \item \textbf{Determinismo:} Al ejecutar todas las fases de comunicación en un único
-          contexto de manera secuencial, se eliminan por diseño las condiciones de carrera
-          entre las FSM. La única sección crítica que requiere protección externa es la
-          captura del \textit{snapshot} de eventos, que se resuelve de manera atómica en
-          el driver.
+      \item \textbf{Ejecución no bloqueante:} Todas las FSM evalúan sus entradas —el \textit{snapshot} de eventos y el resultado de las operaciones invocadas— y retornan el control sin esperas activas. Si una operación no puede completarse (por ejemplo, \texttt{start\_tx()} retorna \texttt{COMM\_IFACE\_BUSY}), la FSM simplemente difiere la acción al siguiente ciclo.
+      \item \textbf{Temporización simple:} Los tiempos de espera máximos (\textit{timeouts}) para el hardware o la recepción de mensajes incompletos se gestionan mediante una única base de tiempo del sistema (\texttt{sys\_tick}) con resolución de milisegundos.
+      \item \textbf{Determinismo:} Al ejecutar todas las fases de comunicación en un único contexto de manera secuencial, se eliminan por diseño las condiciones de carrera entre las FSM. La única sección crítica que requiere protección externa es la captura del \textit{snapshot} de eventos, que se resuelve de manera atómica en el driver.
 \end{itemize}
 
-El costo computacional de evaluar todas las FSM en cada ciclo es insignificante, ya que
-cada una aplica una máscara binaria sobre el \textit{snapshot} y, si no hay eventos de su
-competencia, retorna de inmediato.
+El costo computacional de evaluar todas las FSM en cada ciclo es insignificante, ya que cada una aplica una máscara binaria sobre el \textit{snapshot} y, si no hay eventos de su competencia, retorna de inmediato.
 
 \subsection{Registro de Eventos y Captura Atómica (Snapshot)}
 \label{subsec:snapshot}
 
-El driver mantiene un registro de eventos en forma de máscara de bits
-(\texttt{comm\_iface\_event\_t}) que es escrito de manera asíncrona por la ISR o por las
-propias funciones del driver. Para que la \textit{Communication Task} pueda operar sobre
-una base de eventos coherente y sin condiciones de carrera, se implementa el siguiente
-procedimiento al inicio de cada ciclo:
+El driver mantiene un registro de eventos en forma de máscara de bits (\texttt{comm\_iface\_event\_t}) que es escrito de manera asíncrona por la ISR o por las propias funciones del driver. Para que la \textit{Communication Task} pueda operar sobre una base de eventos coherente y sin condiciones de carrera, se implementa el siguiente procedimiento al inicio de cada ciclo:
 
 \begin{enumerate}
-    \item \textbf{Captura atómica:} La tarea invoca el \textit{callback}
-          \texttt{get\_event()} de la interfaz activa. Este \textit{callback}, ejecutado
-          dentro de una sección crítica, lee el valor actual del registro de eventos y lo
-          pone a cero (\textit{clear-on-read}) en la misma operación. El valor leído se
-          almacena en una variable local denominada \textit{snapshot de eventos}.
-    \item \textbf{Procesamiento sobre copia local:} Durante el resto del ciclo, ninguna FSM
-          vuelve a acceder al registro físico del driver. Todas las máquinas de estado
-          trabajan exclusivamente sobre el \textit{snapshot}, aplicando máscaras binarias
-          para aislar los eventos que les competen.
-    \item \textbf{Nuevos eventos:} Si durante el ciclo se produce un nuevo evento de
-          hardware, la ISR lo escribirá en el registro del driver (ahora limpio), y será
-          capturado en el \textit{snapshot} del ciclo siguiente.
+      \item \textbf{Captura atómica:} La tarea invoca el \textit{callback} \texttt{get\_event()} de la interfaz activa. Este \textit{callback}, ejecutado dentro de una sección crítica, lee el valor actual del registro de eventos y lo pone a cero (\textit{clear-on-read}) en la misma operación. El valor leído se almacena en una variable local denominada \textit{snapshot de eventos}.
+      \item \textbf{Procesamiento sobre copia local:} Durante el resto del ciclo, ninguna FSM vuelve a acceder al registro físico del driver. Todas las máquinas de estado trabajan exclusivamente sobre el \textit{snapshot}, aplicando máscaras binarias para aislar los eventos que les competen.
+      \item \textbf{Nuevos eventos:} Si durante el ciclo se produce un nuevo evento de hardware, la ISR lo escribirá en el registro del driver (ahora limpio), y será capturado en el \textit{snapshot} del ciclo siguiente.
 \end{enumerate}
 
-Este mecanismo garantiza la coherencia temporal: todas las FSM evalúan exactamente el
-mismo estado del hardware para un mismo ciclo de ejecución, sin que los eventos procesados
-por una máquina interfieran en las decisiones de las demás.
+Este mecanismo garantiza la coherencia temporal: todas las FSM evalúan exactamente el mismo estado del hardware para un mismo ciclo de ejecución, sin que los eventos procesados por una máquina interfieran en las decisiones de las demás.
 
 \subsection{Orden de Precedencia y Flujo de Control}
 \label{subsec:orden-precedencia}
 
-El \textit{snapshot} de eventos es evaluado por las FSM en un orden fijo que refleja la
-criticidad de cada función. El bucle de la \textit{Communication Task} sigue la secuencia:
+El \textit{snapshot} de eventos es evaluado por las FSM en un orden fijo que refleja la criticidad de cada función. El bucle de la \textit{Communication Task} sigue la secuencia:
 
 \begin{enumerate}
-    \item \textbf{FSM de Gestión de Interfaz (prioridad máxima):} Procesa los eventos de
-          cambio de conexión y los errores críticos del hardware. Si se detecta un fallo
-          que compromete la integridad de la interfaz, esta FSM toma el control, ejecuta
-          las rutinas de mitigación o reinicio y puede alterar el estado global antes de
-          que las demás máquinas evalúen sus eventos.
-    \item \textbf{FSM de Recepción (RX):} Se ejecuta a continuación. Si la interfaz está
-          operativa, procesa los eventos \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE} y los
-          errores de recepción, extrayendo bytes del buffer circular y delimitando mensajes.
-    \item \textbf{FSM de Transmisión (TX):} Procesa los eventos relacionados con la
-          finalización de envíos (\texttt{IFACE\_EVENT\_TX\_COMPLETE}) y los errores de
-          transmisión. También atiende las solicitudes de transmisión generadas internamente
-          por la capa de aplicación.
+      \item \textbf{FSM de Gestión de Interfaz (prioridad máxima):} Procesa los eventos de cambio de conexión y los errores críticos del hardware. Si se detecta un fallo que compromete la integridad de la interfaz, esta FSM toma el control, ejecuta las rutinas de mitigación o reinicio y puede alterar el estado global antes de que las demás máquinas evalúen sus eventos.
+      \item \textbf{FSM de Recepción (RX):} Se ejecuta a continuación. Si la interfaz está operativa, procesa los eventos \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE} y los errores de recepción, extrayendo bytes del buffer circular y delimitando mensajes.
+      \item \textbf{FSM de Transmisión (TX):} Procesa los eventos relacionados con la finalización de envíos (\texttt{IFACE\_EVENT\_TX\_COMPLETE}) y los errores de transmisión. También atiende las solicitudes de transmisión generadas internamente por la capa de aplicación.
 \end{enumerate}
 
 El flujo macroscópico del bucle operativo es, por tanto:
@@ -1093,197 +642,145 @@ El flujo macroscópico del bucle operativo es, por tanto:
 $\rightarrow$ \texttt{FSM TX}
 \end{center}
 
-Si la capa de aplicación se ejecuta en el mismo contexto, la FSM de Procesamiento SCPI
-se invoca a continuación, fuera ya del ámbito del middleware de comunicación.
+Si la capa de aplicación se ejecuta en el mismo contexto, la FSM de Procesamiento SCPI se invoca a continuación, fuera ya del ámbito del middleware de comunicación.
 
 \subsection{Máquinas de Estado de Transporte}
 \label{subsec:fsms-transporte}
 
-Las tres máquinas de estado que gobiernan el comportamiento del middleware se modelan según
-el formalismo de Mealy: las transiciones y las acciones dependen del estado actual y de los
-eventos de entrada. Los estados son estrictamente privados y la comunicación entre máquinas
-se realiza mediante la publicación de eventos lógicos internos.
+Las tres máquinas de estado que gobiernan el comportamiento del middleware se modelan según el formalismo de Mealy: las transiciones y las acciones dependen del estado actual y de los eventos de entrada. Los estados son estrictamente privados y la comunicación entre máquinas se realiza mediante la publicación de eventos lógicos internos.
 
 \subsubsection{FSM de Gestión de Interfaz}
 \label{subsubsec:fsm-gestion}
 
-Esta máquina supervisa el estado global de la interfaz, coordina las transiciones
-operativas, la recuperación ante fallos y, cuando es necesario, la selección de un
-nuevo medio de transporte.
+Esta máquina supervisa el estado global de la interfaz, coordina las transiciones operativas, la recuperación ante fallos y, cuando es necesario, la selección de un nuevo medio de transporte.
 
 \begin{table}[htbp]
-    \centering
-    \caption{Tabla de transiciones de la FSM de Gestión de Interfaz.}
-    \label{tab:fsm-gestion}
-    \begin{tabular}{llll}
-        \toprule
-        \textbf{Estado Actual} & \textbf{Evento} & \textbf{Siguiente Estado} & \textbf{Acción} \\
-        \midrule
-        \texttt{DOWN}      & \texttt{CMD\_START}                    & \texttt{READY}     & \texttt{init()} \\
-        \texttt{READY}     & \texttt{IFACE\_EVENT\_INTERFACE\_CONNECTED} & \texttt{ACTIVE}    & \texttt{start\_rx()} \\
-        \texttt{ACTIVE}    & \texttt{CMD\_DISABLE\_RX}              & \texttt{READY}     & \texttt{stop\_rx()} \\
-        \texttt{ACTIVE}    & Evento de error crítico                & \texttt{ERROR}     & Publicar condición de falla \\
-        \texttt{ERROR}     & \texttt{CMD\_RESET}                    & \texttt{READY}     & \texttt{reset()} \\
-        \texttt{ERROR}     & Error irrecuperable / cambio requerido & \texttt{SELECTING} & \texttt{deinit()} actual; invocar selector \\
-        \texttt{SELECTING} & Interfaz disponible                    & \texttt{READY}     & \texttt{init()} sobre nueva interfaz \\
-        \texttt{SELECTING} & Sin interfaces disponibles             & \texttt{DOWN}      & Notificar indisponibilidad \\
-        \bottomrule
-    \end{tabular}
+      \centering
+      \caption{Tabla de transiciones de la FSM de Gestión de Interfaz.}
+      \label{tab:fsm-gestion}
+      \begin{tabular}{llll}
+            \toprule
+            \textbf{Estado Actual} & \textbf{Evento} & \textbf{Siguiente Estado} & \textbf{Acción} \\
+            \midrule
+            \texttt{DOWN}      & \texttt{CMD\_START}                    & \texttt{READY}     & \texttt{init()} \\
+            \texttt{READY}     & \texttt{IFACE\_EVENT\_INTERFACE\_CONNECTED} & \texttt{ACTIVE}    & \texttt{start\_rx()} \\
+            \texttt{ACTIVE}    & \texttt{CMD\_DISABLE\_RX}              & \texttt{READY}     & \texttt{stop\_rx()} \\
+            \texttt{ACTIVE}    & Evento de error crítico                & \texttt{ERROR}     & Publicar condición de falla \\
+            \texttt{ERROR}     & \texttt{CMD\_RESET}                    & \texttt{READY}     & \texttt{reset()} \\
+            \texttt{ERROR}     & Error irrecuperable / cambio requerido & \texttt{SELECTING} & \texttt{deinit()} actual;\\
+                              &                                        &                    & invocar selector \\
+            \texttt{SELECTING} & Interfaz disponible                    & \texttt{READY}     & \texttt{init()} sobre nueva interfaz \\
+            \texttt{SELECTING} & Sin interfaces disponibles             & \texttt{DOWN}      & Notificar indisponibilidad \\
+            \bottomrule
+      \end{tabular}
 \end{table}
 
 \vspace{4pt}
-\textbf{Nota:} En todas las transiciones que parten de \texttt{RX\_GATHERING}, la FSM
-libera la protección del buffer (\texttt{unprotect\_rx()}) al finalizar el ciclo. La
-protección se readquiere al inicio del ciclo siguiente si el estado es
-\texttt{RX\_GATHERING}.
+\textbf{Nota:} En todas las transiciones que parten de \texttt{RX\_GATHERING}, la FSM libera la protección del buffer (\texttt{unprotect\_rx()}) al finalizar el ciclo. La protección se readquiere al inicio del ciclo siguiente si el estado es \texttt{RX\_GATHERING}.
 
-Cuando la FSM transita a \texttt{SELECTING}, invoca al \textit{selector de medio de
-transporte} —un componente independiente cuyo contrato se describe en la sección
-\ref{subsec:selector-transporte}— para que determine cuál es la siguiente interfaz
-disponible. Si el selector provee una nueva instancia de \texttt{comm\_iface\_t}, la
-FSM la adopta como interfaz activa y ejecuta su \texttt{init()}. Si no hay interfaces
-alternativas, la FSM retorna a \texttt{DOWN} y notifica la indisponibilidad del
-subsistema.
+Cuando la FSM transita a \texttt{SELECTING}, invoca al \textit{selector de medio de transporte} —un componente independiente cuyo contrato se describe en la sección \ref{subsec:selector-transporte}— para que determine cuál es la siguiente interfaz disponible. Si el selector provee una nueva instancia de \texttt{comm\_iface\_t}, la FSM la adopta como interfaz activa y ejecuta su \texttt{init()}. Si no hay interfaces alternativas, la FSM retorna a \texttt{DOWN} y notifica la indisponibilidad del subsistema.
 
 \subsubsection{FSM de Recepción (RX)}
 \label{subsubsec:fsm-rx}
 
-La FSM de Recepción consume los eventos de recepción del \textit{snapshot} y extrae
-los bytes del buffer circular \texttt{rx\_buffer} mediante \texttt{cb\_get()}. Su
-responsabilidad es delimitar mensajes completos detectando el terminador \texttt{LF}.
+La FSM de Recepción consume los eventos de recepción del \textit{snapshot} y extrae los bytes del buffer circular \texttt{rx\_buffer} mediante \texttt{cb\_get()}. Su responsabilidad es delimitar mensajes completos detectando el terminador \texttt{LF}.
 
-\begin{tabular}{llll}
-    \toprule
-    \textbf{Estado Actual} & \textbf{Evento} & \textbf{Siguiente Estado} & \textbf{Acción} \\
-    \midrule
-    \texttt{RX\_IDLE} & \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE} & \texttt{RX\_GATHERING} & Proteger buffer y leer bytes con \texttt{cb\_get()} \\
-    \texttt{RX\_GATHERING} & Byte distinto de LF & \texttt{RX\_GATHERING} & Acumular carácter en buffer de mensaje \\
-    \texttt{RX\_GATHERING} & Byte LF (buffer con más datos) & \texttt{RX\_GATHERING} & Publicar \texttt{EV\_MESSAGE\_READY}; continuar \\
-    \texttt{RX\_GATHERING} & Byte LF (buffer vacío) & \texttt{RX\_IDLE} & Publicar \texttt{EV\_MESSAGE\_READY} \\
-    \texttt{RX\_GATHERING} & Error de RX & \texttt{RX\_IDLE} & Publicar error y liberar buffer \\
-    \bottomrule
-\end{tabular}
+\begin{table}[htbp]
+      \centering
+      \caption{Tabla de transiciones de la FSM de Recepción.}
+      \label{tab:fsm-rx}
+      \begin{tabular}{llll}
+            \toprule
+            \textbf{Estado Actual} & \textbf{Evento} & \textbf{Siguiente Estado} & textbf{Acción} \\
+            \midrule
+            \texttt{RX\_IDLE}      & \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE}  & \texttt{RX\_GATHERING} & Proteger buffer \\
+                                   &                 &                           &leer bytes con \texttt{cb\_get()} \\
+            \texttt{RX\_GATHERING} & Byte distinto de LF & \texttt{RX\_GATHERING} & Llenar en buffer de mensaje \\
+            \texttt{RX\_GATHERING} & Byte LF (buffer con más datos) & \texttt{RX\_GATHERING} & Publicar \texttt{EV\_MESSAGE\_READY}\\
+                                   &                  &                          &continuar \\
+            \texttt{RX\_GATHERING} & Byte LF (buffer vacío) & \texttt{RX\_IDLE} & Publicar \texttt{EV\_MESSAGE\_READY} \\
+            \texttt{RX\_GATHERING} & Error de RX & \texttt{RX\_IDLE} & Publicar error y liberar buffer \\
+            \bottomrule
+      \end{tabular}
+\end{table}
 
-Los caracteres \texttt{CR} (\texttt{0x0D}) se descartan silenciosamente durante el
-proceso de ensamblado, en conformidad con IEEE~488.2. La FSM no interactúa directamente
-con el hardware ni ejecuta rutinas de recuperación física; esa responsabilidad recae en
-la FSM de Gestión.
+Los caracteres \texttt{CR} (\texttt{0x0D}) se descartan silenciosamente durante el proceso de ensamblado, en conformidad con IEEE~488.2. La FSM no interactúa directamente con el hardware ni ejecuta rutinas de recuperación física; esa responsabilidad recae en la FSM de Gestión.
 
-La FSM adquiere la protección del buffer circular al iniciar el procesamiento en cada
-ciclo y la libera al finalizar, independientemente de si se completó un mensaje o no.
-Esto garantiza que la ISR del driver pueda continuar escribiendo datos en el buffer
-mientras la tarea está fuera de su sección crítica.
+La FSM adquiere la protección del buffer circular al iniciar el procesamiento en cada ciclo y la libera al finalizar, independientemente de si se completó un mensaje o no.
+Esto garantiza que la ISR del driver pueda continuar escribiendo datos en el buffer mientras la tarea está fuera de su sección crítica.
 
-Para preservar el determinismo del sistema, la FSM delimita un único mensaje por
-ciclo de ejecución. Si tras procesar un terminador el buffer circular aún contiene
-bytes, la FSM permanece en \texttt{RX\_GATHERING} para continuar en el ciclo próximo.
-La transición a \texttt{RX\_IDLE} solo se produce cuando el buffer queda completamente
-vacío.
+Para preservar el determinismo del sistema, la FSM delimita un único mensaje por ciclo de ejecución. Si tras procesar un terminador el buffer circular aún contiene bytes, la FSM permanece en \texttt{RX\_GATHERING} para continuar en el ciclo próximo.
+La transición a \texttt{RX\_IDLE} solo se produce cuando el buffer queda completamente vacío.
 
 \subsubsection{FSM de Transmisión (TX)}
 \label{subsubsec:fsm-tx}
 
-Esta máquina administra el flujo de salida de datos. Responde a las solicitudes de
-transmisión de la capa de aplicación y gestiona el envío de los datos acumulados en
+Esta máquina administra el flujo de salida de datos. Responde a las solicitudes de transmisión de la capa de aplicación y gestiona el envío de los datos acumulados en
 \texttt{tx\_buffer} hacia el driver.
 
 \begin{table}[htbp]
-    \centering
-    \caption{Tabla de transiciones de la FSM de Transmisión.}
-    \label{tab:fsm-tx}
-    \begin{tabular}{llll}
-        \toprule
-        \textbf{Estado Actual} & \textbf{Evento} & \textbf{Siguiente Estado} & \textbf{Acción} \\
-        \midrule
-        \texttt{TX\_IDLE} & \texttt{EV\_TX\_REQUEST} & \texttt{TX\_BUSY} & Invocar \texttt{start\_tx()} \\
-        \texttt{TX\_BUSY} & \texttt{COMM\_IFACE\_OK} & \texttt{TX\_BUSY} & Esperar \texttt{TX\_COMPLETE} \\
-        \texttt{TX\_BUSY} & \texttt{COMM\_IFACE\_BUSY} & \texttt{TX\_BUSY} & Reintentar en siguiente ciclo \\
-        \texttt{TX\_BUSY} & \texttt{COMM\_IFACE\_IDLE} & \texttt{TX\_IDLE} & Sin datos pendientes \\
-        \texttt{TX\_BUSY} & \texttt{COMM\_IFACE\_ERROR} & \texttt{TX\_IDLE} & Publicar error de TX \\
-        \texttt{TX\_BUSY} & \texttt{IFACE\_EVENT\_TX\_COMPLETE} & \texttt{TX\_IDLE} & Publicar \texttt{EV\_TX\_DONE} \\
-        \texttt{TX\_BUSY} & \texttt{IFACE\_EVENT\_TX\_ERROR\_...} & \texttt{TX\_IDLE} & Ejecutar \texttt{reset()} y publicar error \\
-        \bottomrule
-    \end{tabular}
+      \centering
+      \caption{Tabla de transiciones de la FSM de Transmisión.}
+      \label{tab:fsm-tx}
+      \begin{tabular}{llll}
+            \toprule
+            \textbf{Estado Actual} & \textbf{Evento} & \textbf{Siguiente Estado} & \textbf{Acción} \\
+            \midrule
+            \texttt{TX\_IDLE} & \texttt{EV\_TX\_REQUEST} & \texttt{TX\_BUSY} & Invocar \texttt{start\_tx()} \\
+            \texttt{TX\_BUSY} & \texttt{COMM\_IFACE\_OK} & \texttt{TX\_BUSY} & Esperar \texttt{TX\_COMPLETE} \\
+            \texttt{TX\_BUSY} & \texttt{COMM\_IFACE\_BUSY} & \texttt{TX\_BUSY} & Reintentar en siguiente ciclo \\
+            \texttt{TX\_BUSY} & \texttt{COMM\_IFACE\_IDLE} & \texttt{TX\_IDLE} & Sin datos pendientes \\
+            \texttt{TX\_BUSY} & \texttt{COMM\_IFACE\_ERROR} & \texttt{TX\_IDLE} & Publicar error de TX \\
+            \texttt{TX\_BUSY} & \texttt{IFACE\_EVENT\_TX\_COMPLETE} & \texttt{TX\_IDLE} & Publicar \texttt{EV\_TX\_DONE} \\
+            \texttt{TX\_BUSY} & \texttt{IFACE\_EVENT\_TX\_ERROR\_...} & \texttt{TX\_IDLE} & Ejecutar \texttt{reset()} y publicar error \\
+            \bottomrule
+      \end{tabular}
 \end{table}
 
-La máquina evalúa el código de retorno de \texttt{start\_tx()} para decidir la acción
-inmediata, sin consultar el estado de la interfaz. Los eventos de finalización y error se
-reciben a través del \textit{snapshot} en ciclos posteriores.
+La máquina evalúa el código de retorno de \texttt{start\_tx()} para decidir la acción inmediata, sin consultar el estado de la interfaz. Los eventos de finalización y error se reciben a través del \textit{snapshot} en ciclos posteriores.
 
 \subsection{API de Servicios hacia la Capa de Aplicación}
 \label{subsec:api-aplicacion}
 
-La \textit{Communication Task} expone a la capa de aplicación (Motor SCPI) una interfaz
-basada en mensajes completos, ocultando por completo los detalles del transporte. Esta API
-consta de dos eventos lógicos y una función de solicitud de transmisión:
+La \textit{Communication Task} expone a la capa de aplicación (Motor SCPI) una interfaz basada en mensajes completos, ocultando por completo los detalles del transporte. Esta API consta de dos eventos lógicos y una función de solicitud de transmisión:
 
 \begin{description}
-    \item[\texttt{EV\_MESSAGE\_READY}:] Evento publicado por la FSM de Recepción cuando se
-          ha delimitado un mensaje completo (terminado en \texttt{LF}) en el buffer de
-          recepción. La aplicación debe consumir el mensaje antes del siguiente ciclo de la
-          tarea, copiándolo a sus buffers propios.
-    \item[\texttt{send\_message(data, len)}:] Función invocada por la aplicación para
-          solicitar el envío de una respuesta. La \textit{Communication Task} copia los
-          datos al buffer de transmisión mediante \texttt{cb\_put()} y activa internamente
-          la señal \texttt{EV\_TX\_REQUEST}, que será evaluada por la FSM de Transmisión en
-          el ciclo siguiente.
-    \item[\texttt{EV\_TX\_DONE}:] Evento publicado por la FSM de Transmisión cuando la
-          transmisión se ha completado exitosamente. Permite a la aplicación liberar
-          recursos asociados a la respuesta o encolar un nuevo mensaje.
+      \item[\texttt{EV\_MESSAGE\_READY}:] Evento publicado por la FSM de Recepción cuando se           ha delimitado un mensaje completo (terminado en \texttt{LF}) en el buffer de recepción. La aplicación debe consumir el mensaje antes del siguiente ciclo de la tarea, copiándolo a sus buffers propios.
+      \item[\texttt{send\_message(data, len)}:] Función invocada por la aplicación para solicitar el envío de una respuesta. La \textit{Communication Task} copia los datos al buffer de transmisión mediante \texttt{cb\_put()} y activa internamente la señal \texttt{EV\_TX\_REQUEST}, que será evaluada por la FSM de Transmisión en el ciclo siguiente.
+      \item[\texttt{EV\_TX\_DONE}:] Evento publicado por la FSM de Transmisión cuando la transmisión se ha completado exitosamente. Permite a la aplicación liberar recursos asociados a la respuesta o encolar un nuevo mensaje.
 \end{description}
 
-La aplicación no accede directamente al hardware de comunicación ni a los buffers de
-transporte. Toda la interacción se realiza a través de estos tres puntos de contacto.
+La aplicación no accede directamente al hardware de comunicación ni a los buffers de transporte. Toda la interacción se realiza a través de estos tres puntos de contacto.
 
 \subsection{Adaptación a Protocolos de Instrumentación}
 \label{subsec:adaptacion-protocolos}
 
-La \textit{Communication Task} es responsable de la delimitación de mensajes de acuerdo con
-las reglas del protocolo de instrumentación aplicable, pero no interpreta su contenido.
+La \textit{Communication Task} es responsable de la delimitación de mensajes de acuerdo con las reglas del protocolo de instrumentación aplicable, pero no interpreta su contenido.
 
 \paragraph{Delimitación de mensajes}
 
-La FSM de Recepción identifica el fin de mensaje al detectar el carácter \texttt{LF}
-(\texttt{0x0A}), en conformidad con la norma IEEE~488.2. Los caracteres \texttt{CR}
-(\texttt{0x0D}) que preceden opcionalmente al terminador se descartan de manera silente.
-El resultado es un mensaje completo —una secuencia de bytes delimitada— que se entrega a
-la capa de aplicación sin modificación alguna.
+La FSM de Recepción identifica el fin de mensaje al detectar el carácter \texttt{LF} (\texttt{0x0A}), en conformidad con la norma IEEE~488.2. Los caracteres \texttt{CR} (\texttt{0x0D}) que preceden opcionalmente al terminador se descartan de manera silente.
+El resultado es un mensaje completo —una secuencia de bytes delimitada— que se entrega a la capa de aplicación sin modificación alguna.
 
 \paragraph{Independencia del protocolo}
 
-El middleware no distingue entre un comando SCPI, una consulta de estado o cualquier otra
-carga útil. Opera exclusivamente con mensajes como secuencias de bytes delimitadas. Esta
-independencia permite que el mismo código de middleware dé servicio a distintos protocolos
-de aplicación (SCPI, Modbus, propietario) sin más cambio que el motor de procesamiento
-conectado a su API.
+El middleware no distingue entre un comando SCPI, una consulta de estado o cualquier otra carga útil. Opera exclusivamente con mensajes como secuencias de bytes delimitadas. Esta independencia permite que el mismo código de middleware dé servicio a distintos protocolos de aplicación (SCPI, Modbus, propietario) sin más cambio que el motor de procesamiento conectado a su API.
 
 \paragraph{Interrupciones de consulta (\textit{Query Interrupts})}
 
-Si el protocolo del periférico subyacente dispone de mecanismos de interrupción de consulta
-—como el control de flujo en USBTMC—, el driver traduce dicha condición de hardware en un
-evento abstracto de interfaz. La FSM de Gestión captura este evento y coordina la acción
-correspondiente evaluando el estado operativo actual, sin que el significado del comando
-trascienda a esta capa.
+Si el protocolo del periférico subyacente dispone de mecanismos de interrupción de consulta —como el control de flujo en USBTMC—, el driver traduce dicha condición de hardware en un evento abstracto de interfaz. La FSM de Gestión captura este evento y coordina la acción correspondiente evaluando el estado operativo actual, sin que el significado del comando trascienda a esta capa.
 
 \subsection{Selector de Medio de Transporte}
 \label{subsec:selector-transporte}
 
 La \textit{Communication Task} opera exclusivamente sobre la interfaz abstracta
-\texttt{comm\_iface\_t}. La asociación con una implementación concreta es resuelta por
-el \textbf{selector de medio de transporte}, un componente independiente cuya
-responsabilidad es determinar, en cada momento, cuál de las interfaces físicas
-disponibles debe estar activa.
+\texttt{comm\_iface\_t}. La asociación con una implementación concreta es resuelta por el \textbf{selector de medio de transporte}, un componente independiente cuya responsabilidad es determinar, en cada momento, cuál de las interfaces físicas disponibles debe estar activa.
 
 El selector es invocado en dos circunstancias:
 
 \begin{itemize}
-    \item Durante la inicialización del subsistema, para establecer la primera interfaz
-          activa.
-    \item Desde la FSM de Gestión de Interfaz, cuando se produce un error irrecuperable
-          o se requiere un cambio explícito de medio.
+      \item Durante la inicialización del subsistema, para establecer la primera interfaz activa.
+      \item Desde la FSM de Gestión de Interfaz, cuando se produce un error irrecuperable o se requiere un cambio explícito de medio.
 \end{itemize}
 
-El selector evalúa la disponibilidad de cada implementación registrada, aplica
-criterios de prioridad o configuración del instrumento, y retorna una referencia a la
-instancia de \texttt{comm\_iface\_t} seleccionada, o un valor nulo si no hay ninguna
-disponible. No participa en la transferencia ni en el procesamiento de datos.
+El selector evalúa la disponibilidad de cada implementación registrada, aplica criterios de prioridad o configuración del instrumento, y retorna una referencia a la instancia de \texttt{comm\_iface\_t} seleccionada, o un valor nulo si no hay ninguna disponible. No participa en la transferencia ni en el procesamiento de datos.
