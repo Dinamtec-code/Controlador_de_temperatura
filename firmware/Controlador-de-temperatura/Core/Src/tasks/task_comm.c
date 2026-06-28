@@ -1,13 +1,31 @@
 #include "tasks/task_comm.h"
 #include "hardware/oled_hw.h"
-#include "communication/comm_interface.h"
-#include "communication/comm_buffers.h"
+#include "communication/comm_driver_api.h"
 #include "communication/comm_message_buffer.h"
-#include "services/scpi_parser.h"
 #include "services/error_handler.h"
 #include "main.h"
 #include <stdio.h>
 #include <string.h>
+
+/*************************************************************
+ * Creación e inicializacion de buffers de entrada y salida
+ *************************************************************/
+
+static volatile uint8_t rx_buffer_mem[RX_BUFFER_SIZE];
+static volatile cb_t rx_buffer = {
+    .buffer = rx_buffer_mem,
+    .size = RX_BUFFER_SIZE,
+    .head = 0,
+    .tail = 0,
+};
+
+static volatile uint8_t tx_buffer_mem[RX_BUFFER_SIZE];
+static volatile cb_t tx_buffer = {
+    .buffer = tx_buffer_mem,
+    .size = TX_BUFFER_SIZE,
+    .head = 0,
+    .tail = 0,
+};
 
 static volatile bool msg_ready_flag = false;
 
@@ -16,6 +34,26 @@ static void send_response_to_interface(const char *resp, void *context)
     comm_buffer_tx_put(COMM_IFACE_USART, (const uint8_t *)resp, strlen(resp));
 }
 
+void fsm_gestion(void)
+{
+}
+
+void fsm_rx(void)
+{
+}
+
+void fsm_tx(void)
+{
+}
+
+void task_comm(void)
+{
+    fsm_gestion();
+    fsm_rx();
+    fsm_tx();
+}
+
+/*
 void task_comm(void)
 {
     static bool output_iface_set = false;
@@ -31,7 +69,7 @@ void task_comm(void)
         output_iface_set = true;
     }
 
-    comm_interface_t *iface = comm_get_interface(COMM_IFACE_USART);
+    comm_iface_t *iface = comm_get_interface(COMM_IFACE_USART);
 
     if (!iface || !comm_interface_is_rx_active(COMM_IFACE_USART))
     {
@@ -112,3 +150,5 @@ void task_system_msg_clear(void)
 {
     msg_ready_flag = false;
 }
+
+*/

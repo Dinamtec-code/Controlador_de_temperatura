@@ -19,13 +19,13 @@ typedef struct
     size_t size;
     volatile size_t head;
     volatile size_t tail;
-} circular_buffer_t;
+} cb_t;
 
-void cb_init(circular_buffer_t *cb, uint8_t *buffer, size_t size);
-cb_status_t cb_put(circular_buffer_t *cb, uint8_t data);
-cb_status_t cb_get(circular_buffer_t *cb, uint8_t *data);
-cb_status_t cb_status(circular_buffer_t *cb);
-size_t cb_count(circular_buffer_t *cb);
-cb_status_t cb_clear(circular_buffer_t *cb);
+void cb_init(cb_t *cb, uint8_t *buffer, size_t size);
+cb_status_t cb_put(cb_t *cb, uint8_t data);
+cb_status_t cb_get(cb_t *cb, uint8_t *data);
+cb_status_t cb_status(cb_t *cb);
+size_t cb_count(cb_t *cb);
+cb_status_t cb_clear(cb_t *cb);
 
 #endif

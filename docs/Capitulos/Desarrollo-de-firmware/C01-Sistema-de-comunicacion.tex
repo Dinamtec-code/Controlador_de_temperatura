@@ -211,8 +211,7 @@ Es importante distinguir entre el código de error retornado por algunas funcion
 
 Una operación es una acción explícita solicitada por una capa superior a través de la API de la interfaz de comunicación. Constituye el mecanismo de control de que disponen la \textit{Communication Task} y, de forma mediada, la aplicación, para gobernar el comportamiento del driver sin exponer los detalles de implementación del periférico.
 
-Las operaciones se corresponden con los \textit{callbacks} definidos en la estructura
-\texttt{comm\_iface\_t}:
+Las operaciones se corresponden con los \textit{callbacks} definidos en la estructura \texttt{comm\_iface\_t}:
 
 \begin{itemize}
       \item \textbf{Ciclo de vida:} \texttt{init()}, \texttt{deinit()}, \texttt{reset()}.
