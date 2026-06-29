@@ -117,8 +117,12 @@ static inline void comm_unprotect_tx(void *ctx)
     __DSB();
 }
 
-void usart_iface_register(circular_buffer_t *rx_cb, circular_buffer_t *tx_cb)
+comm_response_t usart_iface_register(cb_t *rx_cb, cb_t *tx_cb)
 {
+    if (rx_cb == NULL || tx_cb == NULL)
+    {
+        return COMM_IFACE_ERROR;
+    }
     usart_iface.context = &usart_iface;
     usart_iface.name = "USART2";
     usart_iface.state = COMM_STATE_NONE;
@@ -143,6 +147,7 @@ void usart_iface_register(circular_buffer_t *rx_cb, circular_buffer_t *tx_cb)
     usart_iface.unprotect_tx = comm_unprotect_tx;
 
     comm_register_iface(&usart_iface);
+    return COMM_IFACE_OK;
 }
 
 /* --- CONTROL DE FLUJO Y DMA --- */

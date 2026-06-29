@@ -43,8 +43,7 @@
 #include "tasks/task_ui.h"
 
 /* Communication */
-#include "communication/comm_buffers.h"
-#include "communication/comm_interface.h"
+#include "communication/comm_driver_api.h"
 
 /* Services */
 #include "services/error_handler.h"
@@ -116,20 +115,15 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_USART2_UART_Init();
-  MX_HRTIM1_Init();
-  MX_ADC1_Init();
-  MX_ADC2_Init();
-  i2c_hw_init();
+
+  
+  
 
   /* USER CODE BEGIN 2 */
 
   /* Initialize hardware layers */
-  comm_buffers_init();
   error_handler_init();
-  usart_hw_init();
   scpi_init();
-  oled_hw_init();
 
   /* Initialize scheduler */
   scheduler_init();

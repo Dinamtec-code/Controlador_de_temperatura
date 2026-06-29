@@ -61,9 +61,10 @@ _Min_Stack_Size = 0x200; /* required amount of stack - 512 bytes */
 /* Specify the memory areas */
 MEMORY
 {
-RAM (xrw)      : ORIGIN = 0x20000000, LENGTH = 12K
-CCMRAM (rw)      : ORIGIN = 0x10000000, LENGTH = 4K
-FLASH (rx)      : ORIGIN = 0x8000000, LENGTH = 64K
+  RAM    (xrw)   : ORIGIN = 0x20000000, LENGTH = 12K
+  CCMRAM (rw)    : ORIGIN = 0x10000000, LENGTH = 4K
+  FLASH  (rx)    : ORIGIN = 0x08000000, LENGTH = 62K        /* antes 64K */
+  CONFIG (r)     : ORIGIN = 0x0800F800, LENGTH = 2K         /* última página */
 }
 
 /* Define output sections */
@@ -203,6 +204,16 @@ SECTIONS
   }
 
   .ARM.attributes 0 : { *(.ARM.attributes) }
+
+  
+    /* Asegurar que nada se linkea en la región de configuración */
+  .config (NOLOAD) :
+  {
+    . = ALIGN(4);
+    KEEP(*(.config))
+    . = ALIGN(2K);             /* ocupa los 2 KB completos */
+  } >CONFIG
 }
+
 
 

@@ -87,8 +87,8 @@ struct comm_iface
     comm_iface_event_t event;
 
     /* Propiedad inyectada desde la Communication Task */
-    circular_buffer_t *rx_buffer;
-    circular_buffer_t *tx_buffer;
+    cb_t *rx_buffer;
+    cb_t *tx_buffer;
 
     /* --- Callbacks de Ciclo de Vida del Periférico --- */
     comm_error_t (*init)(void *ctx);
@@ -109,25 +109,5 @@ struct comm_iface
     void (*protect_tx)(void *ctx);
     void (*unprotect_tx)(void *ctx);
 };
-
-/* ========================================================================== */
-/* API Global del Subsistema de Gestión de Interfaces            */
-/* ========================================================================== */
-
-/**
- * @brief Agrega una interfaz al registro global haciéndola disponible para el sistema.
- */
-void comm_register_iface(comm_iface_t *iface);
-
-/**
- * @brief Elimina una interfaz del registro global.
- */
-void comm_unregister_iface(comm_iface_t *iface);
-
-/**
- * @brief Obtiene el puntero a una interfaz registrada a partir de su ID.
- * @return Puntero a la estructura de la interfaz, o NULL si no está registrada.
- */
-comm_iface_t *comm_get_iface(comm_iface_id_t id); // <-- Corregido el tipo de retorno
 
 #endif /* COMM_DRIVER_API_H */

@@ -264,7 +264,7 @@ El modelo de interacción entre capas es puramente asíncrono y orientado a even
       \item La FSM de Recepción consume los eventos del \textit{snapshot}. Si detecta \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE}, o si su estado actual es \texttt{RX\_GATHERING} (indicando que quedan datos pendientes del ciclo anterior), adquiere la protección del buffer de recepción (\texttt{protect\_rx()}) y extrae bytes mediante \texttt{cb\_get()}. Al finalizar el ciclo, libera la protección (\texttt{unprotect\_rx()}) aunque queden datos por procesar, permitiendo que la ISR del driver continúe escribiendo en el buffer.
       \item Cada byte es evaluado contra el terminador \texttt{LF} (\texttt{0x0A}). Los caracteres \texttt{CR} (\texttt{0x0D}) se descartan silenciosamente. Mientras no aparezca \texttt{LF}, la máquina permanece en el estado \texttt{RX\_GATHERING}.
       \item Al detectar el terminador, la FSM de Recepción considera el mensaje completo y publica el evento lógico interno \texttt{EV\_MESSAGE\_READY}. A continuación, retorna el control: si el buffer circular quedó vacío, transita a \texttt{RX\_IDLE}; si aún contiene bytes, permanece en \texttt{RX\_GATHERING} para continuar el procesamiento en el siguiente ciclo. De este modo, se procesa un único mensaje por ciclo, acotando el tiempo de ejecución de la tarea.
-      \item La capa de aplicación (Motor SCPI), que es notificada de este evento en el mismo ciclo o en el siguiente según la implementación, toma el mensaje desde el buffer de recepción del middleware y procede a su análisis sintáctico.
+      \item La Communication Task consulta a la aplicación si puede recibir un nuevo mensaje. Si la aplicación está lista, se le entrega un puntero directo al mensaje en el buffer de recepción para que lo procese de inmediato. Si la aplicación no puede atenderlo (está ocupada con un comando previo), el mensaje permanece en el buffer y la tarea reintentará la entrega en el siguiente ciclo, sin riesgo de pérdida.
 \end{enumerate}
 
 \paragraph{Flujo de Transmisión}
@@ -674,10 +674,11 @@ Esta máquina supervisa el estado global de la interfaz, coordina las transicion
       \end{tabular}
 \end{table}
 
-\vspace{4pt}
-\textbf{Nota:} En todas las transiciones que parten de \texttt{RX\_GATHERING}, la FSM libera la protección del buffer (\texttt{unprotect\_rx()}) al finalizar el ciclo. La protección se readquiere al inicio del ciclo siguiente si el estado es \texttt{RX\_GATHERING}.
+Cuando la FSM transita a \texttt{SELECTING}, ejecuta su lógica interna de selección: consulta el registro de interfaces disponibles (\texttt{comm\_iface\_registry}), evalúa la interfaz preferida configurada en el sistema y determina la nueva interfaz activa. Si hay una interfaz disponible, transita a \texttt{READY} e invoca \texttt{init()} sobre ella. Si no hay ninguna, retorna a \texttt{DOWN} y notifica la indisponibilidad del subsistema.
 
-Cuando la FSM transita a \texttt{SELECTING}, invoca al \textit{selector de medio de transporte} —un componente independiente cuyo contrato se describe en la sección \ref{subsec:selector-transporte}— para que determine cuál es la siguiente interfaz disponible. Si el selector provee una nueva instancia de \texttt{comm\_iface\_t}, la FSM la adopta como interfaz activa y ejecuta su \texttt{init()}. Si no hay interfaces alternativas, la FSM retorna a \texttt{DOWN} y notifica la indisponibilidad del subsistema.
+La FSM también atiende solicitudes de cambio de interfaz provenientes de la API de sistema (\texttt{comm\_sys\_api}). Cuando un módulo externo (SCPI, panel frontal, pantalla) solicita un cambio mediante \texttt{comm\_sys\_request\_iface\_change}, la FSM evalúa la viabilidad y, si es posible, inicia la transición a \texttt{SELECTING} para aplicar el nuevo medio.
+
+Los comandos del sistema (\texttt{COMM\_SYS\_CMD\_START}, \texttt{STOP}, \texttt{RESET}) se reciben a través de un registro de comandos que la FSM consume atómicamente al inicio de cada ciclo, de forma análoga al \textit{snapshot} de eventos de la interfaz. Esto permite que múltiples módulos externos soliciten operaciones sin condiciones de carrera.
 
 \subsubsection{FSM de Recepción (RX)}
 \label{subsubsec:fsm-rx}
@@ -690,7 +691,7 @@ La FSM de Recepción consume los eventos de recepción del \textit{snapshot} y e
       \label{tab:fsm-rx}
       \begin{tabular}{llll}
             \toprule
-            \textbf{Estado Actual} & \textbf{Evento} & \textbf{Siguiente Estado} & textbf{Acción} \\
+            \textbf{Estado Actual} & \textbf{Evento} & \textbf{Siguiente Estado} & \textbf{Acción} \\
             \midrule
             \texttt{RX\_IDLE}      & \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE}  & \texttt{RX\_GATHERING} & Proteger buffer \\
                                    &                 &                           &leer bytes con \texttt{cb\_get()} \\
@@ -744,9 +745,10 @@ La máquina evalúa el código de retorno de \texttt{start\_tx()} para decidir l
 La \textit{Communication Task} expone a la capa de aplicación (Motor SCPI) una interfaz basada en mensajes completos, ocultando por completo los detalles del transporte. Esta API consta de dos eventos lógicos y una función de solicitud de transmisión:
 
 \begin{description}
-      \item[\texttt{EV\_MESSAGE\_READY}:] Evento publicado por la FSM de Recepción cuando se           ha delimitado un mensaje completo (terminado en \texttt{LF}) en el buffer de recepción. La aplicación debe consumir el mensaje antes del siguiente ciclo de la tarea, copiándolo a sus buffers propios.
+      \item[\texttt{EV\_MESSAGE\_READY}:] Notificación a la aplicación de que un mensaje completo está disponible en el buffer de recepción de la tarea. La aplicación puede leerlo directamente y procesarlo en el acto. Si no puede atenderlo en ese momento, lo indica retornando \texttt{APP\_MSG\_BUSY}, y el mensaje permanece en el buffer para ser entregado en el siguiente ciclo.
       \item[\texttt{send\_message(data, len)}:] Función invocada por la aplicación para solicitar el envío de una respuesta. La \textit{Communication Task} copia los datos al buffer de transmisión mediante \texttt{cb\_put()} y activa internamente la señal \texttt{EV\_TX\_REQUEST}, que será evaluada por la FSM de Transmisión en el ciclo siguiente.
       \item[\texttt{EV\_TX\_DONE}:] Evento publicado por la FSM de Transmisión cuando la transmisión se ha completado exitosamente. Permite a la aplicación liberar recursos asociados a la respuesta o encolar un nuevo mensaje.
+      \item[\texttt{app\_msg\_iface\_t}:] Interfaz que implementa la capa de aplicación para recibir notificaciones del middleware. Contiene los callbacks \texttt{on\_message\_ready} (entrega de un mensaje con un puntero directo al buffer de la tarea), \texttt{on\_tx\_done} (transmisión completada) y \texttt{on\_error} (notificación de errores). La aplicación puede retornar \texttt{APP\_MSG\_BUSY} si no está lista para procesar un nuevo mensaje, en cuyo caso el middleware reintentará en el siguiente ciclo.
 \end{description}
 
 La aplicación no accede directamente al hardware de comunicación ni a los buffers de transporte. Toda la interacción se realiza a través de estos tres puntos de contacto.
@@ -769,17 +771,15 @@ El middleware no distingue entre un comando SCPI, una consulta de estado o cualq
 
 Si el protocolo del periférico subyacente dispone de mecanismos de interrupción de consulta —como el control de flujo en USBTMC—, el driver traduce dicha condición de hardware en un evento abstracto de interfaz. La FSM de Gestión captura este evento y coordina la acción correspondiente evaluando el estado operativo actual, sin que el significado del comando trascienda a esta capa.
 
-\subsection{Selector de Medio de Transporte}
-\label{subsec:selector-transporte}
+\subsection{API de Sistema de Comunicación (\texttt{com\_sys\_api})}
+\label{subsec:com-sys-api}
 
-La \textit{Communication Task} opera exclusivamente sobre la interfaz abstracta
-\texttt{comm\_iface\_t}. La asociación con una implementación concreta es resuelta por el \textbf{selector de medio de transporte}, un componente independiente cuya responsabilidad es determinar, en cada momento, cuál de las interfaces físicas disponibles debe estar activa.
+La capa de aplicación y los módulos de interfaz de usuario (panel frontal, pantalla, comandos SCPI) interactúan con el subsistema de comunicación a través de una API de sistema denominada \texttt{com\_sys\_api}. Esta API abstrae las operaciones de control del subsistema, permitiendo solicitar cambios de medio de transporte y consultar el estado activo sin exponer los detalles internos de la \textit{Communication Task}.
 
-El selector es invocado en dos circunstancias:
+\begin{description}
+    \item[\texttt{com\_sys\_request\_iface\_change(id)}:] Solicita a la FSM de Gestión un cambio de interfaz activa. El identificador \texttt{id} debe corresponder
+          a una interfaz registrada (\texttt{COMM\_IFACE\_USART}, \texttt{COMM\_IFACE\_TCP}, etc.). La solicitud no es inmediata; la FSM la evalúa en su próximo ciclo y determina si el cambio es factible según el estado operativo actual y la disponibilidad de la interfaz solicitada.
+    \item[\texttt{com\_sys\_get\_active\_iface()}:] Retorna un puntero a la estructura \texttt{comm\_iface\_t} que representa la interfaz actualmente en uso por la \textit{Communication Task}, o \texttt{NULL} si no hay ninguna activa.
+\end{description}
 
-\begin{itemize}
-      \item Durante la inicialización del subsistema, para establecer la primera interfaz activa.
-      \item Desde la FSM de Gestión de Interfaz, cuando se produce un error irrecuperable o se requiere un cambio explícito de medio.
-\end{itemize}
-
-El selector evalúa la disponibilidad de cada implementación registrada, aplica criterios de prioridad o configuración del instrumento, y retorna una referencia a la instancia de \texttt{comm\_iface\_t} seleccionada, o un valor nulo si no hay ninguna disponible. No participa en la transferencia ni en el procesamiento de datos.
+Esta API no almacena preferencias de configuración. La interfaz preferida por el usuario es gestionada por el módulo de configuración general del sistema (\texttt{config\_manager}), que puede persistirla en memoria no volátil. Los comandos SCPI o el panel frontal actualizan dicha configuración y, acto seguido, invocan \texttt{com\_sys\_request\_iface\_change} para que la FSM de Gestión aplique el cambio si corresponde.

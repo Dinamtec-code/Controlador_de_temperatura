@@ -11,7 +11,7 @@
 extern UART_HandleTypeDef huart2;
 
 /* --- Registro con inyección simétrica --- */
-void usart_iface_register(circular_buffer_t *rx_cb, circular_buffer_t *tx_cb);
+comm_response_t usart_iface_register(cb_t *rx_cb, cb_t *tx_cb);
 
 comm_response_t usart_hw_start_rx(void *context);
 comm_response_t usart_hw_stop_rx(void *context);

@@ -4,6 +4,7 @@
 #include "hardware/hrtim_hw.h"
 #include "main.h"
 #include <math.h>
+#include <stdbool.h>
 
 float def_temperatureSetpoint = 25.0f;
 float def_pidKp = 0.0f;
