@@ -14,22 +14,25 @@
 #include <string.h>
 
 /*******************************************************************************
+ * Comando interno para la FSM (no expuesto en API pública)
+ * CMD_DISABLE_RX: Detiene recepción sin desinicializar la interfaz
+ ******************************************************************************/
+#define COMM_SYS_CMD_DISABLE_RX (1u << 3)
+
+/*******************************************************************************
  * Registros del sistema
- *
  ******************************************************************************/
 static comm_sys_state_t sys_state = COMM_SYS_STATE_DOWN;
 
 /*******************************************************************************
  * Registros de la interfaz
- *
  ******************************************************************************/
 
 static comm_iface_t *active_iface = NULL;
 static comm_iface_event_t event_iface_snapshot = IFACE_EVENT_NONE;
 
 /*******************************************************************************
- * Creación e inicialización de buffers de entrada y salida
- *
+ * Buffers de transporte (propiedad de Communication Task)
  ******************************************************************************/
 
 static uint8_t rx_buffer_mem[RX_BUFFER_SIZE];
@@ -40,7 +43,7 @@ static cb_t rx_buffer = {
     .tail = 0,
 };
 
-static uint8_t tx_buffer_mem[RX_BUFFER_SIZE];
+static uint8_t tx_buffer_mem[TX_BUFFER_SIZE];
 static cb_t tx_buffer = {
     .buffer = tx_buffer_mem,
     .size = TX_BUFFER_SIZE,
@@ -48,7 +51,37 @@ static cb_t tx_buffer = {
     .tail = 0,
 };
 
-static volatile bool tx_pending = false;
+/*******************************************************************************
+ * Evento interno para solicitud de transmisión desde la aplicación
+ * ============================================================================
+ * Se reutiliza IFACE_EVENT_TX_COMPLETE como señal de software para evitar
+ * agregar un tipo nuevo. El driver hardware no usa este evento como señal.
+ ******************************************************************************/
+static comm_iface_event_t internal_events = IFACE_EVENT_NONE;
+static volatile bool tx_pending_atomic = false;
+
+static inline void set_tx_request(void)
+{
+    __disable_irq();
+    internal_events |= IFACE_EVENT_TX_COMPLETE;
+    __enable_irq();
+}
+
+static inline bool check_and_clear_tx_request(void)
+{
+    __disable_irq();
+    bool has_request = (internal_events & IFACE_EVENT_TX_COMPLETE) != 0;
+    if (has_request)
+    {
+        internal_events &= ~IFACE_EVENT_TX_COMPLETE;
+    }
+    __enable_irq();
+    return has_request;
+}
+
+/*******************************************************************************
+ * API de acceso a buffers
+ ******************************************************************************/
 
 comm_iface_t *comm_task_get_active_iface(void)
 {
@@ -66,30 +99,26 @@ comm_sys_state_t comm_task_get_sys_state(void)
     return sys_state;
 }
 
-// -----------------------------------------------------------------------------
-// FSM DE GESTIÓN DE INTERFAZ
-// Estados: DOWN, READY, ACTIVE, ERROR, SELECTING
-// -----------------------------------------------------------------------------
+/*******************************************************************************
+ * FSM DE GESTIÓN DE INTERFAZ
+ * Estados: DOWN, READY, ACTIVE, ERROR, SELECTING
+ ******************************************************************************/
 
-// Funciones auxiliares (selectora interna, notificación, cambio de estado)
 static comm_iface_t *selector_get_active_iface(void)
 {
-    // 1. ¿Hay una solicitud de cambio pendiente desde el sistema?
     comm_iface_id_t req = comm_sys_consume_pending_request();
     if (req < COMM_IFACE_MAX)
     {
         comm_iface_t *iface = comm_get_iface(req);
         if (iface)
-            return iface; // retorna la solicitada (aunque no esté conectada aún)
+            return iface;
     }
 
-    // 2. Leer configuración preferida (desde config_manager, cuando exista)
     comm_iface_id_t pref = config_get_preferred_iface();
     comm_iface_t *iface = comm_get_iface(pref);
     if (iface)
         return iface;
 
-    // 3. Fallback: primera interfaz registrada
     for (int i = 0; i < COMM_IFACE_MAX; i++)
     {
         iface = comm_get_iface((comm_iface_id_t)i);
@@ -115,7 +144,6 @@ static void notify_iface_changed(void)
 
 void fsm_gestion(void)
 {
-    // --- Capturas atómicas al inicio del ciclo ---
     comm_sys_cmd_t sys_cmds = comm_sys_consume_commands();
 
     if (active_iface)
@@ -123,7 +151,6 @@ void fsm_gestion(void)
         event_iface_snapshot = active_iface->get_event(active_iface->context);
     }
 
-    // --- Evaluación por estado usando sys_cmds y event_iface_snapshot ---
     switch (sys_state)
     {
     case COMM_SYS_STATE_DOWN:
@@ -165,6 +192,13 @@ void fsm_gestion(void)
             break;
         }
         if (event_iface_snapshot & IFACE_EVENT_INTERFACE_DISCONNECTED)
+        {
+            active_iface->stop_rx(active_iface->context);
+            sys_state_change(COMM_SYS_STATE_READY);
+            comm_sys_notify_event(COMM_SYS_EVENT_DISCONNECTED);
+            break;
+        }
+        if (sys_cmds & COMM_SYS_CMD_DISABLE_RX)
         {
             active_iface->stop_rx(active_iface->context);
             sys_state_change(COMM_SYS_STATE_READY);
@@ -215,7 +249,6 @@ void fsm_gestion(void)
     }
     }
 
-    // --- Solicitud de cambio de interfaz (evento de sistema) ---
     comm_iface_id_t req = comm_sys_consume_pending_request();
     if (req < COMM_IFACE_MAX)
     {
@@ -231,12 +264,10 @@ void fsm_gestion(void)
     }
 }
 
-/**
- * @brief Interfaz de aplicación registrada.
- *
- * Se espera que sea configurada externamente (por ejemplo, en la inicialización)
- * mediante una función comm_task_register_app_iface().
- */
+/*******************************************************************************
+ * Interfaz de aplicación registrada
+ ******************************************************************************/
+
 static const app_msg_iface_t *app_iface = NULL;
 
 void comm_task_register_app_iface(const app_msg_iface_t *iface)
@@ -246,9 +277,10 @@ void comm_task_register_app_iface(const app_msg_iface_t *iface)
 
 /*******************************************************************************
  * Maquina de recepción
- *
  * Estados: RX_IDLE, RX_GATHERING
+ * Comportamiento SCPI: APP_MSG_BUSY genera query interrupt (mensaje cancelado)
  ******************************************************************************/
+
 void fsm_rx(void)
 {
     if (!active_iface || !app_iface)
@@ -256,23 +288,20 @@ void fsm_rx(void)
 
     static enum { RX_IDLE,
                   RX_GATHERING } state = RX_IDLE;
-    static uint8_t msg_buffer[RX_BUFFER_SIZE]; // Buffer para ensamblar el mensaje
+    static uint8_t msg_buffer[RX_BUFFER_SIZE];
     static size_t msg_len = 0;
 
     switch (state)
     {
     case RX_IDLE:
-        // Transición a GATHERING si hay datos disponibles
         if (event_iface_snapshot & IFACE_EVENT_RX_DATA_AVAILABLE)
         {
             active_iface->protect_rx(active_iface->context);
             state = RX_GATHERING;
-            // NO hacemos break aquí: caemos intencionalmente al case RX_GATHERING
-            // para procesar los datos en el mismo ciclo.
         }
         else
         {
-            break; // Sin datos, salimos.
+            break;
         }
         /* falls through */
     case RX_GATHERING:
@@ -280,95 +309,78 @@ void fsm_rx(void)
         bool msg_completed = false;
         uint8_t byte;
 
-        // Procesar datos hasta que el buffer esté vacío o se complete un mensaje.
         while (cb_get(active_iface->rx_buffer, &byte) == BUF_OK)
         {
-            // Ensamblar el mensaje. El carácter LF actúa como delimitador,
-            // pero TODOS los bytes (incluyendo CR) se transfieren a la aplicación.
             if (byte == '\n')
-            { // LF (0x0A) delimita el fin del mensaje
+            {
                 msg_completed = true;
-                // Incluimos el LF en el mensaje y se lo pasamos a la aplicación
                 if (msg_len < sizeof(msg_buffer))
                 {
                     msg_buffer[msg_len++] = byte;
                 }
-                break; // Salimos del bucle para limitar a un mensaje por ciclo
+                break;
             }
             else
             {
-                // Acumular cualquier otro byte (incluye CR, datos binarios, etc.)
                 if (msg_len < sizeof(msg_buffer))
                 {
                     msg_buffer[msg_len++] = byte;
                 }
                 else
                 {
-                    // Overflow del buffer de mensaje: deberíamos señalizar un error
-                    // y descartar. Por ahora, simplemente rompemos el bucle.
-                    break;
+                    break; /* Buffer de mensaje overflow - se cancela el mensaje */
                 }
             }
         }
 
-        // Si se completó un mensaje, notificar a la aplicación
         if (msg_completed)
         {
-            // Entregar el mensaje a la capa de aplicación
             app_msg_response_t resp = app_iface->on_message_ready(
                 app_iface->context, msg_buffer, msg_len);
 
             if (resp == APP_MSG_OK)
             {
-                // Aplicación procesó el mensaje. Reiniciamos el buffer de ensamblaje.
                 msg_len = 0;
-                // El índice de lectura del buffer circular ya fue avanzado por cb_get.
             }
-            else
+            else if (resp == APP_MSG_BUSY)
             {
-                // Aplicación ocupada: no avanzamos el índice de lectura,
-                // el mensaje se reintentará en el próximo ciclo.
-                // NOTA: En una implementación real, necesitaríamos un mecanismo
-                // para retroceder el índice de lectura (tail) del buffer circular.
-                // Por ahora, asumimos que cb_get ya avanzó tail y no podemos retroceder.
-                // Una solución más robusta requeriría un buffer de "vistazo previo".
+                /* SCPI Query Interrupt: cancelamos el mensaje actual */
+                msg_len = 0;
+                app_iface->on_error(app_iface->context, APP_MSG_ERROR_INTERNAL);
             }
 
-            // Evaluar el siguiente estado después de publicar el mensaje
             if (cb_status(active_iface->rx_buffer) == BUF_EMPTY)
             {
                 state = RX_IDLE;
             }
             else
             {
-                state = RX_GATHERING; // Permanecer en GATHERING para el próximo ciclo
+                state = RX_GATHERING;
             }
         }
         else
         {
-            // No se completó ningún mensaje (porque no se recibió LF)
             if (cb_status(active_iface->rx_buffer) == BUF_EMPTY)
             {
                 state = RX_IDLE;
             }
             else
             {
-                state = RX_GATHERING; // Continuar en el próximo ciclo
+                state = RX_GATHERING;
             }
         }
 
-        // Liberar la protección adquirida al entrar en GATHERING
         active_iface->unprotect_rx(active_iface->context);
         break;
     }
-    } // fin del switch
+    }
 }
 
 /*******************************************************************************
  * Maquina de transmisión
- *
  * Estados: TX_IDLE, TX_BUSY
- *******************************************************************************/
+ ******************************************************************************/
+
 void fsm_tx(void)
 {
     if (!active_iface || !app_iface)
@@ -376,83 +388,82 @@ void fsm_tx(void)
 
     static enum { TX_IDLE,
                   TX_BUSY } state = TX_IDLE;
-    //static bool tx_pending = false; // Señal interna para iniciar transmisión
 
     switch (state)
     {
     case TX_IDLE:
-        if (tx_pending || (event_iface_snapshot & IFACE_EVENT_TX_COMPLETE))
+    {
+        bool has_pending = check_and_clear_tx_request();
+        if (!has_pending && !(event_iface_snapshot & IFACE_EVENT_TX_COMPLETE))
         {
-            // Intentar iniciar una transmisión (ya sea nueva o tras completar una)
-            comm_response_t resp = active_iface->start_tx(active_iface->context);
-            switch (resp)
-            {
-            case COMM_IFACE_OK:
-                tx_pending = false;
-                state = TX_BUSY;
-                break;
-            case COMM_IFACE_BUSY:
-                // Ocupado, reintentar en el siguiente ciclo
-                break;
-            case COMM_IFACE_IDLE:
-                // Buffer vacío, sin datos que transmitir
-                tx_pending = false;
-                break;
-            case COMM_IFACE_ERROR:
-                // Error irrecuperable: notificar a la aplicación.
-                // La FSM de Gestión se encargará de ejecutar reset() si es necesario.
-                app_iface->on_error(app_iface->context, APP_MSG_ERROR_TX);
-                tx_pending = false;
-                break;
-            }
+            break;
+        }
+
+        comm_response_t resp = active_iface->start_tx(active_iface->context);
+        switch (resp)
+        {
+        case COMM_IFACE_OK:
+            __disable_irq();
+            tx_pending_atomic = false;
+            __enable_irq();
+            state = TX_BUSY;
+            break;
+        case COMM_IFACE_BUSY:
+            break;
+        case COMM_IFACE_IDLE:
+            __disable_irq();
+            tx_pending_atomic = false;
+            __enable_irq();
+            break;
+        case COMM_IFACE_ERROR:
+            app_iface->on_error(app_iface->context, APP_MSG_ERROR_TX);
+            __disable_irq();
+            tx_pending_atomic = false;
+            __enable_irq();
+            break;
         }
         break;
+    }
 
     case TX_BUSY:
-        // Evaluar eventos de la interfaz desde el snapshot
         if (event_iface_snapshot & IFACE_EVENT_TX_COMPLETE)
         {
             state = TX_IDLE;
             app_iface->on_tx_done(app_iface->context);
         }
         else if (event_iface_snapshot & (IFACE_EVENT_TX_ERROR_TIMEOUT |
-                                         IFACE_EVENT_TX_ERROR_BUS_FAULT))
+                                        IFACE_EVENT_TX_ERROR_BUS_FAULT))
         {
-            // Error en la transmisión. Notificar a la aplicación.
-            // La FSM de Gestión consumirá el error y llamará a reset() en el ciclo siguiente.
             state = TX_IDLE;
             app_iface->on_error(app_iface->context, APP_MSG_ERROR_TX);
-        }
-        else if (tx_pending)
-        {
-            // Hay una nueva solicitud de transmisión mientras la anterior está en curso.
-            // Podemos encolarla (no implementado) o ignorarla por ahora.
-            // Lo más seguro es mantener tx_pending = true y esperar.
         }
         break;
     }
 }
 
-// -----------------------------------------------------------------------------
-// FUNCIÓN PARA SOLICITAR TRANSMISIÓN DESDE LA APLICACIÓN
-// -----------------------------------------------------------------------------
+/*******************************************************************************
+ * FUNCIÓN PARA SOLICITAR TRANSMISIÓN DESDE LA APLICACIÓN
+ ******************************************************************************/
+
 void comm_app_send_response(const uint8_t *data, size_t len)
 {
     if (!active_iface || !active_iface->tx_buffer)
         return;
 
-    // Copiar datos al buffer de transmisión
     active_iface->protect_tx(active_iface->context);
     for (size_t i = 0; i < len; i++)
     {
         if (cb_put(active_iface->tx_buffer, data[i]) != BUF_OK)
         {
-            break; // Buffer lleno, descartar el resto
+            break;
         }
     }
     active_iface->unprotect_tx(active_iface->context);
 
-    tx_pending = true;
+    __disable_irq();
+    tx_pending_atomic = true;
+    internal_events |= IFACE_EVENT_TX_COMPLETE;
+    __enable_irq();
 }
 
 void task_comm(void)

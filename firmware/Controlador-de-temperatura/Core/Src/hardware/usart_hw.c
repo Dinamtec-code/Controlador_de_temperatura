@@ -266,7 +266,6 @@ comm_iface_event_t usart_hw_get_event(void *ctx)
 }
 
 /* --- 3. CALLBACKS DE INTERRUPCIÓN (Traducción HW -> Eventos de Interfaz) --- */
-
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t data_size)
 {
     if (huart->Instance == USART2)

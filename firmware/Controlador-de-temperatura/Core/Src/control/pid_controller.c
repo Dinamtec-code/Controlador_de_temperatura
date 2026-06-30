@@ -1,11 +1,17 @@
 #include "control/pid_controller.h"
 #include "stdbool.h"
 
-static pid_controller_t temp_pid;
 
-pid_controller_t *get_temp_pid_instance(void)
+
+static pid_controller_t temp_pid[PID_CHANNELS];
+
+pid_controller_t *get_temp_pid_instance(size_t channel)
 {
-    return &temp_pid;
+    if (channel >= PID_CHANNELS)
+    {
+        return NULL;
+    }
+    return &temp_pid[channel];
 }
 
 void pid_init(pid_controller_t *pid, float kp, float ki, float kd)

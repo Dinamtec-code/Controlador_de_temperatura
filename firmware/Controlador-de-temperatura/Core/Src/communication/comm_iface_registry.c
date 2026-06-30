@@ -1,8 +1,6 @@
 #include "communication/comm_iface_registry.h"
 
-#define MAX_IFACES 2
-
-static comm_iface_t *iface_table[MAX_IFACES];
+static comm_iface_t *iface_table[COMM_IFACE_MAX];
 
 void comm_register_iface(comm_iface_t *iface)
 {

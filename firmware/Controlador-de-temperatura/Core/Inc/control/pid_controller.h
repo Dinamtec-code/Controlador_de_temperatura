@@ -2,6 +2,7 @@
 #define PID_CONTROLLER_H
 
 #define ANTI_WINDUP 1
+#define PID_CHANNELS 2
 
 #include "arm_math_types.h"
 #include "control/controller_functions.h"

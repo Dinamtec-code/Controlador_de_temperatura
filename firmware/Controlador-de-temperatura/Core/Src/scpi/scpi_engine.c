@@ -103,6 +103,7 @@ static scpi_result_t cmd_meas_temp(scpi_t *context)
 {
     float temp = get_temperature();
     SCPI_ResultFloat(context, temp);
+    HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
     return SCPI_RES_OK;
 }
 
@@ -347,6 +348,14 @@ static const scpi_command_t scpi_commands[] = {
  * Callbacks de la interfaz de libscpi
  * ========================================================================== */
 
+static scpi_result_t My_CoreRst(scpi_t *context)
+{
+    (void)context;
+    SCPI_CoreRst(context);       // Reset del parser y registros IEEE 488.2
+    config_apply_reset_values(); // Restauración de los parámetros del instrumento
+    return SCPI_RES_OK;
+}
+
 static size_t scpi_write_cb(scpi_t *ctx, const char *data, size_t len)
 {
     (void)ctx;
@@ -371,13 +380,7 @@ static scpi_result_t scpi_control_cb(scpi_t *ctx, scpi_ctrl_name_t ctrl, scpi_re
 {
     (void)ctx;
     (void)val;
-    if (ctrl == SCPI_CTRL_LLO)
-    {
-        set_setpoint(25.0f);
-        set_kp(0.0f);
-        set_ki(0.0f);
-        set_kd(0.0f);
-    }
+    (void)ctrl;
     return SCPI_RES_OK;
 }
 
