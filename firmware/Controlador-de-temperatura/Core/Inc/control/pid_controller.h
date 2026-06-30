@@ -31,7 +31,7 @@ void pid_reset(pid_controller_t *pid);
 void pid_set_kp(pid_controller_t *pid, float kp);
 void pid_set_ki(pid_controller_t *pid, float ki);
 void pid_set_kd(pid_controller_t *pid, float kd);
-pid_controller_t *get_temp_pid_instance(void);
+pid_controller_t *get_pid_instance(uint8_t channel);
 float pid_get_kp(pid_controller_t *pid);
 float pid_get_ki(pid_controller_t *pid);
 float pid_get_kd(pid_controller_t *pid);

@@ -286,6 +286,20 @@ void fsm_rx(void)
     if (!active_iface || !app_iface)
         return;
 
+    active_iface->protect_rx(active_iface->context);
+    uint8_t byte;
+    while (cb_get(active_iface->rx_buffer, &byte) == BUF_OK)
+    {
+        app_iface->on_rx_data(app_iface->context, &byte, 1);
+    }
+    active_iface->unprotect_rx(active_iface->context);
+}
+/*
+void fsm_rx(void)
+{
+    if (!active_iface || !app_iface)
+        return;
+
     static enum { RX_IDLE,
                   RX_GATHERING } state = RX_IDLE;
     static uint8_t msg_buffer[RX_BUFFER_SIZE];
@@ -303,7 +317,6 @@ void fsm_rx(void)
         {
             break;
         }
-        /* falls through */
     case RX_GATHERING:
     {
         bool msg_completed = false;
@@ -328,7 +341,7 @@ void fsm_rx(void)
                 }
                 else
                 {
-                    break; /* Buffer de mensaje overflow - se cancela el mensaje */
+                    break; 
                 }
             }
         }
@@ -344,7 +357,6 @@ void fsm_rx(void)
             }
             else if (resp == APP_MSG_BUSY)
             {
-                /* SCPI Query Interrupt: cancelamos el mensaje actual */
                 msg_len = 0;
                 app_iface->on_error(app_iface->context, APP_MSG_ERROR_INTERNAL);
             }
@@ -375,6 +387,7 @@ void fsm_rx(void)
     }
     }
 }
+*/
 
 /*******************************************************************************
  * Maquina de transmisión

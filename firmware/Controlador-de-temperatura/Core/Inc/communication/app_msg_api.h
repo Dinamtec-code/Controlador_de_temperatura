@@ -32,26 +32,22 @@ typedef enum
 } app_msg_response_t;
 
 typedef struct app_msg_iface app_msg_iface_t;
-
+/*
 struct app_msg_iface
 {
     void *context;
-
-    /**
-     * @brief Entrega un mensaje completo. El puntero es válido solo hasta retornar.
-     * @return APP_MSG_OK si se procesó, APP_MSG_BUSY si la aplicación no puede atenderlo ahora.
-     */
     app_msg_response_t (*on_message_ready)(void *ctx, const uint8_t *msg, size_t len);
-
-    /**
-     * @brief Notifica que la transmisión de una respuesta ha finalizado.
-     */
     app_msg_response_t (*on_tx_done)(void *ctx);
-
-    /**
-     * @brief Notifica un error originado en la capa de comunicación.
-     */
-    void (*on_error)(void *ctx, app_msg_error_t error); 
+    void (*on_error)(void *ctx, app_msg_error_t error);
 };
+*/
+
+typedef struct app_msg_iface
+{
+    void *context;
+    void (*on_rx_data)(void *ctx, const uint8_t *data, size_t len);
+    app_msg_response_t (*on_tx_done)(void *ctx);
+    void (*on_error)(void *ctx, app_msg_error_t error);
+} app_msg_iface_t;
 
 #endif /* APP_MSG_API_H */

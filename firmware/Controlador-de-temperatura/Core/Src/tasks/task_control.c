@@ -13,7 +13,7 @@ float def_pidKd = 0.0f;
 
 void task_control(void)
 {
-    pid_controller_t *pid_instance = get_temp_pid_instance();
+    pid_controller_t *pid_instance = get_pid_instance(0);
 
     if (!(pid_instance->initialized))
     {

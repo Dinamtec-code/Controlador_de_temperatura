@@ -4,7 +4,7 @@
 
 #include "communication/app_msg_api.h"
 #include "tasks/task_comm.h"
-
+#include "system/config_manager.h"
 #include "control/pid_controller.h"
 #include "hardware/adc_hw.h"
 #include "main.h"
@@ -23,6 +23,8 @@ static char scpi_input_buffer[SCPI_INPUT_BUFFER_LENGTH];
 #define SCPI_ERROR_QUEUE_SIZE 10
 static scpi_error_t scpi_error_queue[SCPI_ERROR_QUEUE_SIZE];
 
+static scpi_result_t my_CoreRst(scpi_t *context);
+
 /* ==========================================================================
  * Funciones auxiliares de los comandos del instrumento
  * ========================================================================== */
@@ -34,57 +36,57 @@ static float get_temperature(void)
 
 static float get_setpoint(void)
 {
-    return pid_get_setpoint(get_temp_pid_instance());
+    return pid_get_setpoint(get_pid_instance((uint8_t)0));
 }
 
 static void set_setpoint(float val)
 {
-    pid_set_setpoint(get_temp_pid_instance(), val);
+    pid_set_setpoint(get_pid_instance(0), val);
 }
 
 static float get_kp(void)
 {
-    return pid_get_kp(get_temp_pid_instance());
+    return pid_get_kp(get_pid_instance(0));
 }
 
 static void set_kp(float val)
 {
-    pid_set_kp(get_temp_pid_instance(), val);
+    pid_set_kp(get_pid_instance(0), val);
 }
 
 static float get_ki(void)
 {
-    return pid_get_ki(get_temp_pid_instance());
+    return pid_get_ki(get_pid_instance(0));
 }
 
 static void set_ki(float val)
 {
-    pid_set_ki(get_temp_pid_instance(), val);
+    pid_set_ki(get_pid_instance(0), val);
 }
 
 static float get_kd(void)
 {
-    return pid_get_kd(get_temp_pid_instance());
+    return pid_get_kd(get_pid_instance(0));
 }
 
 static void set_kd(float val)
 {
-    pid_set_kd(get_temp_pid_instance(), val);
+    pid_set_kd(get_pid_instance(0), val);
 }
 
 static float get_duty(void)
 {
-    return pid_get_out(get_temp_pid_instance());
+    return pid_get_out(get_pid_instance(0));
 }
 
 static bool get_output(uint8_t channel)
 {
-    return pid_controller_get_output(get_temp_pid_instance(), channel);
+    return pid_controller_get_output(get_pid_instance(0), channel);
 }
 
 static void set_output(uint8_t channel, bool on)
 {
-    pid_controller_set_output(get_temp_pid_instance(), channel, on);
+    pid_controller_set_output(get_pid_instance(0), channel, on);
     if (channel == 0)
     {
         HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, on ? GPIO_PIN_RESET : GPIO_PIN_SET);
@@ -263,7 +265,8 @@ static const scpi_command_t scpi_commands[] = {
     },
     {
         .pattern = "*RST",
-        .callback = SCPI_CoreRst,
+        .callback = my_CoreRst,
+        //        .callback = SCPI_CoreRst,
     },
     {
         .pattern = "*SRE",
@@ -348,7 +351,7 @@ static const scpi_command_t scpi_commands[] = {
  * Callbacks de la interfaz de libscpi
  * ========================================================================== */
 
-static scpi_result_t My_CoreRst(scpi_t *context)
+static scpi_result_t my_CoreRst(scpi_t *context)
 {
     (void)context;
     SCPI_CoreRst(context);       // Reset del parser y registros IEEE 488.2
@@ -402,11 +405,10 @@ static scpi_interface_t scpi_interface = {
  * Implementación de app_msg_iface_t
  * ========================================================================== */
 
-static app_msg_response_t on_message_ready(void *ctx, const uint8_t *msg, size_t len)
+static void on_rx_data(void *ctx, const uint8_t *data, size_t len)
 {
     (void)ctx;
-    SCPI_Input(&scpi_context, (const char *)msg, len);
-    return APP_MSG_OK;
+    SCPI_Input(&scpi_context, (const char *)data, len);
 }
 
 static app_msg_response_t on_tx_done(void *ctx)
@@ -423,7 +425,7 @@ static void on_error(void *ctx, app_msg_error_t error)
 
 static app_msg_iface_t app_iface = {
     .context = NULL,
-    .on_message_ready = on_message_ready,
+    .on_rx_data = on_rx_data,
     .on_tx_done = on_tx_done,
     .on_error = on_error,
 };

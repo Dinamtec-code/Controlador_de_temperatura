@@ -24,15 +24,15 @@ void task_ui(void)
         oled_hw_print_str("Temp = ", 1);
         oled_hw_print_float_at(temp, 1, 32);
         oled_hw_print_str("SetP = ", 3);
-        oled_hw_print_float_at(pid_get_setpoint(get_temp_pid_instance()), 3, 32);
+        oled_hw_print_float_at(pid_get_setpoint(get_pid_instance(0)), 3, 32);
         oled_hw_print_str_at("P:", 5, 0);
-        oled_hw_print_float_at(pid_get_kp(get_temp_pid_instance()), 5, 20);
+        oled_hw_print_float_at(pid_get_kp(get_pid_instance(0)), 5, 20);
         oled_hw_print_str_at("I:", 5, 72);
-        oled_hw_print_float_at(pid_get_ki(get_temp_pid_instance()), 5, 92);
+        oled_hw_print_float_at(pid_get_ki(get_pid_instance(0)), 5, 92);
         oled_hw_print_str_at("D:", 7, 0);
-        oled_hw_print_float_at(pid_get_kd(get_temp_pid_instance()), 7, 20);
+        oled_hw_print_float_at(pid_get_kd(get_pid_instance(0)), 7, 20);
         oled_hw_print_str_at("O:", 7, 72);
-        oled_hw_print_float_at(pid_get_out(get_temp_pid_instance()), 7, 92);
+        oled_hw_print_float_at(pid_get_out(get_pid_instance(0)), 7, 92);
         oled_hw_update();
         update_counter = 0;
     }

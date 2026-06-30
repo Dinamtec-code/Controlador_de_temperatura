@@ -152,7 +152,7 @@ void config_apply_reset_values(void)
 {
     const config_slot_t *slot = &sys_config.slots[sys_config.active_slot];
 
-    for (int ch = 0; ch < NUM_CHANNELS; ch++)
+    for (uint8_t ch = 0; ch < NUM_CHANNELS; ch++)
     {
         pid_controller_t *pid = get_pid_instance(ch);
         if (pid)
