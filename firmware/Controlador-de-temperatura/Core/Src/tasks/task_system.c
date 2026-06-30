@@ -1,17 +1,27 @@
 #include "tasks/task_system.h"
+#include "tasks/task_comm.h"
 #include "system/config_manager.h"
 
 #include "communication/comm_sys_api.h"
 
 #include "services/error_handler.h"
 
+#include "scpi/scpi_engine.h"
+
 #include "hardware/usart_hw.h"
 #include "hardware/adc_hw.h"
 #include "hardware/oled_hw.h"
+#include "hardware/i2c_hw.h"
 
 #include "main.h"
+#include "adc.h"
+#include "dma.h"
+#include "hrtim.h"
+#include "usart.h"
+#include "gpio.h"
 
 static bool is_config_load = 0;
+static bool is_scpi_init = 0;
 static bool is_comm_init = 0;
 static bool is_i2c_init = 0;
 static bool is_pwm_init = 0;
@@ -48,8 +58,17 @@ void task_system(void)
         comm_task_get_buffers(&rx, &tx);
         if (usart_iface_register(rx, tx) == COMM_IFACE_OK)
         {
-            is_comm_init = 1;
+            // Antes de arrancar la comunicación, inicializar el motor SCPI
+            // y registrarlo como aplicación.
+            if (!is_scpi_init)
+            {
+                scpi_engine_init();                                    // Inicializa libscpi
+                comm_task_register_app_iface(scpi_engine_get_iface()); // Registra la interfaz
+                is_scpi_init = 1;
+            }
+            // Ahora sí, iniciar el subsistema de comunicación
             comm_sys_start();
+            is_comm_init = 1;
         }
     }
 

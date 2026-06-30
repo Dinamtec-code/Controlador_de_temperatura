@@ -1,4 +1,5 @@
 #include "control/pid_controller.h"
+#include "stdbool.h"
 
 static pid_controller_t temp_pid;
 

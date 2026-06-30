@@ -1,4 +1,4 @@
-#include "comm_iface_registry.h"
+#include "communication/comm_iface_registry.h"
 
 #define MAX_IFACES 2
 

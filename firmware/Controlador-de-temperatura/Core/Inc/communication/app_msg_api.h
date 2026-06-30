@@ -15,6 +15,14 @@ typedef enum
     APP_MSG_EVENT_INTERNAL_ERROR = (1u << 4)
 } app_msg_event_t;
 
+typedef enum
+{
+    APP_MSG_ERROR_NONE = 0x00,
+    APP_MSG_ERROR_RX = 0x01,
+    APP_MSG_ERROR_TX = 0x02,
+    APP_MSG_ERROR_INTERNAL = 0x04
+} app_msg_error_t;
+
 /* Códigos de retorno de la aplicación */
 typedef enum
 {
@@ -43,7 +51,7 @@ struct app_msg_iface
     /**
      * @brief Notifica un error originado en la capa de comunicación.
      */
-    void (*on_error)(void *ctx, app_msg_event_t event);
+    void (*on_error)(void *ctx, app_msg_error_t error); 
 };
 
 #endif /* APP_MSG_API_H */

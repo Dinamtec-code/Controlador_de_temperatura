@@ -47,7 +47,6 @@
 
 /* Services */
 #include "services/error_handler.h"
-#include "services/scpi_parser.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -116,14 +115,11 @@ int main(void)
   MX_GPIO_Init();
   MX_DMA_Init();
 
-  
-  
-
-  /* USER CODE BEGIN 2 */
+    /* USER CODE BEGIN 2 */
 
   /* Initialize hardware layers */
   error_handler_init();
-  scpi_init();
+
 
   /* Initialize scheduler */
   scheduler_init();

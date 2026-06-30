@@ -37,7 +37,6 @@ set(TASKS_SOURCES
 
 set(SERVICES_SOURCES
     Core/Src/services/circular_buffer.c
-    Core/Src/services/scpi_parser.c
     Core/Src/services/error_handler.c
 )
 
@@ -47,8 +46,29 @@ set(CONTROL_SOURCES
 )
 
 set(COMMUNICATION_SOURCES
-    Core/Src/communication/comm_buffers.c
-    Core/Src/communication/comm_message_buffer.c
+    Core/Src/communication/comm_sys_api.c
+    Core/Src/communication/comm_iface_registry.c
+)
+
+set(SYSTEM_SOURCES
+    Core/Src/system/config_manager.c
+)
+
+set(SCPI_SOURCES
+    Core/Src/scpi/scpi_engine.c
+    Core/Src/scpi/libscpi/error.c
+    Core/Src/scpi/libscpi/expression.c
+    Core/Src/scpi/libscpi/fifo_private.h
+    Core/Src/scpi/libscpi/fifo.c
+    Core/Src/scpi/libscpi/ieee488.c
+    Core/Src/scpi/libscpi/lexer_private.h
+    Core/Src/scpi/libscpi/lexer.c
+    Core/Src/scpi/libscpi/minimal.c
+    Core/Src/scpi/libscpi/parser_private.h
+    Core/Src/scpi/libscpi/parser.c
+    Core/Src/scpi/libscpi/units.c
+    Core/Src/scpi/libscpi/utils.c
+    Core/Src/scpi/libscpi/utils_private.h
 )
 
 set(HAL_SOURCES
@@ -94,6 +114,8 @@ add_executable(${PROJECT_NAME}
     ${SERVICES_SOURCES}
     ${CONTROL_SOURCES}
     ${COMMUNICATION_SOURCES}
+    ${SYSTEM_SOURCES}
+    ${SCPI_SOURCES}
     ${HAL_SOURCES}
     ${STARTUP_SOURCES}
 )
@@ -104,7 +126,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     LINK_DEPENDS ${LINKER_SCRIPT}
 )
 
-target_compile_options(${PROJECT_NAME} PRIVATE -gdwarf-4)
+target_compile_options(${PROJECT_NAME} PRIVATE -gdwarf-4 -ffunction-sections -fdata-sections -Os -flto)
+target_link_options(${PROJECT_NAME} PRIVATE -flto)
+#target_compile_options(${PROJECT_NAME} PRIVATE -gdwarf-4)
+
 
 target_link_options(${PROJECT_NAME} PRIVATE
     "-Wl,-T${LINKER_SCRIPT}"

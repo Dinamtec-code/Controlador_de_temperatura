@@ -7,8 +7,8 @@
  * internos.
  */
 
-#include "comm_sys_api.h"
-#include "comm_iface_registry.h"
+#include "communication/comm_sys_api.h"
+#include "communication/comm_iface_registry.h"
 #include <stddef.h>
 
 /* ========================================================================== */

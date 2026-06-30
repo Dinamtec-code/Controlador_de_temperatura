@@ -1,7 +1,7 @@
 #include "services/circular_buffer.h"
 
 // Función auxiliar privada para evitar duplicar lógica
-size_t cb_count(circular_buffer_t *cb)
+size_t cb_count(cb_t *cb)
 {
     if (cb == NULL || cb->buffer == NULL || cb->size == 0)
     {
@@ -21,12 +21,12 @@ size_t cb_count(circular_buffer_t *cb)
     }
 }
 
-static bool cb_is_valid(circular_buffer_t *cb)
+static bool cb_is_valid(cb_t *cb)
 {
     return (cb != NULL && cb->buffer != NULL && cb->size > 0);
 }
 
-void cb_init(circular_buffer_t *cb, uint8_t *buffer, size_t size)
+void cb_init(cb_t *cb, uint8_t *buffer, size_t size)
 {
     if (cb == NULL || buffer == NULL || size == 0)
     {
@@ -38,7 +38,7 @@ void cb_init(circular_buffer_t *cb, uint8_t *buffer, size_t size)
     cb->tail = 0;
 }
 
-cb_status_t cb_status(circular_buffer_t *cb)
+cb_status_t cb_status(cb_t *cb)
 {
     if (!cb_is_valid(cb))
     {
@@ -60,7 +60,7 @@ cb_status_t cb_status(circular_buffer_t *cb)
     }
 }
 
-cb_status_t cb_put(circular_buffer_t *cb, uint8_t data)
+cb_status_t cb_put(cb_t *cb, uint8_t data)
 {
     if (!cb_is_valid(cb))
     {
@@ -82,7 +82,7 @@ cb_status_t cb_put(circular_buffer_t *cb, uint8_t data)
     return BUF_OK;
 }
 
-cb_status_t cb_get(circular_buffer_t *cb, uint8_t *data)
+cb_status_t cb_get(cb_t *cb, uint8_t *data)
 {
     if (!cb_is_valid(cb))
     {
@@ -100,7 +100,7 @@ cb_status_t cb_get(circular_buffer_t *cb, uint8_t *data)
     return BUF_OK;
 }
 
-cb_status_t cb_clear(circular_buffer_t *cb)
+cb_status_t cb_clear(cb_t *cb)
 {
     if (!cb_is_valid(cb))
     {

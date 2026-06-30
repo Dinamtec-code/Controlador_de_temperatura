@@ -63,6 +63,14 @@ comm_response_t comm_sys_stop(void);
  */
 comm_response_t comm_sys_reset_active_iface(void);
 
+/**
+ * @brief Solicita un cambio de interfaz activa.
+ *        La FSM de Gestión evaluará la solicitud en su próximo ciclo.
+ * @param id  Identificador de la interfaz deseada.
+ * @return    COMM_IFACE_OK si el id es válido, COMM_IFACE_ERROR si no.
+ */
+comm_response_t comm_sys_request_iface_change(comm_iface_id_t id);
+
 /* ========================================================================== */
 /* API de Consulta                                                            */
 /* ========================================================================== */
@@ -71,6 +79,11 @@ comm_response_t comm_sys_reset_active_iface(void);
  * @brief Obtiene el estado global del subsistema.
  */
 comm_sys_state_t comm_sys_get_state(void);
+
+/**
+ * @brief Obtiene la interfaz activa del subsistema.
+ */
+comm_iface_t *comm_sys_get_active_iface(void);
 
 /**
  * @brief Indica si la interfaz activa tiene conexión establecida.
@@ -95,5 +108,21 @@ comm_response_t comm_sys_get_active_iface_info(const char **name, comm_iface_id_
  * @param context  Puntero opaco pasado al callback.
  */
 void comm_sys_register_notify_callback(comm_sys_notify_cb_t cb, void *context);
+
+/* ========================================================================== */
+/* Funciones de uso interno (invocadas por la Communication Task)             */
+/* ========================================================================== */
+
+/** Publica un comando del sistema. */
+void comm_sys_post_command(comm_sys_cmd_t cmd);
+
+/** Consume atómicamente todos los comandos pendientes. */
+comm_sys_cmd_t comm_sys_consume_commands(void);
+
+/** Consume la solicitud de cambio de interfaz pendiente. */
+comm_iface_id_t comm_sys_consume_pending_request(void);
+
+/** Notifica un evento del subsistema al callback registrado. */
+void comm_sys_notify_event(comm_sys_event_t event);
 
 #endif /* COMM_SYS_API_H */

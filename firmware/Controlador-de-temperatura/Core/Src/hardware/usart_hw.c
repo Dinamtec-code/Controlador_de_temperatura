@@ -2,6 +2,7 @@
 #include "usart.h"
 #include "dma.h"
 #include "communication/comm_driver_api.h"
+#include "communication/comm_iface_registry.h"
 #include "services/circular_buffer.h"
 #include "main.h"
 
@@ -286,7 +287,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t data_size)
             }
 
             iface->rx_buffer->head = new_head;
-            __DSB;
+            __DSB();
             iface->event |= IFACE_EVENT_RX_DATA_AVAILABLE;
             iface->state |= COMM_STATE_RX_ACTIVE;
 

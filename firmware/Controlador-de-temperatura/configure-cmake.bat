@@ -2,6 +2,8 @@
 REM Configure PATH and run CMake with Ninja generator
 set "PATH=C:\Program Files\CMake\bin;C:\tools\ninja;C:\Program Files (x86)\Arm\GNU Toolchain mingw-w64-i686-arm-none-eabi\bin;%PATH%"
 
+cd /d "%~dp0"
+
 echo PATH configured:
 echo   CMake: C:\Program Files\CMake\bin
 echo   Ninja: C:\tools\ninja

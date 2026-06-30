@@ -1,7 +1,6 @@
-#include "config_manager.h"
+#include "system/config_manager.h"
 #include "communication/comm_sys_api.h"
-#include "stm32f3xx_hal_flash.h"
-#include "stm32f3xx_hal_flash_ex.h"
+#include "main.h"
 #include <string.h>
 
 /* ========================================================================== */
