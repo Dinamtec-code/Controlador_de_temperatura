@@ -226,31 +226,9 @@ Los comandos del sistema se reciben a través de un registro de comandos que la 
 \subsubsection{FSM de Recepción (RX)}
 \label{subsubsec:fsm-rx}
 
-La FSM de Recepción consume los eventos de recepción del \textit{snapshot} y extrae los bytes del buffer circular \texttt{rx\_buffer} mediante \texttt{cb\_get()}. Su responsabilidad es delimitar mensajes completos detectando el terminador \texttt{LF}.
+La FSM de Recepción transfiere los bytes recibidos desde el buffer circular \texttt{rx\_buffer} directamente a la capa de aplicación, sin realizar delimitación ni interpretación alguna. En cada ciclo de la \textit{CommunicationTask}, se protege el buffer de recepción, se extraen todos los bytes disponibles mediante \texttt{cb\_get()} y se entregan a la aplicación a través del callback \texttt{on\_rx\_data} de la interfaz \texttt{app\_msg\_iface\_t}. Una vez transferidos los datos, se libera la protección.
 
-\begin{table}[htbp]
-    \centering
-    \caption{Tabla de transiciones de la FSM de Recepción.}
-    \label{tab:fsm-rx}
-    \begin{tabular}{llll}
-        \toprule
-        \textbf{Estado Actual} & \textbf{Evento} & \textbf{Siguiente Estado} & \textbf{Acción} \\
-        \midrule
-        \texttt{RX\_IDLE} & \texttt{IFACE\_EVENT\_RX\_DATA\_AVAILABLE} & \texttt{RX\_GATHERING} & Proteger buffer y leer bytes con \texttt{cb\_get()} \\
-        \texttt{RX\_GATHERING} & Byte distinto de LF & \texttt{RX\_GATHERING} & Acumular carácter en buffer de mensaje \\
-        \texttt{RX\_GATHERING} & Byte LF (buffer con más datos) & \texttt{RX\_GATHERING} & Publicar \texttt{EV\_MESSAGE\_READY};\\
-                               &                 &                            & permanecer en este estado para el próximo ciclo \\
-        \texttt{RX\_GATHERING} & Byte LF (buffer vacío) & \texttt{RX\_IDLE} & Publicar \texttt{EV\_MESSAGE\_READY} \\
-        \texttt{RX\_GATHERING} & Error de RX & \texttt{RX\_IDLE} & Publicar error y liberar buffer \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-La FSM transfiere todos los bytes recibidos al buffer del mensaje de forma transparente. Aunque el carácter  \texttt{LF} (\texttt{0x0A} se utiliza como delimitador lógico para segmentar la ráfaga de datos y emitir el evento \texttt{EV\_MESSAGE\_READY}, la capa de middleware no altera ni descarta ningún byte del flujo original (incluyendo posibles retornos de carro \texttt{CR}). La interpretación sintáctica y el filtrado final recaen exclusivamente en la capa de aplicación
-
-La FSM adquiere la protección del buffer circular al iniciar el procesamiento en cada ciclo y la libera al finalizar, independientemente de si se completó un mensaje o no. Esto garantiza que la ISR del driver pueda continuar escribiendo datos en el buffer mientras la tarea está fuera de su sección crítica.
-
-Para preservar el determinismo del sistema, la FSM delimita un único mensaje por ciclo de ejecución. Si tras procesar un terminador el buffer circular aún contiene bytes, la FSM permanece en \texttt{RX\_GATHERING} para continuar en el ciclo próximo. La transición a \texttt{RX\_IDLE} solo se produce cuando el buffer queda completamente vacío.
+Esta estrategia elimina la necesidad de un buffer intermedio de mensajes en el middleware y delega la delimitación de comandos al parser de la capa de aplicación (por ejemplo, libscpi), que gestiona internamente su propio buffer de entrada y los terminadores configurados.
 
 \subsubsection{FSM de Transmisión (TX)}
 \label{subsubsec:fsm-tx}
@@ -552,22 +530,22 @@ La API de Aplicación establece el contrato que la capa de aplicación debe impl
 \subsection{Interfaz \texttt{app\_msg\_iface\_t}}
 \label{subsec:app-iface-estructura}
 
-La interfaz se define como una estructura de punteros a función y un campo de contexto opaco, de forma análoga a \texttt{comm\_iface\_t}. La capa de aplicación proporciona una instancia de esta estructura durante la inicialización del subsistema de comunicación.
+La interfaz se define como una estructura de punteros a función y un campo de contexto opaco. La capa de aplicación proporciona una instancia de esta estructura durante la inicialización del subsistema de comunicación.
 
 \begin{table}[htbp]
-      \centering
-      \caption{Callbacks definidos en \texttt{app\_msg\_iface\_t}.}
-      \label{tab:app-msg-iface}
-      \begin{tabular}{llp{6cm}}
-            \toprule
-            \textbf{Callback} & \textbf{Firma} & \textbf{Propósito} \\
-            \midrule
-            \texttt{on\_message\_ready} & \texttt{app\_msg\_response\_t (*)(void *ctx,} & Recibir un mensaje \\
-                                          & \texttt{const uint8\_t *msg, size\_t len)} & completo. \\
-            \texttt{on\_tx\_done}         & \texttt{app\_msg\_response\_t (*)(void *ctx)} & Notificar finalización \\
-                                          &                                    & de transmisión. \\
-            \texttt{on\_error}            & \texttt{void (*)(void *ctx,} & Notificar un error. \\
-                                          & \texttt{app\_msg\_error\_t error)} & \\
+    \centering
+    \caption{Callbacks definidos en \texttt{app\_msg\_iface\_t}.}
+    \label{tab:app-msg-iface}
+    \begin{tabular}{llp{6cm}}
+        \toprule
+        \textbf{Callback} & \textbf{Firma} & \textbf{Propósito} \\
+        \midrule
+        \texttt{on\_rx\_data} & \texttt{void (*)(void *ctx,} & Transferir bytes crudos \\
+                              & \texttt{const uint8\_t *data, size\_t len)} & desde el buffer de recepción. \\
+        \texttt{on\_tx\_done} & \texttt{app\_msg\_response\_t (*)(void *ctx)} & Notificar finalización \\
+                              &                                    & de transmisión. \\
+        \texttt{on\_error}    & \texttt{void (*)(void *ctx,} & Notificar un error de \\
+                              & \texttt{app\_msg\_error\_t error)} & comunicación. \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -576,13 +554,7 @@ La interfaz se define como una estructura de punteros a función y un campo de c
 \label{subsec:app-recepcion}
 
 \begin{description}
-    \item[\texttt{on\_message\_ready(ctx, msg, len)}:] Es invocado por la \textit{Communication Task} cuando se ha delimitado un mensaje completo en el buffer de recepción. Recibe un puntero directo al mensaje dentro del buffer de la tarea, que es válido únicamente hasta que el \textit{callback} retorne. La aplicación debe procesar el mensaje de inmediato o copiarlo a sus buffers propios.
-
-          \textbf{Valores de retorno:}
-          \begin{itemize}
-              \item \texttt{APP\_MSG\_OK}: el mensaje fue aceptado y procesado. La tarea puede avanzar el índice de lectura del buffer de recepción.
-              \item \texttt{APP\_MSG\_BUSY}: la aplicación no puede atender el mensaje en este ciclo. La tarea conserva los datos en el buffer y reintenta la entrega en el ciclo siguiente.
-          \end{itemize}
+    \item[\texttt{on\_rx\_data(ctx, data, len)}:] Es invocado por la \textit{Communication Task} en cada ciclo para transferir los bytes disponibles en el buffer de recepción. La aplicación debe procesar los datos de inmediato, ya que el puntero es válido únicamente hasta que el \textit{callback} retorne. Esta interfaz no impone ninguna estructura de mensajes: la delimitación y el análisis sintáctico son responsabilidad exclusiva de la capa de aplicación.
 \end{description}
 
 \subsection{Callbacks de Transmisión}

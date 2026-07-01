@@ -85,7 +85,7 @@ extern "C"
  * It is enabled by default on full blown systems and disabled on limited bare metal systems
  */
 #ifndef USE_FULL_ERROR_LIST
-#define USE_FULL_ERROR_LIST SYSTEM_TYPE
+#define USE_FULL_ERROR_LIST 1 // SYSTEM_TYPE
 #endif
 
 /**

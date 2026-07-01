@@ -6,6 +6,8 @@
 
 #include "arm_math_types.h"
 #include "control/controller_functions.h"
+#include "stdbool.h"
+#include "stdint.h"
 
 #define PID_OUTPUT_CHANNELS 2
 
@@ -19,7 +21,7 @@ typedef struct
     bool output_state[PID_OUTPUT_CHANNELS];
 } pid_controller_t;
 
-void pid_init(pid_controller_t *pid, float kp, float ki, float kd);
+void pid_init(pid_controller_t *pid, float kp, float ki, float kd,float out_min, float out_max, float setpoint);
 void pid_set_parameters(pid_controller_t *pid, float kp, float ki, float kd);
 void pid_set_setpoint(pid_controller_t *pid, float setpoint);
 void pid_set_limits(pid_controller_t *pid, float out_min, float out_max);

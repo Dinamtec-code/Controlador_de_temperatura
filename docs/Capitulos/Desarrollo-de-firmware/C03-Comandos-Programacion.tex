@@ -1,0 +1,335 @@
+\chapter{Comandos de programación}
+\label{cp:scpi-commands}
+
+Este capítulo describe el conjunto de comandos SCPI (Standard Commands for
+Programmable Instruments) implementados en el \textit{firmware}. Los comandos
+se agrupan en los subsistemas estándar \texttt{MEASure}, \texttt{SENSe},
+\texttt{SOURce} y \texttt{OUTPut}, a los que se añaden los comandos comunes
+definidos en el estándar IEEE~488.2.
+
+\section{Convenciones de notación}
+
+\begin{itemize}
+    \item El carácter \texttt{\#} en un mnemónico representa un sufijo numérico
+          que identifica el canal (1 o 2). Por ejemplo,
+          \texttt{MEASure:TEMPerature\#?} acepta tanto
+          \texttt{MEAS:TEMP1?} como \texttt{MEAS:TEMP2?}.
+    \item Las palabras clave se muestran en mayúsculas para la parte abreviada
+          y en minúsculas para el resto. La forma abreviada es la que reconoce
+          el \textit{parser}.
+    \item Los parámetros entre corchetes (\texttt{[ ]}) son opcionales. Si se
+          omiten, el comando se ejecuta con el valor predeterminado.
+    \item Los ejemplos de sesión muestran el comando enviado por el
+          \textit{host} precedido por \texttt{>} y la respuesta del
+          instrumento precedida por \texttt{<}. El carácter \texttt{\\n}
+          representa el terminador de mensaje.
+\end{itemize}
+
+\section{Comandos comunes IEEE~488.2}
+
+\subsection{Identificación}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{*IDN?\n}
+    \item[Descripción:] Retorna la cadena de identificación del instrumento en
+          el formato \texttt{<fabricante>,<modelo>,<número de serie>,<versión>}.
+    \item[Respuesta:] \texttt{DF,CONTROL DE TEMPERATURA,CT2CH,v1.1}
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > *IDN?\n
+          < DF,CONTROL DE TEMPERATURA,CT2CH,v1.1\n
+          \end{verbatim}
+\end{description}
+
+\subsection{Reset}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{*RST\n}
+    \item[Descripción:] Restaura el instrumento a sus valores por defecto. Apaga
+          todas las salidas, carga los parámetros de fábrica del PID y el
+          \textit{setpoint}, y limpia los registros de estado IEEE~488.2.
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > *RST\n
+          \end{verbatim}
+\end{description}
+
+\subsection{Clear Status}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{*CLS\n}
+    \item[Descripción:] Borra todos los registros de evento y la cola de
+          errores.
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > *CLS\n
+          \end{verbatim}
+\end{description}
+
+\subsection{Autocomprobación}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{*TST?\n}
+    \item[Descripción:] Ejecuta una autocomprobación y retorna el resultado.
+    \item[Respuesta:] \texttt{0} (sin errores) o \texttt{1} (fallo detectado).
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > *TST?\n
+          < 0\n
+          \end{verbatim}
+\end{description}
+
+\section{Subsistema \texttt{MEASure}}
+
+\subsection{Medición de temperatura}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{MEASure:TEMPerature\#?\n}
+    \item[Parámetros:] \texttt{\#} = número de sensor (1 o 2).
+    \item[Descripción:] Retorna la temperatura medida por el sensor indicado, en
+          grados Celsius.
+    \item[Respuesta:] \texttt{<float>}~°C
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > MEAS:TEMP1?\n
+          < 24.7\n
+          \end{verbatim}
+\end{description}
+
+\section{Subsistema \texttt{SENSe}}
+
+\subsection{Tipo de sensor}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{SENSe\#:TEMPerature:TYPE <tipo>\n}
+          \texttt{SENSe\#:TEMPerature:TYPE?\n}
+    \item[Parámetros:] \texttt{\#} = número de sensor (1 o 2).\\
+          \texttt{<tipo>} = \texttt{RTD}, \texttt{TCouple}, \texttt{LM35},
+          \texttt{NTC}.
+    \item[Descripción:] Configura o consulta el tipo de elemento sensor
+          conectado al canal.
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > SENS1:TEMP:TYPE RTD\n
+          > SENS1:TEMP:TYPE?\n
+          < RTD\n
+          \end{verbatim}
+\end{description}
+
+\subsection{Protección del sensor}
+
+\subsubsection{Límite inferior}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{SENSe\#:TEMPerature:PROTection:MIN <valor>\n}
+          \texttt{SENSe\#:TEMPerature:PROTection:MIN?\n}
+    \item[Parámetros:] \texttt{<valor>} = temperatura en °C.
+    \item[Descripción:] Establece o consulta el límite inferior de protección.
+          Si la temperatura medida desciende por debajo de este valor, la salida
+          correspondiente se desactiva.
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > SENS1:TEMP:PROT:MIN -10\n
+          > SENS1:TEMP:PROT:MIN?\n
+          < -10.0\n
+          \end{verbatim}
+\end{description}
+
+\subsubsection{Límite superior}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{SENSe\#:TEMPerature:PROTection:MAX <valor>\n}
+          \texttt{SENSe\#:TEMPerature:PROTection:MAX?\n}
+    \item[Parámetros:] \texttt{<valor>} = temperatura en °C.
+    \item[Descripción:] Establece o consulta el límite superior de protección.
+          Si la temperatura medida supera este valor, la salida correspondiente
+          se desactiva.
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > SENS1:TEMP:PROT:MAX 120\n
+          > SENS1:TEMP:PROT:MAX?\n
+          < 120.0\n
+          \end{verbatim}
+\end{description}
+
+\subsubsection{Estado de la protección}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{SENSe\#:TEMPerature:PROTection[:STATe] <ON|OFF>\n}
+          \texttt{SENSe\#:TEMPerature:PROTection[:STATe]?\n}
+    \item[Parámetros:] \texttt{ON} (protección habilitada) u \texttt{OFF}
+          (protección deshabilitada).
+    \item[Descripción:] Activa, desactiva o consulta la protección de
+          temperatura en el canal indicado.
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > SENS1:TEMP:PROT ON\n
+          > SENS1:TEMP:PROT?\n
+          < ON\n
+          \end{verbatim}
+\end{description}
+
+\subsubsection{Protección disparada}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{SENSe\#:TEMPerature:PROTection:TRIPped?\n}
+    \item[Descripción:] Retorna \texttt{ON} si la protección del canal está
+          actualmente disparada (la temperatura ha excedido un límite y no se
+          ha rearmado), \texttt{OFF} en caso contrario.
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > SENS1:TEMP:PROT:TRIP?\n
+          < OFF\n
+          \end{verbatim}
+\end{description}
+
+\section{Subsistema \texttt{SOURce}}
+
+\subsection{Sensor de realimentación}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{SOURce\#:CONTrol:FEEDback <sensor>\n}
+          \texttt{SOURce\#:CONTrol:FEEDback?\n}
+    \item[Parámetros:] \texttt{\#} = número de lazo de control (1 o 2).\\
+          \texttt{<sensor>} = número de sensor (1 o 2) que proporciona la
+          temperatura de entrada al lazo.
+    \item[Descripción:] Asigna o consulta qué sensor físico alimenta el lazo de
+          control indicado.
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > SOUR1:CONT:FEED 1\n
+          > SOUR1:CONT:FEED?\n
+          < 1\n
+          \end{verbatim}
+\end{description}
+
+\subsection{Punto de consigna}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{SOURce\#:CONTrol:SETPoint <valor>\n}
+          \texttt{SOURce\#:CONTrol:SETPoint?\n}
+    \item[Parámetros:] \texttt{<valor>} = temperatura en °C (rango: -10 a 120).
+    \item[Descripción:] Establece o consulta el punto de consigna del lazo de
+          control.
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > SOUR1:CONT:SETP 35.5\n
+          > SOUR1:CONT:SETP?\n
+          < 35.5\n
+          \end{verbatim}
+\end{description}
+
+\subsection{Parámetros PID}
+
+\subsubsection{Ganancia proporcional}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{SOURce\#:CONTrol:PID:KP <valor>\n}
+          \texttt{SOURce\#:CONTrol:PID:KP?\n}
+    \item[Parámetros:] \texttt{<valor>} = ganancia proporcional ($K_p$).
+    \item[Descripción:] Establece o consulta la ganancia proporcional del PID.
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > SOUR1:CONT:PID:KP 2.5\n
+          > SOUR1:CONT:PID:KP?\n
+          < 2.5000\n
+          \end{verbatim}
+\end{description}
+
+\subsubsection{Ganancia integral}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{SOURce\#:CONTrol:PID:KI <valor>\n}
+          \texttt{SOURce\#:CONTrol:PID:KI?\n}
+    \item[Parámetros:] \texttt{<valor>} = ganancia integral ($K_i$).
+    \item[Descripción:] Establece o consulta la ganancia integral del PID.
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > SOUR1:CONT:PID:KI 0.05\n
+          > SOUR1:CONT:PID:KI?\n
+          < 0.0500\n
+          \end{verbatim}
+\end{description}
+
+\subsubsection{Ganancia derivativa}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{SOURce\#:CONTrol:PID:KD <valor>\n}
+          \texttt{SOURce\#:CONTrol:PID:KD?\n}
+    \item[Parámetros:] \texttt{<valor>} = ganancia derivativa ($K_d$).
+    \item[Descripción:] Establece o consulta la ganancia derivativa del PID.
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > SOUR1:CONT:PID:KD 0.01\n
+          > SOUR1:CONT:PID:KD?\n
+          < 0.0100\n
+          \end{verbatim}
+\end{description}
+
+\subsection{Límites de salida}
+
+\subsubsection{Límite inferior}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{SOURce\#:CONTrol:OUTPut:LIMit:MIN <valor>\n}
+          \texttt{SOURce\#:CONTrol:OUTPut:LIMit:MIN?\n}
+    \item[Parámetros:] \texttt{<valor>} = ciclo de trabajo mínimo (0 a 100).
+    \item[Descripción:] Establece o consulta el límite inferior de la salida del
+          PID.
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > SOUR1:CONT:OUTP:LIM:MIN 0\n
+          > SOUR1:CONT:OUTP:LIM:MIN?\n
+          < 0.0\n
+          \end{verbatim}
+\end{description}
+
+\subsubsection{Límite superior}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{SOURce\#:CONTrol:OUTPut:LIMit:MAX <valor>\n}
+          \texttt{SOURce\#:CONTrol:OUTPut:LIMit:MAX?\n}
+    \item[Parámetros:] \texttt{<valor>} = ciclo de trabajo máximo (0 a 100).
+    \item[Descripción:] Establece o consulta el límite superior de la salida del
+          PID.
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > SOUR1:CONT:OUTP:LIM:MAX 80\n
+          > SOUR1:CONT:OUTP:LIM:MAX?\n
+          < 80.0\n
+          \end{verbatim}
+\end{description}
+
+\subsubsection{Ciclo de trabajo actual}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{SOURce\#:CONTrol:OUTPut:LIMit:STATe?\n}
+    \item[Descripción:] Retorna el ciclo de trabajo actual de la salida del PID
+          en porcentaje.
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > SOUR1:CONT:OUTP:LIM:STAT?\n
+          < 45.3\n
+          \end{verbatim}
+\end{description}
+
+\section{Subsistema \texttt{OUTPut}}
+
+\subsection{Estado de la salida física}
+
+\begin{description}
+    \item[Sintaxis:] \texttt{OUTPut\#:STATe <ON|OFF>\n}
+          \texttt{OUTPut\#:STATe?\n}
+    \item[Parámetros:] \texttt{ON} (salida activada) u \texttt{OFF} (salida
+          desactivada).
+    \item[Descripción:] Activa, desactiva o consulta el estado de la etapa de
+          potencia del canal indicado. La protección del sensor tiene prioridad:
+          aunque se ordene \texttt{ON}, la salida no se activará si la
+          protección correspondiente está disparada.
+    \item[Ejemplo:]
+          \begin{verbatim}
+          > OUTP1:STAT ON\n
+          > OUTP1:STAT?\n
+          < ON\n
+          \end{verbatim}
+\end{description}

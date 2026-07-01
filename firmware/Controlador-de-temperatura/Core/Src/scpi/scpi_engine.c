@@ -11,6 +11,9 @@
 #include <string.h>
 #include <stdio.h>
 
+float sp1 = 0.0f;
+float sp2 = 0.0f;
+
 /* ==========================================================================
  * Contexto global de libscpi y buffers asociados
  * ========================================================================== */
@@ -34,14 +37,14 @@ static float get_temperature(void)
     return adc_hw_get_temp_diff();
 }
 
-static float get_setpoint(void)
+static float get_setpoint(uint8_t channel)
 {
-    return pid_get_setpoint(get_pid_instance((uint8_t)0));
+    return pid_get_setpoint(get_pid_instance(channel));
 }
 
-static void set_setpoint(float val)
+static void set_setpoint(uint8_t channel, float val)
 {
-    pid_set_setpoint(get_pid_instance(0), val);
+    pid_set_setpoint(get_pid_instance(channel), val);
 }
 
 static float get_kp(void)
@@ -111,24 +114,73 @@ static scpi_result_t cmd_meas_temp(scpi_t *context)
 
 static scpi_result_t cmd_temp_sp_q(scpi_t *context)
 {
-    float sp = get_setpoint();
-    SCPI_ResultFloat(context, sp);
+    int32_t numbers[1]; // Arreglo para capturar los sufijos del comando
+    float setpoint;
+
+    // 1. Obtener el número de canal del nodo raíz (ej. SOURce1 -> 1)
+    // El último parámetro es el valor por defecto si el usuario envía "SOUR:TEMP..." sin número.
+    SCPI_CommandNumbers(context, numbers, 1, 1);
+    int32_t channel = numbers[0];
+
+    // 2. Validar que el canal exista en tu hardware
+    if (channel < 1 || channel > 2)
+    {
+        SCPI_ErrorPush(context, SCPI_ERROR_INVALID_SUFFIX);
+        return SCPI_RES_ERR;
+    }
+
+    // 4. Aplicar la lógica de control según el canal
+    if (channel == 1)
+    {
+        setpoint = get_setpoint(0);
+        setpoint = sp1; // Guardar el setpoint del canal 1
+    }
+    else if (channel == 2)
+    {
+        setpoint = get_setpoint(1);
+        setpoint = sp2; // Guardar el setpoint del canal 2
+    }
+
+    SCPI_ResultFloat(context, setpoint);
     return SCPI_RES_OK;
 }
 
-static scpi_result_t cmd_temp_sp(scpi_t *context)
+scpi_result_t cmd_temp_sp(scpi_t *context)
 {
-    float val;
-    if (SCPI_ParamFloat(context, &val, true))
+    int32_t numbers[1]; // Arreglo para capturar los sufijos del comando
+    float setpoint;
+
+    // 1. Obtener el número de canal del nodo raíz (ej. SOURce1 -> 1)
+    // El último parámetro es el valor por defecto si el usuario envía "SOUR:TEMP..." sin número.
+    SCPI_CommandNumbers(context, numbers, 1, 1);
+    int32_t channel = numbers[0];
+
+    // 2. Validar que el canal exista en tu hardware
+    if (channel < 1 || channel > 2)
     {
-        if (val < -10.0f)
-            val = -10.0f;
-        if (val > 150.0f)
-            val = 120.0f;
-        set_setpoint(val);
-        return SCPI_RES_OK;
+        SCPI_ErrorPush(context, SCPI_ERROR_INVALID_SUFFIX);
+        return SCPI_RES_ERR;
     }
-    return SCPI_RES_ERR;
+
+    // 3. Extraer el parámetro enviado por el usuario
+    if (!SCPI_ParamFloat(context, &setpoint, TRUE))
+    {
+        return SCPI_RES_ERR;
+    }
+
+    // 4. Aplicar la lógica de control según el canal
+    if (channel == 1)
+    {
+        set_setpoint(0, setpoint);
+        sp1 = setpoint; // Guardar el setpoint del canal 1
+    }
+    else if (channel == 2)
+    {
+        set_setpoint(1, setpoint);
+        sp2 = setpoint; // Guardar el setpoint del canal 2
+    }
+
+    return SCPI_RES_OK;
 }
 
 static scpi_result_t cmd_pid_kp_q(scpi_t *context)
@@ -326,24 +378,24 @@ static const scpi_command_t scpi_commands[] = {
         .callback = SCPI_StatusPreset,
     },
     /* Medición */
-    {.pattern = "MEASure:TEMPerature?", .callback = cmd_meas_temp, .tag = 0},
+    {.pattern = "MEASure:TEMPerature#?", .callback = cmd_meas_temp, .tag = 0},
 
     /* Setpoint */
-    {.pattern = "SOURce:TEMPerature:SPOint?", .callback = cmd_temp_sp_q, .tag = 0},
-    {.pattern = "SOURce:TEMPerature:SPOint", .callback = cmd_temp_sp, .tag = 0},
+    {.pattern = "SOURce#:TEMPerature:SETPOint?", .callback = cmd_temp_sp_q, .tag = 0},
+    {.pattern = "SOURce#:TEMPerature:SETPOint", .callback = cmd_temp_sp, .tag = 0},
 
     /* PID */
-    {.pattern = "SOURce:CONTrol:PID:KP?", .callback = cmd_pid_kp_q, .tag = 0},
-    {.pattern = "SOURce:CONTrol:PID:KP", .callback = cmd_pid_kp, .tag = 0},
-    {.pattern = "SOURce:CONTrol:PID:KI?", .callback = cmd_pid_ki_q, .tag = 0},
-    {.pattern = "SOURce:CONTrol:PID:KI", .callback = cmd_pid_ki, .tag = 0},
-    {.pattern = "SOURce:CONTrol:PID:KD?", .callback = cmd_pid_kd_q, .tag = 0},
-    {.pattern = "SOURce:CONTrol:PID:KD", .callback = cmd_pid_kd, .tag = 0},
-    {.pattern = "SOURce:CONTrol:PID:OUTPut?", .callback = cmd_pid_duty_q, .tag = 0},
+    {.pattern = "SOURce#:CONTrol:PID:KP?", .callback = cmd_pid_kp_q, .tag = 0},
+    {.pattern = "SOURce#:CONTrol:PID:KP", .callback = cmd_pid_kp, .tag = 0},
+    {.pattern = "SOURce#:CONTrol:PID:KI?", .callback = cmd_pid_ki_q, .tag = 0},
+    {.pattern = "SOURce#:CONTrol:PID:KI", .callback = cmd_pid_ki, .tag = 0},
+    {.pattern = "SOURce#:CONTrol:PID:KD?", .callback = cmd_pid_kd_q, .tag = 0},
+    {.pattern = "SOURce#:CONTrol:PID:KD", .callback = cmd_pid_kd, .tag = 0},
+    {.pattern = "SOURce#:CONTrol:PID:OUTPut?", .callback = cmd_pid_duty_q, .tag = 0},
 
     /* Salidas */
-    {.pattern = "SOURce:OUTPut", .callback = cmd_sour_outp, .tag = 0},
-    {.pattern = "SOURce:OUTPut?", .callback = cmd_sour_outp_q, .tag = 0},
+    {.pattern = "SOURce#:OUTPut", .callback = cmd_sour_outp, .tag = 0},
+    {.pattern = "SOURce#:OUTPut?", .callback = cmd_sour_outp_q, .tag = 0},
 
     SCPI_CMD_LIST_END};
 

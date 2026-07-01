@@ -1,0 +1,301 @@
+\chapter{Integración del intérprete SCPI con el sistema}
+\label{cp:integracion-scpi}
+
+El intérprete de comandos SCPI constituye la capa de aplicación del subsistema
+de comunicación. Su función es recibir mensajes desde el \textit{middleware},
+interpretarlos conforme al estándar IEEE~488.2 y ejecutar las acciones
+correspondientes sobre el instrumento. Este capítulo describe cómo el intérprete
+—basado en la biblioteca \texttt{libscpi}— se integra con las tres interfaces
+que el sistema ofrece: la API de mensajería con el \textit{middleware}, la API
+de control del sistema y las APIs de los subsistemas de medición y control.
+
+El capítulo no enumera los comandos SCPI disponibles, cuyo detalle se ha
+presentado en el capítulo anterior, sino que expone los mecanismos de conexión
+entre el intérprete y el resto del \textit{firmware}.
+
+\section{Integración con la capa de \textit{middleware}}
+
+La comunicación entre el \textit{middleware} y la capa de aplicación se
+establece mediante la interfaz abstracta \texttt{app\_msg\_iface\_t}, cuyo
+contrato se definió en el capítulo del Sistema de Comunicación. El intérprete
+SCPI proporciona una implementación de esta interfaz y la registra en la
+\textit{Communication Task} durante la fase de inicialización del sistema.
+
+\subsection{Recepción de bytes crudos}
+
+El \textit{middleware} no realiza delimitación ni análisis de los datos
+recibidos. En cada ciclo de la \textit{Communication Task}, los bytes
+disponibles en el \textit{buffer} circular de recepción se transfieren
+directamente a la aplicación mediante el \textit{callback}
+\texttt{on\_rx\_data}. La implementación de este \textit{callback} en el
+intérprete SCPI invoca la función \texttt{SCPI\_Input} de \texttt{libscpi}:
+
+\begin{verbatim}
+static void on_rx_data(void *ctx, const uint8_t *data, size_t len) {
+    (void)ctx;
+    SCPI_Input(&scpi_context, (const char *)data, len);
+}
+\end{verbatim}
+
+\texttt{libscpi} gestiona internamente su propio \textit{buffer} de entrada y
+aplica las reglas de terminación configuradas. El intérprete no impone ninguna
+estructura de mensajes: la delimitación, el descarte de caracteres de control y
+el análisis sintáctico son responsabilidad exclusiva de la biblioteca.
+
+\subsection{Transmisión de respuestas}
+
+Cuando \texttt{libscpi} genera una respuesta (ya sea ante una consulta, un error
+o un comando), invoca el \textit{callback} \texttt{write} de su interfaz. La
+implementación de este \textit{callback} utiliza la función
+\texttt{comm\_app\_send\_response}, que la \textit{Communication Task} expone
+como servicio:
+
+\begin{verbatim}
+static size_t scpi_write_cb(scpi_t *ctx, const char *data, size_t len) {
+    (void)ctx;
+    comm_app_send_response((const uint8_t *)data, len);
+    return len;
+}
+\end{verbatim}
+
+La transmisión de la respuesta es asíncrona: los datos se copian al
+\textit{buffer} de transmisión de la tarea y la FSM de Transmisión se encarga
+del envío hardware. Cuando la transmisión finaliza, el \textit{callback}
+\texttt{on\_tx\_done} notifica al intérprete, que puede liberar recursos
+asociados a la respuesta.
+
+\subsection{Notificación de errores de comunicación}
+
+Los errores detectados por el \textit{middleware} (desbordamiento del
+\textit{buffer} de recepción, fallos de transmisión) se notifican al intérprete
+mediante el \textit{callback} \texttt{on\_error}. La implementación actual
+registra el evento para su posible consulta mediante el comando
+\texttt{SYSTem:ERRor?}, aunque no se toma acción correctiva automática.
+
+\subsection{Secuencia de inicialización}
+
+Durante el arranque del sistema, el módulo \texttt{task\_system} invoca
+\texttt{scpi\_engine\_init()} para configurar \texttt{libscpi} con la tabla de
+comandos y los \textit{buffers} de entrada. A continuación, obtiene la interfaz
+\texttt{app\_msg\_iface\_t} mediante \texttt{scpi\_engine\_get\_iface()} y la
+registra en la \textit{Communication Task} con
+\texttt{comm\_task\_register\_app\_iface()}. Solo después de este registro el
+sistema publica el comando \texttt{COMM\_SYS\_CMD\_START}, asegurando que el
+intérprete esté listo para recibir datos antes de que se active la recepción.
+
+\section{Interacción con el sistema}
+
+El intérprete SCPI no actúa de forma aislada: los comandos que afectan al
+estado global del instrumento se traducen en solicitudes hacia el módulo de
+sistema, y el intérprete es a su vez receptor de notificaciones sobre el estado
+del subsistema de comunicación.
+
+\subsection{Comandos que afectan al estado global}
+
+\paragraph{Reset del instrumento (\texttt{*RST}).}
+El comando \texttt{*RST} no modifica directamente los parámetros del
+instrumento. El intérprete invoca el \textit{callback} estándar
+\texttt{SCPI\_CoreRst} para la limpieza de registros IEEE~488.2 y, a
+continuación, publica el comando de sistema
+\texttt{COMM\_SYS\_CMD\_FULL\_RESET} mediante
+\texttt{comm\_sys\_post\_command()}. La tarea de sistema
+(\texttt{task\_system}) consume este comando en su ciclo siguiente y ejecuta
+\texttt{config\_apply\_reset\_values()}, que restaura los valores por defecto
+de todos los canales y apaga las salidas de potencia.
+
+\paragraph{Salvado y carga de configuraciones (\texttt{*SAV}, \texttt{*RCL}).}
+Los comandos \texttt{*SAV <slot>} y \texttt{*RCL <slot>}, previstos para una
+implementación futura, seguirán el mismo patrón de delegación: el intérprete
+publicará un comando de sistema con el número de \textit{slot} como argumento, y
+será \texttt{task\_system} quien invoque a \texttt{config\_save\_to\_slot()} o
+\texttt{config\_load\_from\_slot()}.
+
+\paragraph{Cambio de interfaz de comunicación.}
+El comando \texttt{SYSTem:COMMunicate:IFACe} permite seleccionar el medio de
+transporte activo. El intérprete traduce la solicitud a una llamada a
+\texttt{comm\_sys\_request\_iface\_change()}, que la FSM de Gestión de la
+\textit{Communication Task} evalúa en el ciclo siguiente.
+
+\subsection{Recepción de eventos del sistema}
+
+El intérprete SCPI se registra como suscriptor de las notificaciones del
+subsistema de comunicación mediante
+\texttt{comm\_sys\_register\_notify\_callback()}. Esto le permite reaccionar
+ante cambios de estado sin necesidad de consultas periódicas:
+
+\begin{itemize}
+    \item \textbf{Cambio de estado}: ante
+          \texttt{COMM\_SYS\_EVENT\_STATE\_CHANGED}, el intérprete puede
+          inhabilitar temporalmente la aceptación de comandos si el subsistema
+          no se encuentra en estado \texttt{ACTIVE}.
+    \item \textbf{Error}: ante \texttt{COMM\_SYS\_EVENT\_ERROR}, el error se
+          registra en la cola interna de \texttt{libscpi} para su consulta
+          mediante \texttt{SYSTem:ERRor?}.
+    \item \textbf{Conexión / desconexión}: permiten reiniciar el estado del
+          \textit{parser} cuando se establece o se pierde la conexión con el
+          \textit{host}.
+\end{itemize}
+
+Este mecanismo convierte al intérprete en un suscriptor del sistema, aumentando
+la robustez sin introducir acoplamiento adicional.
+
+\section{Interacción con los subsistemas de control}
+
+El instrumento organiza sus recursos de medición y control en \textbf{canales}.
+Cada canal agrupa tres componentes —un sensor de temperatura, un controlador
+PID y una etapa de salida— bajo una estructura contenedora denominada
+\texttt{controller\_t}. Esta estructura se obtiene mediante la función
+\texttt{controller\_get\_instance(channel)}, que retorna la instancia
+correspondiente al número de canal.
+
+Los \textit{callbacks} de los comandos SCPI no acceden directamente al
+hardware, sino que invocan las funciones definidas en las APIs de cada
+componente. Esto desacopla el intérprete de la implementación concreta y
+permite la evolución independiente de cada subsistema.
+
+\subsection{API de sensor}
+
+Cada sensor de temperatura expone sus servicios a través de la interfaz
+\texttt{sensor\_api\_t}.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Funciones de la API de sensor.}
+    \label{tab:sensor-api}
+    \begin{tabular}{ll}
+        \toprule
+        \textbf{Función} & \textbf{Descripción} \\
+        \midrule
+        \texttt{read\_temperature(sensor)} & Retorna la temperatura actual en °C. \\
+        \texttt{set\_type(sensor, type)}   & Configura el tipo de sensor (RTD, TC, etc.). \\
+        \texttt{get\_type(sensor)}         & Retorna el tipo de sensor configurado. \\
+        \texttt{set\_protection\_min(sensor, min)} & Establece el límite inferior de protección. \\
+        \texttt{get\_protection\_min(sensor)}      & Retorna el límite inferior de protección. \\
+        \texttt{set\_protection\_max(sensor, max)} & Establece el límite superior de protección. \\
+        \texttt{get\_protection\_max(sensor)}      & Retorna el límite superior de protección. \\
+        \texttt{enable\_protection(sensor, enable)}& Activa o desactiva la protección. \\
+        \texttt{is\_protection\_enabled(sensor)}   & Indica si la protección está habilitada. \\
+        \texttt{is\_protection\_tripped(sensor)}   & Indica si la protección se ha disparado. \\
+        \texttt{clear\_protection(sensor)}         & Reanuda la protección tras un disparo. \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+La protección del sensor opera de forma independiente al control PID. Si la
+temperatura medida supera el límite máximo o desciende por debajo del mínimo,
+la salida de potencia correspondiente se desactiva automáticamente.
+
+\subsection{API de controlador PID}
+
+El controlador PID proporciona las funciones de sintonía y ejecución del lazo
+de control. La API no incluye los límites de salida, que son responsabilidad de
+la etapa de potencia.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Funciones de la API de PID.}
+    \label{tab:pid-api}
+    \begin{tabular}{ll}
+        \toprule
+        \textbf{Función} & \textbf{Descripción} \\
+        \midrule
+        \texttt{set\_setpoint(pid, sp)} & Establece el punto de consigna. \\
+        \texttt{get\_setpoint(pid)}     & Retorna el punto de consigna. \\
+        \texttt{set\_kp(pid, kp)}       & Establece la ganancia proporcional. \\
+        \texttt{get\_kp(pid)}           & Retorna la ganancia proporcional. \\
+        \texttt{set\_ki(pid, ki)}       & Establece la ganancia integral. \\
+        \texttt{get\_ki(pid)}           & Retorna la ganancia integral. \\
+        \texttt{set\_kd(pid, kd)}       & Establece la ganancia derivativa. \\
+        \texttt{get\_kd(pid)}           & Retorna la ganancia derivativa. \\
+        \texttt{compute(pid, input)}    & Ejecuta una iteración del PID. \\
+        \texttt{reset(pid)}             & Reinicia el estado del PID. \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{API de salida}
+
+La etapa de salida gestiona el ciclo de trabajo (\textit{duty cycle}) y los
+límites que restringen su excursión. También controla la activación y
+desactivación de la potencia.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Funciones de la API de salida.}
+    \label{tab:output-api}
+    \begin{tabular}{ll}
+        \toprule
+        \textbf{Función} & \textbf{Descripción} \\
+        \midrule
+        \texttt{set\_state(out, on)}       & Activa o desactiva la salida. \\
+        \texttt{get\_state(out)}           & Retorna el estado de la salida. \\
+        \texttt{set\_limit\_min(out, min)} & Establece el límite inferior de excursión. \\
+        \texttt{get\_limit\_min(out)}      & Retorna el límite inferior. \\
+        \texttt{set\_limit\_max(out, max)} & Establece el límite superior de excursión. \\
+        \texttt{get\_limit\_max(out)}      & Retorna el límite superior. \\
+        \texttt{get\_duty\_cycle(out)}     & Retorna el ciclo de trabajo actual. \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsection{Mapeo de comandos SCPI a las APIs de control}
+
+La tabla \ref{tab:scpi-to-api} resume la correspondencia entre los comandos
+SCPI definidos para el instrumento y las funciones de las APIs que se invocan
+para atenderlos. En todos los casos, el número de canal se obtiene mediante
+\texttt{SCPI\_CommandNumbers(context, \&channel, 1, 1)} y la instancia del
+controlador se recupera con \texttt{controller\_get\_instance(channel)}.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Correspondencia entre comandos SCPI y APIs de control.}
+    \label{tab:scpi-to-api}
+    \begin{tabular}{ll}
+        \toprule
+        \textbf{Comando SCPI} & \textbf{Función invocada} \\
+        \midrule
+        \texttt{MEASure:TEMPerature\#?} & \texttt{sensor\_api\_t::read\_temperature} \\
+        \texttt{SENSe\#:TEMPerature:TYPE} & \texttt{sensor\_api\_t::set\_type} \\
+        \texttt{SENSe\#:TEMPerature:TYPE?} & \texttt{sensor\_api\_t::get\_type} \\
+        \texttt{SENSe\#:TEMPerature:PROTection:MIN} & \texttt{sensor\_api\_t::set\_protection\_min} \\
+        \texttt{SENSe\#:TEMPerature:PROTection:MIN?} & \texttt{sensor\_api\_t::get\_protection\_min} \\
+        \texttt{SENSe\#:TEMPerature:PROTection:MAX} & \texttt{sensor\_api\_t::set\_protection\_max} \\
+        \texttt{SENSe\#:TEMPerature:PROTection:MAX?} & \texttt{sensor\_api\_t::get\_protection\_max} \\
+        \texttt{SENSe\#:TEMPerature:PROTection:STATe} & \texttt{sensor\_api\_t::enable\_protection} \\
+        \texttt{SENSe\#:TEMPerature:PROTection:STATe?} & \texttt{sensor\_api\_t::is\_protection\_enabled} \\
+        \texttt{SENSe\#:TEMPerature:PROTection:TRIPped?} & \texttt{sensor\_api\_t::is\_protection\_tripped} \\
+        \texttt{SOURce\#:CONTrol:SETPoint} & \texttt{pid\_api\_t::set\_setpoint} \\
+        \texttt{SOURce\#:CONTrol:SETPoint?} & \texttt{pid\_api\_t::get\_setpoint} \\
+        \texttt{SOURce\#:CONTrol:PID:KP} & \texttt{pid\_api\_t::set\_kp} \\
+        \texttt{SOURce\#:CONTrol:PID:KP?} & \texttt{pid\_api\_t::get\_kp} \\
+        \texttt{SOURce\#:CONTrol:PID:KI} & \texttt{pid\_api\_t::set\_ki} \\
+        \texttt{SOURce\#:CONTrol:PID:KI?} & \texttt{pid\_api\_t::get\_ki} \\
+        \texttt{SOURce\#:CONTrol:PID:KD} & \texttt{pid\_api\_t::set\_kd} \\
+        \texttt{SOURce\#:CONTrol:PID:KD?} & \texttt{pid\_api\_t::get\_kd} \\
+        \texttt{SOURce\#:CONTrol:OUTPut:LIMit:MAX} & \texttt{output\_api\_t::set\_limit\_max} \\
+        \texttt{SOURce\#:CONTrol:OUTPut:LIMit:MAX?} & \texttt{output\_api\_t::get\_limit\_max} \\
+        \texttt{SOURce\#:CONTrol:OUTPut:LIMit:MIN} & \texttt{output\_api\_t::set\_limit\_min} \\
+        \texttt{SOURce\#:CONTrol:OUTPut:LIMit:MIN?} & \texttt{output\_api\_t::get\_limit\_min} \\
+        \texttt{SOURce\#:CONTrol:OUTPut:LIMit:STATe?} & \texttt{output\_api\_t::get\_duty\_cycle} \\
+        \texttt{OUTPut\#:STATe} & \texttt{output\_api\_t::set\_state} \\
+        \texttt{OUTPut\#:STATe?} & \texttt{output\_api\_t::get\_state} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\section{Consideraciones sobre la implementación actual}
+
+En el estado actual del \textit{firmware} (junio de 2026), las APIs de sensor,
+PID y salida descritas en este capítulo constituyen un modelo de referencia
+hacia el cual evolucionará el código. La implementación presente utiliza una
+única instancia de controlador PID accesible mediante
+\texttt{get\_temp\_pid\_instance()} y carece de la estructura contenedora
+\texttt{controller\_t} y de las APIs de sensor y salida como entidades
+independientes. Los \textit{callbacks} del intérprete SCPI invocan directamente
+las funciones del módulo \texttt{pid\_controller} y del \texttt{ADC} para la
+lectura de temperatura.
+
+Esta simplificación es adecuada para la fase actual de desarrollo, que prioriza
+la funcionalidad sobre la abstracción. La migración hacia el modelo descrito en
+este capítulo se realizará de manera progresiva, sin modificar la interfaz
+pública del intérprete SCPI ni la de comunicación con el \textit{middleware}.

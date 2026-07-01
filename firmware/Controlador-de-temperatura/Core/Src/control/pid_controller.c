@@ -12,23 +12,14 @@ pid_controller_t *get_pid_instance(uint8_t channel)
     return &(temp_pid[channel]);
 }
 
-void pid_init(pid_controller_t *pid, float kp, float ki, float kd)
+void pid_init(pid_controller_t *pid, float kp, float ki, float kd, float out_min, float out_max, float setpoint)
 {
-    pid->cmsis_pid.A0 = 0.0f;
-    pid->cmsis_pid.A1 = 0.0f;
-    pid->cmsis_pid.A2 = 0.0f;
-    pid->cmsis_pid.state[0] = 0.0f;
-    pid->cmsis_pid.state[1] = 0.0f;
-    pid->cmsis_pid.state[2] = 0.0f;
-    pid->cmsis_pid.Kp = kp;
-    pid->cmsis_pid.Ki = ki;
-    pid->cmsis_pid.Kd = kd;
-    pid->output_limit_min = -95.0f;
-    pid->output_limit_max = 95.0f;
+    pid_set_limits(pid, out_min, out_max);
+    pid_set_parameters(pid, kp, ki, kd);
     pid->initialized = 1;
     pid->output_state[0] = false;
     pid->output_state[1] = false;
-    pid->setpoint = 20.0f;
+    pid->setpoint = setpoint;
     arm_pid_init_f32(&pid->cmsis_pid, 1);
 }
 
