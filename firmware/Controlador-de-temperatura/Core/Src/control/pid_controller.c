@@ -1,7 +1,7 @@
 #include "control/pid_controller.h"
 #include "stdbool.h"
 
-static pid_controller_t temp_pid[PID_CHANNELS];
+static pid_controller_t pid_implement[PID_CHANNELS];
 
 pid_controller_t *get_pid_instance(uint8_t channel)
 {
@@ -9,7 +9,7 @@ pid_controller_t *get_pid_instance(uint8_t channel)
     {
         return NULL;
     }
-    return &(temp_pid[channel]);
+    return &(pid_implement[channel]);
 }
 
 void pid_init(pid_controller_t *pid, float kp, float ki, float kd, float out_min, float out_max, float setpoint)

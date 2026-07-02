@@ -32,15 +32,7 @@ typedef enum
 } app_msg_response_t;
 
 typedef struct app_msg_iface app_msg_iface_t;
-/*
-struct app_msg_iface
-{
-    void *context;
-    app_msg_response_t (*on_message_ready)(void *ctx, const uint8_t *msg, size_t len);
-    app_msg_response_t (*on_tx_done)(void *ctx);
-    void (*on_error)(void *ctx, app_msg_error_t error);
-};
-*/
+
 
 typedef struct app_msg_iface
 {

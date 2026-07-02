@@ -234,6 +234,7 @@ desactivación de la potencia.
         \texttt{set\_limit\_max(out, max)} & Establece el límite superior de excursión. \\
         \texttt{get\_limit\_max(out)}      & Retorna el límite superior. \\
         \texttt{get\_duty\_cycle(out)}     & Retorna el ciclo de trabajo actual. \\
+        \texttt{is\_limited(out)}          & Indica si la salida está saturada en un límite. \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -272,11 +273,12 @@ controlador se recupera con \texttt{controller\_get\_instance(channel)}.
         \texttt{SOURce\#:CONTrol:PID:KI?} & \texttt{pid\_api\_t::get\_ki} \\
         \texttt{SOURce\#:CONTrol:PID:KD} & \texttt{pid\_api\_t::set\_kd} \\
         \texttt{SOURce\#:CONTrol:PID:KD?} & \texttt{pid\_api\_t::get\_kd} \\
+        \texttt{SOURce\#:CONTrol:OUTPut?} & \texttt{output\_api\_t::get\_duty\_cycle} \\
         \texttt{SOURce\#:CONTrol:OUTPut:LIMit:MAX} & \texttt{output\_api\_t::set\_limit\_max} \\
         \texttt{SOURce\#:CONTrol:OUTPut:LIMit:MAX?} & \texttt{output\_api\_t::get\_limit\_max} \\
         \texttt{SOURce\#:CONTrol:OUTPut:LIMit:MIN} & \texttt{output\_api\_t::set\_limit\_min} \\
         \texttt{SOURce\#:CONTrol:OUTPut:LIMit:MIN?} & \texttt{output\_api\_t::get\_limit\_min} \\
-        \texttt{SOURce\#:CONTrol:OUTPut:LIMit:STATe?} & \texttt{output\_api\_t::get\_duty\_cycle} \\
+        \texttt{SOURce\#:CONTrol:OUTPut:LIMit:STATe?} & \texttt{output\_api\_t::is\_limited} \\
         \texttt{OUTPut\#:STATe} & \texttt{output\_api\_t::set\_state} \\
         \texttt{OUTPut\#:STATe?} & \texttt{output\_api\_t::get\_state} \\
         \bottomrule

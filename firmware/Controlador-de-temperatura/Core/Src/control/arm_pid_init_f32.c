@@ -3,7 +3,7 @@
 #include <string.h>
 #include "tasks/scheduler.h"
 
-void arm_pid_init_f32(arm_pid_instance_f32 *S, int32_t resetStateFlag)
+void arm_pid_init_f32(arm_pid_f32_t *S, int32_t resetStateFlag)
 {
     S->A0 = S->Kp + S->Ki * ((float)TASK_CONTROL_PERIOD_MS) / 60000.0f + S->Kd;
     S->A1 = (-S->Kp) - (2.0f * S->Kd);
@@ -14,7 +14,7 @@ void arm_pid_init_f32(arm_pid_instance_f32 *S, int32_t resetStateFlag)
     }
 }
 
-void arm_pid_reset_f32(arm_pid_instance_f32 *S)
+void arm_pid_reset_f32(arm_pid_f32_t *S)
 {
     memset(S->state, 0, 3U * sizeof(float32_t));
 }

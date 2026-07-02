@@ -13,7 +13,7 @@
 
 typedef struct
 {
-    arm_pid_instance_f32 cmsis_pid;
+    arm_pid_f32_t cmsis_pid;
     float output_limit_min;
     float output_limit_max;
     uint8_t initialized;

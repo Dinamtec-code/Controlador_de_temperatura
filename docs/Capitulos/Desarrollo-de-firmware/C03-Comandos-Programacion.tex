@@ -1,335 +1,888 @@
 \chapter{Comandos de programación}
 \label{cp:scpi-commands}
 
-Este capítulo describe el conjunto de comandos SCPI (Standard Commands for
-Programmable Instruments) implementados en el \textit{firmware}. Los comandos
-se agrupan en los subsistemas estándar \texttt{MEASure}, \texttt{SENSe},
-\texttt{SOURce} y \texttt{OUTPut}, a los que se añaden los comandos comunes
-definidos en el estándar IEEE~488.2.
+Este capítulo describe el conjunto de comandos SCPI implementados en el \textit{firmware}. Los comandos se organizan en grupos funcionales y a continuación se describen en orden alfabético.
 
-\section{Convenciones de notación}
+\section{Grupos de comandos}
+\label{sec:cmd-groups}
 
-\begin{itemize}
-    \item El carácter \texttt{\#} en un mnemónico representa un sufijo numérico
-          que identifica el canal (1 o 2). Por ejemplo,
-          \texttt{MEASure:TEMPerature\#?} acepta tanto
-          \texttt{MEAS:TEMP1?} como \texttt{MEAS:TEMP2?}.
-    \item Las palabras clave se muestran en mayúsculas para la parte abreviada
-          y en minúsculas para el resto. La forma abreviada es la que reconoce
-          el \textit{parser}.
-    \item Los parámetros entre corchetes (\texttt{[ ]}) son opcionales. Si se
-          omiten, el comando se ejecuta con el valor predeterminado.
-    \item Los ejemplos de sesión muestran el comando enviado por el
-          \textit{host} precedido por \texttt{>} y la respuesta del
-          instrumento precedida por \texttt{<}. El carácter \texttt{\\n}
-          representa el terminador de mensaje.
-\end{itemize}
+Los comandos se agrupan por subsistema funcional. Para cada uno se indica si es de solo consulta (Query Only), solo configuración (Set Only) o ambos (Set/Query).
 
-\section{Comandos comunes IEEE~488.2}
+\subsection*{Comandos comunes IEEE~488.2}
 
-\subsection{Identificación}
+\begin{table}[H]
 
-\begin{description}
-    \item[Sintaxis:] \texttt{*IDN?\n}
-    \item[Descripción:] Retorna la cadena de identificación del instrumento en
-          el formato \texttt{<fabricante>,<modelo>,<número de serie>,<versión>}.
-    \item[Respuesta:] \texttt{DF,CONTROL DE TEMPERATURA,CT2CH,v1.1}
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > *IDN?\n
-          < DF,CONTROL DE TEMPERATURA,CT2CH,v1.1\n
-          \end{verbatim}
-\end{description}
+    \caption{Comandos comunes IEEE~488.2}
+    \label{tab:ieee488-group}
+    \begin{tabular}{lll}
+        \toprule
+        \textbf{Comando} & \textbf{Descripción} & \textbf{Tipo} \\
+        \midrule
+        \texttt{*CLS}   & Borra los registros de estado               & Set Only \\
+        \texttt{*ESE}   & Habilita el registro de evento estándar      & Set Only \\
+        \texttt{*ESE?}  & Consulta el registro de evento estándar      & Query Only \\
+        \texttt{*ESR?}  & Lee el registro de evento estándar           & Query Only \\
+        \texttt{*IDN?}  & Identificación del instrumento               & Query Only \\
+        \texttt{*OPC}   & Operación completada                         & Set Only \\
+        \texttt{*OPC?}  & Consulta operación completada                & Query Only \\
+        \texttt{*RST}   & Restaura los valores predeterminados         & Set Only \\
+        \texttt{*SRE}   & Habilita el registro de estado de servicio   & Set Only \\
+        \texttt{*SRE?}  & Consulta el registro de estado de servicio   & Query Only \\
+        \texttt{*STB?}  & Lee el byte de estado                        & Query Only \\
+        \texttt{*TST?}  & Autocomprobación                             & Query Only \\
+        \texttt{*WAI}   & Espera a que terminen las operaciones        & Set Only \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-\subsection{Reset}
+\subsection*{Comandos de sistema}
 
-\begin{description}
-    \item[Sintaxis:] \texttt{*RST\n}
-    \item[Descripción:] Restaura el instrumento a sus valores por defecto. Apaga
-          todas las salidas, carga los parámetros de fábrica del PID y el
-          \textit{setpoint}, y limpia los registros de estado IEEE~488.2.
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > *RST\n
-          \end{verbatim}
-\end{description}
+\begin{table}[H]
 
-\subsection{Clear Status}
+    \caption{Comandos del subsistema \texttt{SYSTem}}
+    \label{tab:syst-group}
+    \begin{tabular}{lll}
+        \toprule
+        \textbf{Comando} & \textbf{Descripción} & \textbf{Tipo} \\
+        \midrule
+        \texttt{SYSTem:ERRor[:NEXT]?}   & Siguiente entrada en la cola de errores & Query Only \\
+        \texttt{SYSTem:ERRor:COUNt?}    & Número de entradas en la cola de errores& Query Only \\
+        \texttt{SYSTem:VERSion?}        & Versión del estándar SCPI               & Query Only \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-\begin{description}
-    \item[Sintaxis:] \texttt{*CLS\n}
-    \item[Descripción:] Borra todos los registros de evento y la cola de
-          errores.
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > *CLS\n
-          \end{verbatim}
-\end{description}
+\subsection*{Comandos de estado}
 
-\subsection{Autocomprobación}
+\begin{table}[H]
 
-\begin{description}
-    \item[Sintaxis:] \texttt{*TST?\n}
-    \item[Descripción:] Ejecuta una autocomprobación y retorna el resultado.
-    \item[Respuesta:] \texttt{0} (sin errores) o \texttt{1} (fallo detectado).
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > *TST?\n
-          < 0\n
-          \end{verbatim}
-\end{description}
+    \caption{Comandos del subsistema \texttt{STATus}}
+    \label{tab:stat-group}
+    \begin{tabular}{lll}
+        \toprule
+        \textbf{Comando} & \textbf{Descripción} & \textbf{Tipo} \\
+        \midrule
+        \texttt{STATus:QUEStionable[:EVENt]?} & Evento del registro cuestionable    & Query Only \\
+        \texttt{STATus:QUEStionable:ENABle}   & Habilita el registro cuestionable   & Set Only \\
+        \texttt{STATus:QUEStionable:ENABle?}  & Consulta habilitación del registro  & Query Only \\
+        \texttt{STATus:PRESet}                & Restaura los registros de estado    & Set Only \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-\section{Subsistema \texttt{MEASure}}
+\subsection*{Comandos de medición}
 
-\subsection{Medición de temperatura}
+\begin{table}[H]
 
-\begin{description}
-    \item[Sintaxis:] \texttt{MEASure:TEMPerature\#?\n}
-    \item[Parámetros:] \texttt{\#} = número de sensor (1 o 2).
-    \item[Descripción:] Retorna la temperatura medida por el sensor indicado, en
-          grados Celsius.
-    \item[Respuesta:] \texttt{<float>}~°C
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > MEAS:TEMP1?\n
-          < 24.7\n
-          \end{verbatim}
-\end{description}
+    \caption{Comandos del subsistema \texttt{MEASure}}
+    \label{tab:meas-group}
+    \begin{tabular}{lll}
+        \toprule
+        \textbf{Comando} & \textbf{Descripción} & \textbf{Tipo} \\
+        \midrule
+        \texttt{MEASure:TEMPerature<n>?} & Temperatura del sensor \texttt{<n>} & Query Only \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-\section{Subsistema \texttt{SENSe}}
+\subsection*{Comandos de configuración de sensor}
 
-\subsection{Tipo de sensor}
+\begin{table}[H]
 
-\begin{description}
-    \item[Sintaxis:] \texttt{SENSe\#:TEMPerature:TYPE <tipo>\n}
-          \texttt{SENSe\#:TEMPerature:TYPE?\n}
-    \item[Parámetros:] \texttt{\#} = número de sensor (1 o 2).\\
-          \texttt{<tipo>} = \texttt{RTD}, \texttt{TCouple}, \texttt{LM35},
-          \texttt{NTC}.
-    \item[Descripción:] Configura o consulta el tipo de elemento sensor
-          conectado al canal.
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > SENS1:TEMP:TYPE RTD\n
-          > SENS1:TEMP:TYPE?\n
-          < RTD\n
-          \end{verbatim}
-\end{description}
+    \caption{Comandos del subsistema \texttt{SENSe}}
+    \label{tab:sens-group}
+    \begin{tabular}{lll}
+        \toprule
+        \textbf{Comando} & \textbf{Descripción} & \textbf{Tipo} \\
+        \midrule
+        \texttt{SENSe<n>:TEMPerature:TYPE}              & Tipo de sensor del canal \texttt{<n>}      & Set/Query \\
+        \texttt{SENSe<n>:TEMPerature:PROTection:MIN}    & Límite inferior de protección              & Set/Query \\
+        \texttt{SENSe<n>:TEMPerature:PROTection:MAX}    & Límite superior de protección              & Set/Query \\
+        \texttt{SENSe<n>:TEMPerature:PROTection[:STATe]}& Activa/desactiva la protección             & Set/Query \\
+        \texttt{SENSe<n>:TEMPerature:PROTection:TRIPped?}& Protección disparada                      & Query Only \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-\subsection{Protección del sensor}
+\subsection*{Comandos de control del lazo}
 
-\subsubsection{Límite inferior}
+\begin{table}[H]
 
-\begin{description}
-    \item[Sintaxis:] \texttt{SENSe\#:TEMPerature:PROTection:MIN <valor>\n}
-          \texttt{SENSe\#:TEMPerature:PROTection:MIN?\n}
-    \item[Parámetros:] \texttt{<valor>} = temperatura en °C.
-    \item[Descripción:] Establece o consulta el límite inferior de protección.
-          Si la temperatura medida desciende por debajo de este valor, la salida
-          correspondiente se desactiva.
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > SENS1:TEMP:PROT:MIN -10\n
-          > SENS1:TEMP:PROT:MIN?\n
-          < -10.0\n
-          \end{verbatim}
-\end{description}
+    \caption{Comandos del subsistema \texttt{SOURce}}
+    \label{tab:sour-group}
+    \begin{tabular}{lll}
+        \toprule
+        \textbf{Comando} & \textbf{Descripción} & \textbf{Tipo} \\
+        \midrule
+        \texttt{SOURce<n>:CONTrol:FEEDback}          & Sensor de realimentación          & Set/Query \\
+        \texttt{SOURce<n>:CONTrol:SETPoint}          & Punto de consigna                 & Set/Query \\
+        \texttt{SOURce<n>:CONTrol:PID:KP}            & Ganancia proporcional             & Set/Query \\
+        \texttt{SOURce<n>:CONTrol:PID:KI}            & Ganancia integral                 & Set/Query \\
+        \texttt{SOURce<n>:CONTrol:PID:KD}            & Ganancia derivativa               & Set/Query \\
+        \texttt{SOURce<n>:CONTrol:OUTPut?}           & Ciclo de trabajo actual           & Query Only \\
+        \texttt{SOURce<n>:CONTrol:OUTPut:LIMit:MIN}  & Límite inferior de salida         & Set/Query \\
+        \texttt{SOURce<n>:CONTrol:OUTPut:LIMit:MAX}  & Límite superior de salida         & Set/Query \\
+        \texttt{SOURce<n>:CONTrol:OUTPut:LIMit:STATe?}& Estado de limitación             & Query Only \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-\subsubsection{Límite superior}
+\subsection*{Comandos de salidas físicas}
 
-\begin{description}
-    \item[Sintaxis:] \texttt{SENSe\#:TEMPerature:PROTection:MAX <valor>\n}
-          \texttt{SENSe\#:TEMPerature:PROTection:MAX?\n}
-    \item[Parámetros:] \texttt{<valor>} = temperatura en °C.
-    \item[Descripción:] Establece o consulta el límite superior de protección.
-          Si la temperatura medida supera este valor, la salida correspondiente
-          se desactiva.
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > SENS1:TEMP:PROT:MAX 120\n
-          > SENS1:TEMP:PROT:MAX?\n
-          < 120.0\n
-          \end{verbatim}
-\end{description}
+\begin{table}[H]
 
-\subsubsection{Estado de la protección}
+    \caption{Comandos del subsistema \texttt{OUTPut}}
+    \label{tab:outp-group}
+    \begin{tabular}{lll}
+        \toprule
+        \textbf{Comando} & \textbf{Descripción} & \textbf{Tipo} \\
+        \midrule
+        \texttt{OUTPut<n>:STATe} & Estado de la salida del canal \texttt{<n>} & Set/Query \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
-\begin{description}
-    \item[Sintaxis:] \texttt{SENSe\#:TEMPerature:PROTection[:STATe] <ON|OFF>\n}
-          \texttt{SENSe\#:TEMPerature:PROTection[:STATe]?\n}
-    \item[Parámetros:] \texttt{ON} (protección habilitada) u \texttt{OFF}
-          (protección deshabilitada).
-    \item[Descripción:] Activa, desactiva o consulta la protección de
-          temperatura en el canal indicado.
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > SENS1:TEMP:PROT ON\n
-          > SENS1:TEMP:PROT?\n
-          < ON\n
-          \end{verbatim}
-\end{description}
+\section{Descripciones de comandos}
+\label{sec:cmd-desc}
 
-\subsubsection{Protección disparada}
+En todos los comandos que incluyen el sufijo \texttt{<n>}, este parámetro
+representa el número de canal (1 o 2).
 
-\begin{description}
-    \item[Sintaxis:] \texttt{SENSe\#:TEMPerature:PROTection:TRIPped?\n}
-    \item[Descripción:] Retorna \texttt{ON} si la protección del canal está
-          actualmente disparada (la temperatura ha excedido un límite y no se
-          ha rearmado), \texttt{OFF} en caso contrario.
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > SENS1:TEMP:PROT:TRIP?\n
-          < OFF\n
-          \end{verbatim}
-\end{description}
+\subsection*{*CLS (Set Only)}
 
-\section{Subsistema \texttt{SOURce}}
+Borra todos los registros de evento y la cola de errores del instrumento. Este comando no modifica los parámetros de funcionamiento ni las salidas.
 
-\subsection{Sensor de realimentación}
+\subsubsection*{Grupo}
+Comandos comunes IEEE~488.2
 
-\begin{description}
-    \item[Sintaxis:] \texttt{SOURce\#:CONTrol:FEEDback <sensor>\n}
-          \texttt{SOURce\#:CONTrol:FEEDback?\n}
-    \item[Parámetros:] \texttt{\#} = número de lazo de control (1 o 2).\\
-          \texttt{<sensor>} = número de sensor (1 o 2) que proporciona la
-          temperatura de entrada al lazo.
-    \item[Descripción:] Asigna o consulta qué sensor físico alimenta el lazo de
-          control indicado.
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > SOUR1:CONT:FEED 1\n
-          > SOUR1:CONT:FEED?\n
-          < 1\n
-          \end{verbatim}
-\end{description}
+\subsubsection*{Sintaxis}
+\texttt{*CLS}
 
-\subsection{Punto de consigna}
+\subsubsection*{Ejemplo}
+\texttt{*CLS}
 
-\begin{description}
-    \item[Sintaxis:] \texttt{SOURce\#:CONTrol:SETPoint <valor>\n}
-          \texttt{SOURce\#:CONTrol:SETPoint?\n}
-    \item[Parámetros:] \texttt{<valor>} = temperatura en °C (rango: -10 a 120).
-    \item[Descripción:] Establece o consulta el punto de consigna del lazo de
-          control.
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > SOUR1:CONT:SETP 35.5\n
-          > SOUR1:CONT:SETP?\n
-          < 35.5\n
-          \end{verbatim}
-\end{description}
+El comando limpia todos los registros de estado. No produce respuesta.
 
-\subsection{Parámetros PID}
+\subsection*{*ESE (Set Only)}
 
-\subsubsection{Ganancia proporcional}
+Habilita bits en el registro de habilitación de evento estándar. Los bits habilitados permiten que los eventos correspondientes del registro de evento estándar se reflejen en el bit ESB del byte de estado.
 
-\begin{description}
-    \item[Sintaxis:] \texttt{SOURce\#:CONTrol:PID:KP <valor>\n}
-          \texttt{SOURce\#:CONTrol:PID:KP?\n}
-    \item[Parámetros:] \texttt{<valor>} = ganancia proporcional ($K_p$).
-    \item[Descripción:] Establece o consulta la ganancia proporcional del PID.
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > SOUR1:CONT:PID:KP 2.5\n
-          > SOUR1:CONT:PID:KP?\n
-          < 2.5000\n
-          \end{verbatim}
-\end{description}
+\subsubsection*{Grupo}
+Comandos comunes IEEE~488.2
 
-\subsubsection{Ganancia integral}
+\subsubsection*{Sintaxis}
+\texttt{*ESE <máscara>}
 
-\begin{description}
-    \item[Sintaxis:] \texttt{SOURce\#:CONTrol:PID:KI <valor>\n}
-          \texttt{SOURce\#:CONTrol:PID:KI?\n}
-    \item[Parámetros:] \texttt{<valor>} = ganancia integral ($K_i$).
-    \item[Descripción:] Establece o consulta la ganancia integral del PID.
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > SOUR1:CONT:PID:KI 0.05\n
-          > SOUR1:CONT:PID:KI?\n
-          < 0.0500\n
-          \end{verbatim}
-\end{description}
+\subsubsection*{Parámetros}
+\texttt{<máscara>} = valor entero entre 0 y 255.
 
-\subsubsection{Ganancia derivativa}
+\subsubsection*{Ejemplo}
+\texttt{*ESE 36}
 
-\begin{description}
-    \item[Sintaxis:] \texttt{SOURce\#:CONTrol:PID:KD <valor>\n}
-          \texttt{SOURce\#:CONTrol:PID:KD?\n}
-    \item[Parámetros:] \texttt{<valor>} = ganancia derivativa ($K_d$).
-    \item[Descripción:] Establece o consulta la ganancia derivativa del PID.
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > SOUR1:CONT:PID:KD 0.01\n
-          > SOUR1:CONT:PID:KD?\n
-          < 0.0100\n
-          \end{verbatim}
-\end{description}
+El comando habilita los bits de error de comando (32) y de ejecución (4). El instrumento no genera respuesta.
 
-\subsection{Límites de salida}
+\subsection*{*ESE? (Query Only)}
 
-\subsubsection{Límite inferior}
+Devuelve el valor actual del registro de habilitación de evento estándar.
 
-\begin{description}
-    \item[Sintaxis:] \texttt{SOURce\#:CONTrol:OUTPut:LIMit:MIN <valor>\n}
-          \texttt{SOURce\#:CONTrol:OUTPut:LIMit:MIN?\n}
-    \item[Parámetros:] \texttt{<valor>} = ciclo de trabajo mínimo (0 a 100).
-    \item[Descripción:] Establece o consulta el límite inferior de la salida del
-          PID.
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > SOUR1:CONT:OUTP:LIM:MIN 0\n
-          > SOUR1:CONT:OUTP:LIM:MIN?\n
-          < 0.0\n
-          \end{verbatim}
-\end{description}
+\subsubsection*{Grupo}
+Comandos comunes IEEE~488.2
 
-\subsubsection{Límite superior}
+\subsubsection*{Sintaxis}
+\texttt{*ESE?}
 
-\begin{description}
-    \item[Sintaxis:] \texttt{SOURce\#:CONTrol:OUTPut:LIMit:MAX <valor>\n}
-          \texttt{SOURce\#:CONTrol:OUTPut:LIMit:MAX?\n}
-    \item[Parámetros:] \texttt{<valor>} = ciclo de trabajo máximo (0 a 100).
-    \item[Descripción:] Establece o consulta el límite superior de la salida del
-          PID.
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > SOUR1:CONT:OUTP:LIM:MAX 80\n
-          > SOUR1:CONT:OUTP:LIM:MAX?\n
-          < 80.0\n
-          \end{verbatim}
-\end{description}
+\subsubsection*{Respuesta}
+Entero entre 0 y 255.
 
-\subsubsection{Ciclo de trabajo actual}
+\subsubsection*{Ejemplo}
+\texttt{*ESE?}
 
-\begin{description}
-    \item[Sintaxis:] \texttt{SOURce\#:CONTrol:OUTPut:LIMit:STATe?\n}
-    \item[Descripción:] Retorna el ciclo de trabajo actual de la salida del PID
-          en porcentaje.
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > SOUR1:CONT:OUTP:LIM:STAT?\n
-          < 45.3\n
-          \end{verbatim}
-\end{description}
+La consulta devuelve el valor programado, por ejemplo \texttt{36}.
 
-\section{Subsistema \texttt{OUTPut}}
+\subsection*{*ESR? (Query Only)}
 
-\subsection{Estado de la salida física}
+Lee y borra el registro de evento estándar. Cada bit indica un tipo de evento ocurrido desde la última lectura.
 
-\begin{description}
-    \item[Sintaxis:] \texttt{OUTPut\#:STATe <ON|OFF>\n}
-          \texttt{OUTPut\#:STATe?\n}
-    \item[Parámetros:] \texttt{ON} (salida activada) u \texttt{OFF} (salida
-          desactivada).
-    \item[Descripción:] Activa, desactiva o consulta el estado de la etapa de
-          potencia del canal indicado. La protección del sensor tiene prioridad:
-          aunque se ordene \texttt{ON}, la salida no se activará si la
-          protección correspondiente está disparada.
-    \item[Ejemplo:]
-          \begin{verbatim}
-          > OUTP1:STAT ON\n
-          > OUTP1:STAT?\n
-          < ON\n
-          \end{verbatim}
-\end{description}
+\subsubsection*{Grupo}
+Comandos comunes IEEE~488.2
+
+\subsubsection*{Sintaxis}
+\texttt{*ESR?}
+
+\subsubsection*{Respuesta}
+Entero entre 0 y 255.
+
+\subsubsection*{Ejemplo}
+\texttt{*ESR?}
+
+La consulta devuelve \texttt{0} si no se ha producido ningún evento desde la última lectura.
+
+\subsection*{*IDN? (Query Only)}
+
+Devuelve la cadena de identificación del instrumento.
+
+\subsubsection*{Grupo}
+Comandos comunes IEEE~488.2
+
+\subsubsection*{Sintaxis}
+\texttt{*IDN?}
+
+\subsubsection*{Respuesta}
+\texttt{DF,CONTROL DE TEMPERATURA,CT2CH,v1.1}
+
+\subsubsection*{Ejemplo}
+\texttt{*IDN?}
+
+La consulta devuelve la identificación completa del instrumento.
+
+\subsection*{*OPC (Set Only)}
+
+Establece el bit OPC del registro de evento estándar cuando todas las operaciones pendientes han finalizado.
+
+\subsubsection*{Grupo}
+Comandos comunes IEEE~488.2
+
+\subsubsection*{Sintaxis}
+\texttt{*OPC}
+
+\subsubsection*{Ejemplo}
+\texttt{*OPC}
+
+El comando permite sincronizar la ejecución de comandos. No genera respuesta.
+
+\subsection*{*OPC? (Query Only)}
+
+Devuelve \texttt{1} cuando todas las operaciones pendientes han finalizado.
+
+\subsubsection*{Grupo}
+Comandos comunes IEEE~488.2
+
+\subsubsection*{Sintaxis}
+\texttt{*OPC?}
+
+\subsubsection*{Respuesta}
+\texttt{1}
+
+\subsubsection*{Ejemplo}
+\texttt{*OPC?}
+
+La consulta devuelve \texttt{1} únicamente cuando el instrumento ha completado todas las operaciones pendientes.
+
+\subsection*{*RST (Set Only)}
+
+Restaura el instrumento a sus valores predeterminados. Apaga todas las salidas, carga los parámetros de fábrica del PID y el \textit{setpoint}, y limpia los registros de estado IEEE~488.2.
+
+\subsubsection*{Grupo}
+Comandos comunes IEEE~488.2
+
+\subsubsection*{Sintaxis}
+\texttt{*RST}
+
+\subsubsection*{Ejemplo}
+\texttt{*RST}
+
+El comando devuelve el instrumento a su estado de fábrica. No produce respuesta.
+
+\subsection*{*SRE (Set Only)}
+
+Habilita bits en el registro de habilitación de petición de servicio.
+
+\subsubsection*{Grupo}
+Comandos comunes IEEE~488.2
+
+\subsubsection*{Sintaxis}
+\texttt{*SRE <máscara>}
+
+\subsubsection*{Parámetros}
+\texttt{<máscara>} = valor entero entre 0 y 255.
+
+\subsubsection*{Ejemplo}
+\texttt{*SRE 32}
+
+El comando habilita la petición de servicio para eventos del registro de evento estándar.
+
+\subsection*{*SRE? (Query Only)}
+
+Devuelve el valor actual del registro de habilitación de petición de
+servicio.
+
+\subsubsection*{Grupo}
+Comandos comunes IEEE~488.2
+
+\subsubsection*{Sintaxis}
+\texttt{*SRE?}
+
+\subsubsection*{Respuesta}
+Entero entre 0 y 255.
+
+\subsubsection*{Ejemplo}
+\texttt{*SRE?}
+
+La consulta devuelve el valor programado, por ejemplo \texttt{32}.
+
+\subsection*{*STB? (Query Only)}
+
+Lee el byte de estado del instrumento.
+
+\subsubsection*{Grupo}
+Comandos comunes IEEE~488.2
+
+\subsubsection*{Sintaxis}
+\texttt{*STB?}
+
+\subsubsection*{Respuesta}
+Entero entre 0 y 255.
+
+\subsubsection*{Ejemplo}
+\texttt{*STB?}
+
+La consulta devuelve el resumen de los registros de evento; por ejemplo
+\texttt{0}.
+
+\subsection*{*TST? (Query Only)}
+
+Ejecuta una autocomprobación interna y devuelve el resultado.
+
+\subsubsection*{Grupo}
+Comandos comunes IEEE~488.2
+
+\subsubsection*{Sintaxis}
+\texttt{*TST?}
+
+\subsubsection*{Respuesta}
+\texttt{0} si no se detectaron fallos; \texttt{1} en caso contrario.
+
+\subsubsection*{Ejemplo}
+\texttt{*TST?}
+
+La consulta devuelve \texttt{0} cuando el instrumento no presenta errores internos.
+
+\subsection*{*WAI (Set Only)}
+
+Suspende la ejecución de comandos hasta que todas las operaciones
+pendientes hayan finalizado.
+
+\subsubsection*{Grupo}
+Comandos comunes IEEE~488.2
+
+\subsubsection*{Sintaxis}
+\texttt{*WAI}
+
+\subsubsection*{Ejemplo}
+\texttt{*WAI}
+
+El comando garantiza que los comandos siguientes se ejecuten después de que terminen las operaciones en curso.
+
+\subsection*{MEASure:TEMPerature<n>? (Query Only)}
+
+Devuelve la temperatura medida por el sensor \texttt{<n>} en grados Celsius.
+
+\subsubsection*{Grupo}
+Medición
+
+\subsubsection*{Sintaxis}
+\texttt{MEASure:TEMPerature<n>?}
+
+\subsubsection*{Parámetros}
+\texttt{<n>} = 1 o 2.
+
+\subsubsection*{Respuesta}
+\texttt{<NR3>} (valor decimal en grados Celsius).
+
+\subsubsection*{Ejemplo}
+\texttt{MEAS:TEMP1?}
+
+La consulta devuelve \texttt{24.7} si el sensor 1 mide 24,7~°C.
+
+\subsection*{OUTPut<n>:STATe}
+
+Activa o desactiva la etapa de potencia del canal \texttt{<n>}. La protección del sensor tiene prioridad: aunque se ordene \texttt{ON}, la salida no se activará si la protección de temperatura correspondiente está
+disparada.
+
+\subsubsection*{Grupo}
+Salidas físicas
+
+\subsubsection*{Sintaxis}
+\texttt{OUTPut<n>:STATe <ON|OFF>}\par
+\texttt{OUTPut<n>:STATe?}
+
+\subsubsection*{Parámetros}
+\texttt{<n>} = 1 o 2.
+
+\subsubsection*{Respuesta (formato de consulta)}
+\texttt{ON} u \texttt{OFF}.
+
+\subsubsection*{Ejemplo}
+\texttt{OUTP1:STAT ON}\par
+\texttt{OUTP1:STAT?}
+
+El primer comando activa la salida del canal 1. La consulta devuelve \texttt{ON} si la salida está efectivamente activa.
+
+\subsection*{SENSe<n>:TEMPerature:PROTection:MAX}
+
+Establece o consulta el límite superior de protección del sensor \texttt{<n>}. Si la temperatura medida supera este valor, la salida correspondiente se desactiva automáticamente.
+
+\subsubsection*{Grupo}
+Configuración de sensor
+
+\subsubsection*{Sintaxis}
+\texttt{SENSe<n>:TEMPerature:PROTection:MAX <valor>}\par
+\texttt{SENSe<n>:TEMPerature:PROTection:MAX?}
+
+\subsubsection*{Parámetros}
+\texttt{<n>} = 1 o 2. \texttt{<valor>} = temperatura en °C.
+
+\subsubsection*{Respuesta (formato de consulta)}
+\texttt{<NR3>} en grados Celsius.
+
+\subsubsection*{Ejemplo}
+\texttt{SENS1:TEMP:PROT:MAX 120}\par
+\texttt{SENS1:TEMP:PROT:MAX?}
+
+El primer comando fija el límite superior en 120~°C. La consulta devuelve
+\texttt{120.0}.
+
+\subsection*{SENSe<n>:TEMPerature:PROTection:MIN}
+
+Establece o consulta el límite inferior de protección del sensor
+\texttt{<n>}. Si la temperatura medida desciende por debajo de este valor,
+la salida correspondiente se desactiva automáticamente.
+
+\subsubsection*{Grupo}
+Configuración de sensor
+
+\subsubsection*{Sintaxis}
+\texttt{SENSe<n>:TEMPerature:PROTection:MIN <valor>}\par
+\texttt{SENSe<n>:TEMPerature:PROTection:MIN?}
+
+\subsubsection*{Parámetros}
+\texttt{<n>} = 1 o 2. \texttt{<valor>} = temperatura en °C.
+
+\subsubsection*{Respuesta (formato de consulta)}
+\texttt{<NR3>} en grados Celsius.
+
+\subsubsection*{Ejemplo}
+\texttt{SENS1:TEMP:PROT:MIN -10}\par
+\texttt{SENS1:TEMP:PROT:MIN?}
+
+El primer comando fija el límite inferior en -10~°C. La consulta devuelve
+\texttt{-10.0}.
+
+\subsection*{SENSe<n>:TEMPerature:PROTection[:STATe]}
+
+Activa o desactiva la banda de protección del sensor \texttt{<n>}.
+
+\subsubsection*{Grupo}
+Configuración de sensor
+
+\subsubsection*{Sintaxis}
+\texttt{SENSe<n>:TEMPerature:PROTection[:STATe] <ON|OFF>}\par
+\texttt{SENSe<n>:TEMPerature:PROTection[:STATe]?}
+
+\subsubsection*{Parámetros}
+\texttt{<n>} = 1 o 2.
+
+\subsubsection*{Respuesta (formato de consulta)}
+\texttt{ON} u \texttt{OFF}.
+
+\subsubsection*{Ejemplo}
+\texttt{SENS1:TEMP:PROT ON}\par
+\texttt{SENS1:TEMP:PROT?}
+
+El primer comando activa la protección del sensor 1. La consulta devuelve
+\texttt{ON}.
+
+\subsection*{SENSe<n>:TEMPerature:PROTection:TRIPped? (Query Only)}
+
+Indica si la protección del sensor \texttt{<n>} está actualmente disparada.
+
+\subsubsection*{Grupo}
+Configuración de sensor
+
+\subsubsection*{Sintaxis}
+\texttt{SENSe<n>:TEMPerature:PROTection:TRIPped?}
+
+\subsubsection*{Parámetros}
+\texttt{<n>} = 1 o 2.
+
+\subsubsection*{Respuesta}
+\texttt{ON} si la protección está disparada; \texttt{OFF} en caso contrario.
+
+\subsubsection*{Ejemplo}
+\texttt{SENS1:TEMP:PROT:TRIP?}
+
+La consulta devuelve \texttt{OFF} cuando la temperatura está dentro de los
+límites configurados.
+
+\subsection*{SENSe<n>:TEMPerature:TYPE}
+
+Configura o consulta el tipo de elemento sensor conectado al canal
+\texttt{<n>}.
+
+\subsubsection*{Grupo}
+Configuración de sensor
+
+\subsubsection*{Sintaxis}
+\texttt{SENSe<n>:TEMPerature:TYPE <tipo>}\par
+\texttt{SENSe<n>:TEMPerature:TYPE?}
+
+\subsubsection*{Parámetros}
+\texttt{<n>} = 1 o 2. \texttt{<tipo>} = \texttt{RTD}, \texttt{TCouple},
+\texttt{LM35} o \texttt{NTC}.
+
+\subsubsection*{Respuesta (formato de consulta)}
+\texttt{RTD}, \texttt{TCouple}, \texttt{LM35} o \texttt{NTC}.
+
+\subsubsection*{Ejemplo}
+\texttt{SENS1:TEMP:TYPE RTD}\par
+\texttt{SENS1:TEMP:TYPE?}
+
+El primer comando configura el sensor 1 como RTD. La consulta devuelve
+\texttt{RTD}.
+
+\subsection*{SOURce<n>:CONTrol:FEEDback}
+
+Asigna o consulta qué sensor físico proporciona la temperatura de entrada
+al lazo de control \texttt{<n>}.
+
+\subsubsection*{Grupo}
+Control del lazo
+
+\subsubsection*{Sintaxis}
+\texttt{SOURce<n>:CONTrol:FEEDback <sensor>}\par
+\texttt{SOURce<n>:CONTrol:FEEDback?}
+
+\subsubsection*{Parámetros}
+\texttt{<n>} = 1 o 2. \texttt{<sensor>} = número de sensor (1 o 2).
+
+\subsubsection*{Respuesta (formato de consulta)}
+\texttt{<NR1>} (1 o 2).
+
+\subsubsection*{Ejemplo}
+\texttt{SOUR1:CONT:FEED 2}\par
+\texttt{SOUR1:CONT:FEED?}
+
+El primer comando asigna el sensor 2 al lazo 1. La consulta devuelve
+\texttt{2}.
+
+\subsection*{SOURce<n>:CONTrol:OUTPut? (Query Only)}
+
+Devuelve el ciclo de trabajo actual de la salida del PID para el canal
+\texttt{<n>}, expresado en porcentaje.
+
+\subsubsection*{Grupo}
+Control del lazo
+
+\subsubsection*{Sintaxis}
+\texttt{SOURce<n>:CONTrol:OUTPut?}
+
+\subsubsection*{Parámetros}
+\texttt{<n>} = 1 o 2.
+
+\subsubsection*{Respuesta}
+\texttt{<NR3>} en porcentaje.
+
+\subsubsection*{Ejemplo}
+\texttt{SOUR1:CONT:OUTP?}
+
+La consulta devuelve \texttt{45.3} cuando el PID está aplicando el
+45,3\,\% de la potencia máxima.
+
+\subsection*{SOURce<n>:CONTrol:OUTPut:LIMit:MAX}
+
+Establece o consulta el límite superior del ciclo de trabajo de la salida
+del PID para el canal \texttt{<n>}.
+
+\subsubsection*{Grupo}
+Control del lazo
+
+\subsubsection*{Sintaxis}
+\texttt{SOURce<n>:CONTrol:OUTPut:LIMit:MAX <valor>}\par
+\texttt{SOURce<n>:CONTrol:OUTPut:LIMit:MAX?}
+
+\subsubsection*{Parámetros}
+\texttt{<n>} = 1 o 2. \texttt{<valor>} = ciclo de trabajo máximo (0 a 100).
+
+\subsubsection*{Respuesta (formato de consulta)}
+\texttt{<NR3>} en porcentaje.
+
+\subsubsection*{Ejemplo}
+\texttt{SOUR1:CONT:OUTP:LIM:MAX 80}\par
+\texttt{SOUR1:CONT:OUTP:LIM:MAX?}
+
+El primer comando restringe la salida del lazo 1 a un máximo del 80\,\%.
+La consulta devuelve \texttt{80.0}.
+
+\subsection*{SOURce<n>:CONTrol:OUTPut:LIMit:MIN}
+
+Establece o consulta el límite inferior del ciclo de trabajo de la salida
+del PID para el canal \texttt{<n>}.
+
+\subsubsection*{Grupo}
+Control del lazo
+
+\subsubsection*{Sintaxis}
+\texttt{SOURce<n>:CONTrol:OUTPut:LIMit:MIN <valor>}\par
+\texttt{SOURce<n>:CONTrol:OUTPut:LIMit:MIN?}
+
+\subsubsection*{Parámetros}
+\texttt{<n>} = 1 o 2. \texttt{<valor>} = ciclo de trabajo mínimo (0 a 100).
+
+\subsubsection*{Respuesta (formato de consulta)}
+\texttt{<NR3>} en porcentaje.
+
+\subsubsection*{Ejemplo}
+\texttt{SOUR1:CONT:OUTP:LIM:MIN 10}\par
+\texttt{SOUR1:CONT:OUTP:LIM:MIN?}
+
+El primer comando fuerza una salida mínima del 10\,\% para el lazo 1. La
+consulta devuelve \texttt{10.0}.
+
+\subsection*{SOURce<n>:CONTrol:OUTPut:LIMit:STATe? (Query Only)}
+
+Indica si la salida del PID del canal \texttt{<n>} ha alcanzado alguno de
+los límites configurados (está saturada).
+
+\subsubsection*{Grupo}
+Control del lazo
+
+\subsubsection*{Sintaxis}
+\texttt{SOURce<n>:CONTrol:OUTPut:LIMit:STATe?}
+
+\subsubsection*{Parámetros}
+\texttt{<n>} = 1 o 2.
+
+\subsubsection*{Respuesta}
+\texttt{ON} si la salida está en un límite; \texttt{OFF} si opera dentro
+del rango normal.
+
+\subsubsection*{Ejemplo}
+\texttt{SOUR1:CONT:OUTP:LIM:STAT?}
+
+La consulta devuelve \texttt{OFF} cuando el ciclo de trabajo está entre los
+límites mínimo y máximo configurados.
+
+\subsection*{SOURce<n>:CONTrol:PID:KD}
+
+Establece o consulta la ganancia derivativa ($K_d$) del controlador PID
+asociado al canal \texttt{<n>}.
+
+\subsubsection*{Grupo}
+Control del lazo
+
+\subsubsection*{Sintaxis}
+\texttt{SOURce<n>:CONTrol:PID:KD <valor>}\par
+\texttt{SOURce<n>:CONTrol:PID:KD?}
+
+\subsubsection*{Parámetros}
+\texttt{<n>} = 1 o 2. \texttt{<valor>} = ganancia derivativa.
+
+\subsubsection*{Respuesta (formato de consulta)}
+\texttt{<NR3>}
+
+\subsubsection*{Ejemplo}
+\texttt{SOUR1:CONT:PID:KD 0.01}\par
+\texttt{SOUR1:CONT:PID:KD?}
+
+El primer comando fija $K_d = 0.01$. La consulta devuelve \texttt{0.0100}.
+
+\subsection*{SOURce<n>:CONTrol:PID:KI}
+
+Establece o consulta la ganancia integral ($K_i$) del controlador PID
+asociado al canal \texttt{<n>}.
+
+\subsubsection*{Grupo}
+Control del lazo
+
+\subsubsection*{Sintaxis}
+\texttt{SOURce<n>:CONTrol:PID:KI <valor>}\par
+\texttt{SOURce<n>:CONTrol:PID:KI?}
+
+\subsubsection*{Parámetros}
+\texttt{<n>} = 1 o 2. \texttt{<valor>} = ganancia integral.
+
+\subsubsection*{Respuesta (formato de consulta)}
+\texttt{<NR3>}
+
+\subsubsection*{Ejemplo}
+\texttt{SOUR1:CONT:PID:KI 0.05}\par
+\texttt{SOUR1:CONT:PID:KI?}
+
+El primer comando fija $K_i = 0.05$. La consulta devuelve \texttt{0.0500}.
+
+\subsection*{SOURce<n>:CONTrol:PID:KP}
+
+Establece o consulta la ganancia proporcional ($K_p$) del controlador PID
+asociado al canal \texttt{<n>}.
+
+\subsubsection*{Grupo}
+Control del lazo
+
+\subsubsection*{Sintaxis}
+\texttt{SOURce<n>:CONTrol:PID:KP <valor>}\par
+\texttt{SOURce<n>:CONTrol:PID:KP?}
+
+\subsubsection*{Parámetros}
+\texttt{<n>} = 1 o 2. \texttt{<valor>} = ganancia proporcional.
+
+\subsubsection*{Respuesta (formato de consulta)}
+\texttt{<NR3>}
+
+\subsubsection*{Ejemplo}
+\texttt{SOUR1:CONT:PID:KP 2.5}\par
+\texttt{SOUR1:CONT:PID:KP?}
+
+El primer comando fija $K_p = 2.5$. La consulta devuelve \texttt{2.5000}.
+
+\subsection*{SOURce<n>:CONTrol:SETPoint}
+
+Establece o consulta el punto de consigna del lazo de control \texttt{<n>}.
+
+\subsubsection*{Grupo}
+Control del lazo
+
+\subsubsection*{Sintaxis}
+\texttt{SOURce<n>:CONTrol:SETPoint <valor>}\par
+\texttt{SOURce<n>:CONTrol:SETPoint?}
+
+\subsubsection*{Parámetros}
+\texttt{<n>} = 1 o 2. \texttt{<valor>} = temperatura en °C (rango: -10 a
+150).
+
+\subsubsection*{Respuesta (formato de consulta)}
+\texttt{<NR3>} en grados Celsius.
+
+\subsubsection*{Ejemplo}
+\texttt{SOUR1:CONT:SETP 35.5}\par
+\texttt{SOUR1:CONT:SETP?}
+
+El primer comando fija el lazo 1 a 35,5~°C. La consulta devuelve
+\texttt{35.5}.
+
+\subsection*{STATus:PRESet (Set Only)}
+
+Restaura los registros de estado del instrumento a sus valores
+predeterminados.
+
+\subsubsection*{Grupo}
+Estado
+
+\subsubsection*{Sintaxis}
+\texttt{STATus:PRESet}
+
+\subsubsection*{Ejemplo}
+\texttt{STAT:PRES}
+
+El comando deja los registros de estado en su configuración por defecto.
+
+\subsection*{STATus:QUEStionable[:EVENt]? (Query Only)}
+
+Lee y borra el registro de evento cuestionable.
+
+\subsubsection*{Grupo}
+Estado
+
+\subsubsection*{Sintaxis}
+\texttt{STATus:QUEStionable[:EVENt]?}
+
+\subsubsection*{Respuesta}
+\texttt{<NR1>} entre 0 y 65535.
+
+\subsubsection*{Ejemplo}
+\texttt{STAT:QUES?}
+
+La consulta devuelve \texttt{0} si no hay condiciones cuestionables
+activas.
+
+\subsection*{STATus:QUEStionable:ENABle}
+
+Habilita bits en el registro de habilitación del registro cuestionable.
+
+\subsubsection*{Grupo}
+Estado
+
+\subsubsection*{Sintaxis}
+\texttt{STATus:QUEStionable:ENABle <máscara>}
+
+\subsubsection*{Parámetros}
+\texttt{<máscara>} = valor entero entre 0 y 65535.
+
+\subsubsection*{Ejemplo}
+\texttt{STAT:QUES:ENAB 1}
+
+El comando habilita el bit 0 del registro cuestionable.
+
+\subsection*{STATus:QUEStionable:ENABle? (Query Only)}
+
+Devuelve el valor actual del registro de habilitación del registro
+cuestionable.
+
+\subsubsection*{Grupo}
+Estado
+
+\subsubsection*{Sintaxis}
+\texttt{STATus:QUEStionable:ENABle?}
+
+\subsubsection*{Respuesta}
+\texttt{<NR1>} entre 0 y 65535.
+
+\subsubsection*{Ejemplo}
+\texttt{STAT:QUES:ENAB?}
+
+La consulta devuelve \texttt{1} si se ha habilitado el bit 0.
+
+\subsection*{SYSTem:ERRor[:NEXT]? (Query Only)}
+
+Devuelve la siguiente entrada de la cola de errores y la elimina de la
+cola.
+
+\subsubsection*{Grupo}
+Sistema
+
+\subsubsection*{Sintaxis}
+\texttt{SYSTem:ERRor[:NEXT]?}
+
+\subsubsection*{Respuesta}
+\texttt{<código>,"<descripción>"}
+
+\subsubsection*{Ejemplo}
+\texttt{SYST:ERR?}
+
+La consulta devuelve \texttt{0,"No error"} cuando no hay errores
+pendientes.
+
+\subsection*{SYSTem:ERRor:COUNt? (Query Only)}
+
+Devuelve el número de entradas almacenadas en la cola de errores.
+
+\subsubsection*{Grupo}
+Sistema
+
+\subsubsection*{Sintaxis}
+\texttt{SYSTem:ERRor:COUNt?}
+
+\subsubsection*{Respuesta}
+\texttt{<NR1>} (entero no negativo).
+
+\subsubsection*{Ejemplo}
+\texttt{SYST:ERR:COUN?}
+
+La consulta devuelve \texttt{0} cuando la cola está vacía.
+
+\subsection*{SYSTem:VERSion? (Query Only)}
+
+Devuelve la versión del estándar SCPI que soporta el instrumento.
+
+\subsubsection*{Grupo}
+Sistema
+
+\subsubsection*{Sintaxis}
+\texttt{SYSTem:VERSion?}
+
+\subsubsection*{Respuesta}
+Cadena en formato \texttt{AAAA.V}.
+
+\subsubsection*{Ejemplo}
+\texttt{SYST:VERS?}
+
+La consulta devuelve \texttt{1999.0}.

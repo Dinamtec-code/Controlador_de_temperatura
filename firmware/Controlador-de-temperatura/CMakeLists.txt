@@ -126,7 +126,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     LINK_DEPENDS ${LINKER_SCRIPT}
 )
 
-target_compile_options(${PROJECT_NAME} PRIVATE -gdwarf-4 -ffunction-sections -fdata-sections -Os -flto)
+target_compile_options(${PROJECT_NAME} PRIVATE -gdwarf-4 -ffunction-sections -fdata-sections -O2 -flto)
 target_link_options(${PROJECT_NAME} PRIVATE -flto)
 #target_compile_options(${PROJECT_NAME} PRIVATE -gdwarf-4)
 

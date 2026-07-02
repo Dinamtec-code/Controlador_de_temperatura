@@ -17,7 +17,7 @@ void task_control(void)
 
     if (!(pid_instance->initialized))
     {
-        pid_init(pid_instance, def_pidKp, def_pidKi, def_pidKd);
+        pid_init(pid_instance, def_pidKp, def_pidKi, def_pidKd, -50.0f, 95.0f, def_temperatureSetpoint);
         pid_set_limits(pid_instance, -50.0f, 95.0f);
         pid_set_setpoint(pid_instance, def_temperatureSetpoint);
 

@@ -10,7 +10,7 @@
 
 #define NUM_CHANNELS PID_CHANNELS
 #define MAX_CONFIGS 4     // [0] = default, [1..3] = personalizadas
-#define CONFIG_NAME_LEN 8 // "PELT\0", "RESI\0", etc.
+#define CONFIG_NAME_LEN 9 // "PELT\0", "RESI\0", etc.
 
 typedef struct
 {
